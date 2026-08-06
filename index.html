@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Nave 3B | Central de Comando</title>
+
+    <!-- Fonte -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+    <!-- LOADING -->
+
+    <div id="loading">
+
+        <h1>NAVE 3B</h1>
+
+        <p>Inicializando Central de Comando...</p>
+
+        <div class="barra">
+
+            <div class="progresso"></div>
+
+        </div>
+
+    </div>
+
+    <!-- APLICAÇÃO -->
+
+    <div id="app">
+
+        <!-- MENU -->
+
+        <aside id="menu">
+
+            <div class="logo">
+
+                <h1>NAVE 3B</h1>
+
+                <p>Central de Comando</p>
+
+            </div>
+
+            <nav>
+
+                <button id="btn-dashboard">
+                    🏠 Dashboard
+                </button>
+
+                <button id="btn-mapa">
+                    🌌 Sistema Estelar
+                </button>
+
+                <button id="btn-missoes">
+                    📜 Missões
+                </button>
+
+                <button id="btn-frotas">
+                    🚀 Frotas
+                </button>
+
+                <button id="btn-inventario">
+                    📦 Inventário
+                </button>
+
+            </nav>
+
+            <div class="painel-info">
+
+                <h3>Status</h3>
+
+                <p id="statusSistema">
+                    🟢 ONLINE
+                </p>
+
+                <hr>
+
+                <p>Versão 0.1</p>
+
+            </div>
+
+        </aside>
+
+        <!-- CONTEÚDO -->
+
+        <main>
+
+            <header>
+
+                <div>
+
+                    <h1 id="tituloPagina">
+                        Dashboard
+                    </h1>
+
+                    <span id="subtituloPagina">
+                        Sistema Operacional Orbital
+                    </span>
+
+                </div>
+
+                <div id="relogio">
+                    00:00:00
+                </div>
+
+            </header>
+
+            <section id="conteudo">
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <!-- JavaScript -->
+
+    <script src="js/storage.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/mapa.js"></script>
+    <script src="js/frotas.js"></script>
+    <script src="js/missoes.js"></script>
+    <script src="js/inventario.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,340 @@
+/* ==========================================
+   RESET
+========================================== */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+:root{
+
+    --bg:#050912;
+
+    --bg2:#0d1525;
+
+    --painel:#131d31;
+
+    --verde:#00ff88;
+
+    --azul:#3db8ff;
+
+    --texto:#edf4ff;
+
+    --texto2:#91a6c3;
+
+    --borda:rgba(255,255,255,.08);
+
+}
+
+html{
+
+    scroll-behavior:smooth;
+
+}
+
+body{
+
+    font-family:'Orbitron',sans-serif;
+
+    color:var(--texto);
+
+    background:radial-gradient(circle at top,#16284b 0%,#050912 70%);
+
+    overflow:hidden;
+
+}
+
+
+/* ==========================================
+   ESTRELAS
+========================================== */
+
+body::before{
+
+    content:"";
+
+    position:fixed;
+
+    inset:0;
+
+    background-image:
+
+    radial-gradient(white 1px,transparent 1px);
+
+    background-size:70px 70px;
+
+    opacity:.18;
+
+    pointer-events:none;
+
+}
+
+body::after{
+
+    content:"";
+
+    position:fixed;
+
+    inset:0;
+
+    background-image:
+
+    linear-gradient(rgba(0,255,136,.05) 1px,transparent 1px),
+
+    linear-gradient(90deg,rgba(0,255,136,.05) 1px,transparent 1px);
+
+    background-size:45px 45px;
+
+    opacity:.25;
+
+    pointer-events:none;
+
+}
+
+
+/* ==========================================
+   LOADING
+========================================== */
+
+#loading{
+
+    position:fixed;
+
+    inset:0;
+
+    background:#03060d;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:25px;
+
+    z-index:99999;
+
+    transition:.6s;
+
+}
+
+#loading h1{
+
+    font-size:52px;
+
+    color:var(--verde);
+
+    letter-spacing:4px;
+
+}
+
+#loading p{
+
+    color:var(--texto2);
+
+}
+
+.barra{
+
+    width:420px;
+
+    height:18px;
+
+    border-radius:50px;
+
+    border:1px solid var(--verde);
+
+    overflow:hidden;
+
+}
+
+.progresso{
+
+    width:0%;
+
+    height:100%;
+
+    background:linear-gradient(
+        90deg,
+        var(--verde),
+        var(--azul)
+    );
+
+}
+
+
+/* ==========================================
+   MENU
+========================================== */
+
+.logo h1{
+
+    color:var(--verde);
+
+    font-size:34px;
+
+    letter-spacing:3px;
+
+}
+
+.logo p{
+
+    margin-top:8px;
+
+    color:var(--texto2);
+
+}
+
+
+/* ==========================================
+   BOTÕES
+========================================== */
+
+button{
+
+    border:none;
+
+    outline:none;
+
+    cursor:pointer;
+
+    font-family:inherit;
+
+}
+
+
+/* ==========================================
+   PAINÉIS
+========================================== */
+
+.card{
+
+    background:rgba(19,29,49,.9);
+
+    border:1px solid var(--borda);
+
+    border-radius:18px;
+
+    padding:22px;
+
+    backdrop-filter:blur(12px);
+
+}
+
+.card h3{
+
+    color:var(--verde);
+
+    margin-bottom:15px;
+
+}
+
+.card p{
+
+    font-size:32px;
+
+    font-weight:bold;
+
+}
+
+
+/* ==========================================
+   TÍTULOS
+========================================== */
+
+h2{
+
+    color:var(--verde);
+
+    margin-bottom:20px;
+
+}
+/* ==========================================
+   FROTAS
+========================================== */
+
+.topo-frotas{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:25px;
+
+}
+
+.topo-frotas button{
+
+    background:#00ff88;
+
+    color:#061018;
+
+    padding:12px 20px;
+
+    border-radius:10px;
+
+    font-weight:bold;
+
+}
+
+.card-frota{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:20px;
+
+    background:rgba(19,29,49,.92);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:16px;
+
+    padding:18px;
+
+    margin-bottom:18px;
+
+}
+
+.cor-frota{
+
+    width:22px;
+
+    height:70px;
+
+    border-radius:8px;
+
+}
+
+.dados-frota{
+
+    flex:1;
+
+}
+
+.card-frota h3{
+
+    color:#00ff88;
+
+    margin-bottom:8px;
+
+}
+
+.card-frota button{
+
+    background:#3db8ff;
+
+    color:white;
+
+    padding:10px 18px;
+
+    border-radius:10px;
+
+}

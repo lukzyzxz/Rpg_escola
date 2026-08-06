@@ -1,0 +1,215 @@
+/* ==========================================
+   LOADING
+========================================== */
+
+.progresso{
+
+    animation: carregarBarra 2.2s linear forwards;
+
+}
+
+@keyframes carregarBarra{
+
+    from{
+
+        width:0%;
+
+    }
+
+    to{
+
+        width:100%;
+
+    }
+
+}
+
+
+/* ==========================================
+   PLANETA VERDEJANTE
+========================================== */
+
+.verdejante{
+
+    animation: brilhoVerdejante 3s ease-in-out infinite;
+
+}
+
+@keyframes brilhoVerdejante{
+
+    0%{
+
+        transform:translate(-50%,-50%) scale(1);
+
+        box-shadow:
+            0 0 20px #00ff88,
+            0 0 40px rgba(0,255,136,.25);
+
+    }
+
+    50%{
+
+        transform:translate(-50%,-50%) scale(1.06);
+
+        box-shadow:
+            0 0 40px #00ff88,
+            0 0 80px rgba(0,255,136,.45);
+
+    }
+
+    100%{
+
+        transform:translate(-50%,-50%) scale(1);
+
+        box-shadow:
+            0 0 20px #00ff88,
+            0 0 40px rgba(0,255,136,.25);
+
+    }
+
+}
+
+
+/* ==========================================
+   PLANETAS DESCONHECIDOS
+========================================== */
+
+.desconhecido{
+
+    animation:misterio 4s infinite ease-in-out;
+
+}
+
+@keyframes misterio{
+
+    0%{
+
+        opacity:.45;
+
+    }
+
+    50%{
+
+        opacity:1;
+
+    }
+
+    100%{
+
+        opacity:.45;
+
+    }
+
+}
+
+
+/* ==========================================
+   BOTÕES
+========================================== */
+
+nav button{
+
+    transition:
+
+        .25s,
+
+        box-shadow .3s;
+
+}
+
+nav button:hover{
+
+    box-shadow:
+
+        0 0 20px rgba(0,255,136,.25);
+
+}
+
+
+/* ==========================================
+   CARDS
+========================================== */
+
+.card{
+
+    transition:.3s;
+
+}
+
+.card:hover{
+
+    transform:translateY(-6px);
+
+    box-shadow:
+
+        0 0 20px rgba(0,255,136,.18);
+
+}
+
+
+/* ==========================================
+   APARECER
+========================================== */
+
+#conteudo{
+
+    animation:aparecer .45s ease;
+
+}
+
+@keyframes aparecer{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(18px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+
+/* ==========================================
+   RELÓGIO
+========================================== */
+
+#relogio{
+
+    animation:pulsarRelogio 2s infinite;
+
+}
+
+@keyframes pulsarRelogio{
+
+    0%{
+
+        text-shadow:0 0 5px #3db8ff;
+
+    }
+
+    50%{
+
+        text-shadow:
+
+            0 0 18px #3db8ff,
+
+            0 0 35px #3db8ff;
+
+    }
+
+    100%{
+
+        text-shadow:0 0 5px #3db8ff;
+
+    }
+
+}
