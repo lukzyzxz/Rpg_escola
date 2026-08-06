@@ -371,3 +371,147 @@ header{
     top:20%;
 
 }
+/* ==========================================
+   INDICADORES DO MENU LATERAL
+========================================== */
+
+.menu-indicadores{
+
+    margin-top:auto;
+
+    display:grid;
+
+    grid-template-columns:repeat(3,minmax(0,1fr));
+
+    gap:8px;
+
+    padding-top:20px;
+
+    border-top:1px solid rgba(255,255,255,.08);
+
+}
+
+.indicador-menu{
+
+    min-width:0;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:space-between;
+
+    gap:9px;
+
+    padding:12px 9px;
+
+    background:rgba(255,255,255,.025);
+
+    border:1px solid rgba(255,255,255,.07);
+
+    border-radius:10px;
+
+    transition:
+
+        background .2s ease,
+        border-color .2s ease,
+        transform .2s ease;
+
+}
+
+.indicador-menu:hover{
+
+    transform:translateY(-2px);
+
+    background:rgba(0,255,136,.055);
+
+    border-color:rgba(0,255,136,.23);
+
+}
+
+.indicador-menu span{
+
+    min-height:26px;
+
+    color:var(--texto2);
+
+    font-family:Arial, sans-serif;
+
+    font-size:9px;
+
+    line-height:1.35;
+
+}
+
+.indicador-menu strong{
+
+    color:var(--verde);
+
+    font-size:18px;
+
+    letter-spacing:1px;
+
+    text-shadow:0 0 12px rgba(0,255,136,.35);
+
+}
+
+
+/* ==========================================
+   AJUSTE DA ESTRUTURA DO MENU
+========================================== */
+
+aside{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+aside nav{
+
+    flex-shrink:0;
+
+}
+
+
+/* ==========================================
+   RESPONSIVIDADE DOS INDICADORES
+========================================== */
+
+@media (max-width:1100px){
+
+    .menu-indicadores{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .indicador-menu{
+
+        flex-direction:row;
+
+        align-items:center;
+
+        min-height:48px;
+
+    }
+
+    .indicador-menu span{
+
+        min-height:auto;
+
+    }
+
+}
+
+
+@media (max-height:720px){
+
+    .menu-indicadores{
+
+        margin-top:20px;
+
+    }
+
+}

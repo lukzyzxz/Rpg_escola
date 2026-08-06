@@ -41,3 +41,277 @@
     }
 
 }
+/* ==========================================
+   RESPONSIVIDADE — DASHBOARD E FROTAS
+========================================== */
+
+@media (max-width:1200px){
+
+    .dashboard-grid{
+
+        grid-template-columns:repeat(2,minmax(0,1fr));
+
+    }
+
+    .lista-frotas{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+/* ==========================================
+   TABLETS
+========================================== */
+
+@media (max-width:900px){
+
+    .cabecalho-modulo{
+
+        align-items:flex-start;
+
+    }
+
+    .resumo-frotas{
+
+        grid-template-columns:repeat(2,minmax(0,1fr));
+
+    }
+
+    .dashboard-card{
+
+        min-height:130px;
+
+    }
+
+    .modal-ui{
+
+        width:min(100%,560px);
+
+    }
+
+}
+
+
+/* ==========================================
+   TELAS MENORES
+========================================== */
+
+@media (max-width:700px){
+
+    .dashboard-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .cabecalho-modulo{
+
+        flex-direction:column;
+
+    }
+
+    .cabecalho-modulo .btn-principal{
+
+        width:100%;
+
+    }
+
+    .resumo-frotas{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .topo-card-frota{
+
+        flex-direction:column;
+
+    }
+
+    .btn-gerenciar{
+
+        width:100%;
+
+    }
+
+    .opcoes-cor{
+
+        grid-template-columns:repeat(3,minmax(0,1fr));
+
+    }
+
+    #modal-overlay{
+
+        padding:14px;
+
+        align-items:flex-start;
+
+        overflow-y:auto;
+
+    }
+
+    .modal-ui{
+
+        width:100%;
+
+        max-height:none;
+
+        margin:auto 0;
+
+        padding:22px;
+
+        border-radius:16px;
+
+    }
+
+    .acoes-gerenciamento{
+
+        flex-direction:column;
+
+        align-items:stretch;
+
+    }
+
+    .acoes-gerenciamento button{
+
+        width:100%;
+
+    }
+
+    .aviso-frota-fixa{
+
+        max-width:none;
+
+        text-align:center;
+
+    }
+
+}
+
+
+/* ==========================================
+   CELULARES
+========================================== */
+
+@media (max-width:480px){
+
+    .dashboard-card{
+
+        min-height:115px;
+
+        padding:17px;
+
+    }
+
+    .dashboard-icone{
+
+        width:52px;
+
+        height:52px;
+
+        font-size:23px;
+
+    }
+
+    .dashboard-card p{
+
+        font-size:25px;
+
+    }
+
+    .resumo-frota-card{
+
+        padding:14px;
+
+    }
+
+    .conteudo-card-frota{
+
+        padding:17px;
+
+    }
+
+    .titulo-frota{
+
+        align-items:flex-start;
+
+    }
+
+    .titulo-frota h3{
+
+        width:calc(100% - 25px);
+
+        font-size:15px;
+
+    }
+
+    .integrantes-resumo{
+
+        margin-top:17px;
+
+    }
+
+    .modal-cabecalho h2{
+
+        font-size:19px;
+
+    }
+
+    .modal-botoes{
+
+        flex-direction:column-reverse;
+
+    }
+
+    .modal-botoes button{
+
+        width:100%;
+
+    }
+
+    .opcoes-cor{
+
+        grid-template-columns:repeat(2,minmax(0,1fr));
+
+    }
+
+    .cabecalho-secao{
+
+        align-items:flex-start;
+
+        flex-direction:column;
+
+    }
+
+    .cabecalho-secao .btn-principal{
+
+        width:100%;
+
+    }
+
+    #toast-container{
+
+        top:14px;
+
+        right:14px;
+
+        left:14px;
+
+        align-items:stretch;
+
+    }
+
+    .toast{
+
+        width:100%;
+
+        min-width:0;
+
+        max-width:none;
+
+    }
+
+}
