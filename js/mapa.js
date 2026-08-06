@@ -67,7 +67,7 @@ function telaMapa() {
 
                         <span>✦</span>
 
-                        <small>NÚCLEO 3B</small>
+                        <small>SISTEMA SOLAR TIÃO</small>
 
                     </div>
 
@@ -349,16 +349,38 @@ function renderizarPlanetaDesbloqueado(
 
         <div class="acoes-painel-planeta">
 
-            <button
-                type="button"
-                class="btn-secundario"
-                onclick="abrirModalEditarPlaneta(${planeta.id})">
+    <button
+        type="button"
+        class="btn-secundario"
+        onclick="abrirModalEditarPlaneta(${planeta.id})">
 
-                Editar Informações
+        Editar Informações
 
-            </button>
+    </button>
 
-        </div>
+    ${
+        Number(planeta.id) !== 1
+            ? `
+                <button
+                    type="button"
+                    class="btn-perigo"
+                    onclick="solicitarBloqueioPlaneta(${planeta.id})">
+
+                    Bloquear Planeta
+
+                </button>
+            `
+            : `
+                <div class="aviso-planeta-fixo">
+
+                    🔒 Verdejante é o planeta inicial
+                    e não pode ser bloqueado.
+
+                </div>
+            `
+    }
+
+</div>
 
     `;
 
@@ -900,7 +922,98 @@ function obterIconePlaneta(planeta) {
     ];
 
 }
+// ======================================
+// BLOQUEAR PLANETA
+// ======================================
 
+function solicitarBloqueioPlaneta(idPlaneta) {
+
+    const planeta =
+        buscarPlanetaMapa(idPlaneta);
+
+    if (!planeta) {
+
+        mostrarNotificacao(
+            "Planeta não encontrado.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    if (Number(planeta.id) === 1) {
+
+        mostrarNotificacao(
+            "Verdejante não pode ser bloqueado.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    const missoesVinculadas =
+        Array.isArray(banco.missoes)
+            ? banco.missoes.filter(
+                missao =>
+                    Number(missao.planetaId)
+                    === Number(idPlaneta)
+            )
+            : [];
+
+    if (missoesVinculadas.length > 0) {
+
+        mostrarNotificacao(
+            `Este planeta possui ${missoesVinculadas.length} missão(ões) vinculada(s). Exclua ou altere essas missões antes de bloqueá-lo.`,
+            "error"
+        );
+
+        return;
+
+    }
+
+    confirmar(
+        `
+            Bloquear o planeta
+            <strong>${escaparTextoMapa(planeta.nome)}</strong>?
+
+            <br><br>
+
+            Ele voltará a aparecer como
+            <strong>INCÓGNITA</strong>.
+        `,
+        () => bloquearPlaneta(idPlaneta)
+    );
+
+}
+
+
+function bloquearPlaneta(idPlaneta) {
+
+    const planeta =
+        buscarPlanetaMapa(idPlaneta);
+
+    if (!planeta || Number(planeta.id) === 1) {
+        return;
+    }
+
+    planeta.nome = "Incógnita";
+    planeta.descricao = "Dados ainda não revelados.";
+    planeta.desbloqueado = false;
+
+    salvarBanco();
+
+    fecharModal();
+
+    abrirPagina("mapa");
+
+    mostrarNotificacao(
+        "Planeta bloqueado e classificado como Incógnita.",
+        "success"
+    );
+
+}
 
 function escaparTextoMapa(valor) {
 

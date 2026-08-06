@@ -4381,3 +4381,28 @@ h2{
     }
 
 }
+/* ==========================================
+   AVISO DE PLANETA FIXO
+========================================== */
+
+.aviso-planeta-fixo{
+
+    padding:12px 14px;
+
+    color:var(--texto2);
+
+    background:rgba(255,255,255,.025);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    border-radius:9px;
+
+    font-family:Arial,sans-serif;
+
+    font-size:11px;
+
+    line-height:1.6;
+
+    text-align:center;
+
+}
