@@ -779,9 +779,20 @@ function adicionarIntegrante(idFrota, nomeInformado) {
 
     const frota = buscarFrota(idFrota);
 
-    const nome = nomeInformado.trim();
+    const nomeIntegrante = String(nomeInformado || "").trim();
 
-    if (!frota || !nome) {
+    if (!frota) {
+
+        mostrarNotificacao(
+            "Frota não encontrada.",
+            "error"
+        );
+
+        return;
+
+    }
+
+    if (!nomeIntegrante) {
 
         mostrarNotificacao(
             "Digite o nome do integrante.",
@@ -794,8 +805,10 @@ function adicionarIntegrante(idFrota, nomeInformado) {
 
     const integranteJaExiste =
         frota.integrantes.some(integrante =>
-            integrante.nome
-                .toLowerCase() === nome.toLowerCase()
+            String(integrante.nome)
+                .trim()
+                .toLowerCase()
+            === nomeIntegrante.toLowerCase()
         );
 
     if (integranteJaExiste) {
@@ -810,16 +823,23 @@ function adicionarIntegrante(idFrota, nomeInformado) {
     }
 
     frota.integrantes.push({
+
         id: gerarId(frota.integrantes),
-        nome: nome
+
+        nome: nomeIntegrante
+
     });
 
     salvarBanco();
 
+    // Atualiza os cards imediatamente
+    conteudo.innerHTML = telaFrotas();
+
+    // Reabre o gerenciamento atualizado
     abrirGerenciamentoFrota(idFrota);
 
     mostrarNotificacao(
-        `${nome} foi adicionado à frota.`,
+        `${nomeIntegrante} foi adicionado à frota.`,
         "success"
     );
 
@@ -847,23 +867,18 @@ function solicitarRemocaoIntegrante(
 
 function removerIntegrante(idFrota, idIntegrante) {
 
-    const frota = buscarFrota(idFrota);
-
-    if (!frota) return;
-
-    frota.integrantes = frota.integrantes.filter(
-        integrante => integrante.id !== idIntegrante
-    );
-
     salvarBanco();
 
-    abrirGerenciamentoFrota(idFrota);
+// Atualiza imediatamente a listagem de frotas
+conteudo.innerHTML = telaFrotas();
 
-    mostrarNotificacao(
-        "Integrante removido da frota.",
-        "success"
-    );
+// Mantém o gerenciamento aberto e atualizado
+abrirGerenciamentoFrota(idFrota);
 
+mostrarNotificacao(
+    "Integrante removido da frota.",
+    "success"
+);
 }
 
 // ======================================
