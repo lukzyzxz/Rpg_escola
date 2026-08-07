@@ -96,7 +96,7 @@ function normalizarBanco(dados) {
     bancoNormalizado.frotas =
         bancoNormalizado.frotas.map(frota => ({
 
-            id: Number(frota.id),
+            id: frota.id,
 
             nome: String(
                 frota.nome || "FROTA SEM NOME"

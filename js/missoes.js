@@ -865,11 +865,9 @@ function salvarMissaoFormulario(
             : "frota";
 
     const frotaId =
-        responsavelTipo === "frota"
-            ? Number(
-                responsavel.replace("frota:", "")
-            )
-            : null;
+    responsavelTipo === "frota"
+        ? responsavel.replace("frota:", "")
+        : null;
 
     const dadosMissao = {
 
@@ -1095,10 +1093,10 @@ function obterNomeResponsavelMissao(missao) {
     }
 
     const frota = banco.frotas.find(
-        item =>
-            Number(item.id)
-            === Number(missao.frotaId)
-    );
+    item =>
+        String(item.id)
+        === String(missao.frotaId)
+);
 
     return frota
         ? frota.nome

@@ -83,7 +83,7 @@ async function carregarFrotasSupabase(atualizarInterface = true) {
         sincronizarFrotasComBancoLocal();
 
         console.log(
-            "✅ Frotas carregadas do Supabase:",
+            "âœ… Frotas carregadas do Supabase:",
             frotasSupabase
         );
 
@@ -94,12 +94,12 @@ async function carregarFrotasSupabase(atualizarInterface = true) {
         return true;
     } catch (erro) {
         console.error(
-            "❌ Erro ao carregar frotas do Supabase:",
+            "âŒ Erro ao carregar frotas do Supabase:",
             erro
         );
 
         mostrarNotificacao(
-            "Não foi possível carregar as frotas.",
+            "NÃ£o foi possÃ­vel carregar as frotas.",
             "error"
         );
 
@@ -111,7 +111,7 @@ function sincronizarFrotasComBancoLocal() {
     if (typeof banco === "undefined") return;
 
     // banco.frotas continua existindo como cache de compatibilidade
-    // para Dashboard e Missões. A fonte oficial agora é o Supabase.
+    // para Dashboard e MissÃµes. A fonte oficial agora Ã© o Supabase.
     banco.frotas = frotasSupabase.map(frota => ({
         ...frota,
         integrantes: frota.integrantes.map(integrante => ({
@@ -150,9 +150,9 @@ function telaFrotas() {
         return `
             <section id="pagina-frotas">
                 <div class="estado-vazio">
-                    <span>🚀</span>
+                    <span>ðŸš€</span>
                     <h3>Carregando frotas...</h3>
-                    <p>Sincronizando dados da tripulação.</p>
+                    <p>Sincronizando dados da tripulaÃ§Ã£o.</p>
                 </div>
             </section>
         `;
@@ -169,7 +169,7 @@ function telaFrotas() {
                 <div>
                     <h2>Gerenciamento de Frotas</h2>
                     <p class="descricao-modulo">
-                        Organize a tripulação em grupos operacionais.
+                        Organize a tripulaÃ§Ã£o em grupos operacionais.
                     </p>
                 </div>
 
@@ -183,7 +183,7 @@ function telaFrotas() {
 
             <div class="resumo-frotas">
                 <div class="card resumo-frota-card">
-                    <span>🚀</span>
+                    <span>ðŸš€</span>
                     <div>
                         <small>Frotas registradas</small>
                         <strong>${formatarNumero(frotasSupabase.length)}</strong>
@@ -191,7 +191,7 @@ function telaFrotas() {
                 </div>
 
                 <div class="card resumo-frota-card">
-                    <span>👨‍🚀</span>
+                    <span>ðŸ‘¨â€ðŸš€</span>
                     <div>
                         <small>Integrantes registrados</small>
                         <strong>${formatarNumero(totalIntegrantes)}</strong>
@@ -214,7 +214,7 @@ function renderizarListaFrotas() {
     if (frotasSupabase.length === 0) {
         return `
             <div class="estado-vazio">
-                <span>🚀</span>
+                <span>ðŸš€</span>
                 <h3>Nenhuma frota cadastrada</h3>
                 <p>Crie a primeira frota operacional.</p>
             </div>
@@ -239,7 +239,7 @@ function criarCardFrota(frota) {
     const integrantesRestantes = frota.integrantes.length - 4;
 
     const identificadorEspecial = frota.fixa
-        ? `<span class="etiqueta-fixa">FROTA PADRÃO</span>`
+        ? `<span class="etiqueta-fixa">FROTA PADRÃƒO</span>`
         : "";
 
     return `
@@ -322,7 +322,7 @@ function abrirModalNovaFrota() {
                 class="btn-fechar-modal"
                 onclick="fecharModal()"
                 aria-label="Fechar">
-                ×
+                Ã—
             </button>
         </div>
 
@@ -339,11 +339,11 @@ function abrirModalNovaFrota() {
                     placeholder="Ex.: Exploradores"
                     required>
 
-                <small>Use um nome único para identificar o grupo.</small>
+                <small>Use um nome Ãºnico para identificar o grupo.</small>
             </div>
 
             <fieldset class="campo-formulario escolha-cor">
-                <legend>Cor de identificação</legend>
+                <legend>Cor de identificaÃ§Ã£o</legend>
                 <div class="opcoes-cor">
                     ${criarOpcoesCores()}
                 </div>
@@ -406,7 +406,7 @@ async function processarNovaFrota(evento) {
 
     if (nomeFrotaJaExiste(nome)) {
         mostrarNotificacao(
-            "Já existe uma frota com esse nome.",
+            "JÃ¡ existe uma frota com esse nome.",
             "error"
         );
         return;
@@ -438,7 +438,7 @@ async function processarNovaFrota(evento) {
     } catch (erro) {
         console.error("Erro ao criar frota:", erro);
         mostrarNotificacao(
-            "Não foi possível criar a frota.",
+            "NÃ£o foi possÃ­vel criar a frota.",
             "error"
         );
         botao.disabled = false;
@@ -453,7 +453,7 @@ function abrirGerenciamentoFrota(idFrota) {
     const frota = buscarFrota(idFrota);
 
     if (!frota) {
-        mostrarNotificacao("Frota não encontrada.", "error");
+        mostrarNotificacao("Frota nÃ£o encontrada.", "error");
         return;
     }
 
@@ -471,7 +471,7 @@ function abrirGerenciamentoFrota(idFrota) {
                 class="btn-fechar-modal"
                 onclick="fecharModal()"
                 aria-label="Fechar">
-                ×
+                Ã—
             </button>
         </div>
 
@@ -483,7 +483,7 @@ function abrirGerenciamentoFrota(idFrota) {
                 </span>
 
                 <div>
-                    <small>Identificação visual</small>
+                    <small>IdentificaÃ§Ã£o visual</small>
                     <strong>${obterNomeCor(frota.cor)}</strong>
                 </div>
             </div>
@@ -538,8 +538,8 @@ function abrirGerenciamentoFrota(idFrota) {
                         `
                         : `
                             <div class="aviso-frota-fixa">
-                                🔒 A frota POVO LIVRE é permanente
-                                e não pode ser alterada ou excluída.
+                                ðŸ”’ A frota POVO LIVRE Ã© permanente
+                                e nÃ£o pode ser alterada ou excluÃ­da.
                             </div>
                         `
                 }
@@ -552,7 +552,7 @@ function renderizarIntegrantesFrota(frota) {
     if (frota.integrantes.length === 0) {
         return `
             <div class="estado-vazio compacto">
-                <span>👨‍🚀</span>
+                <span>ðŸ‘¨â€ðŸš€</span>
                 <p>Nenhum integrante nesta frota.</p>
             </div>
         `;
@@ -578,7 +578,7 @@ function renderizarIntegrantesFrota(frota) {
                                     '${integrante.id}'
                                 )"
                                 aria-label="Remover integrante">
-                                ×
+                                Ã—
                             </button>
                         `
                         : ""
@@ -604,7 +604,7 @@ function abrirModalNovoIntegrante(idFrota) {
         <div class="modal-cabecalho">
             <div>
                 <span class="modal-subtitulo">
-                    TRANSFERÊNCIA DE TRIPULANTE
+                    TRANSFERÃŠNCIA DE TRIPULANTE
                 </span>
                 <h2>Adicionar Integrante</h2>
             </div>
@@ -613,7 +613,7 @@ function abrirModalNovoIntegrante(idFrota) {
                 type="button"
                 class="btn-fechar-modal"
                 onclick="abrirGerenciamentoFrota('${idFrota}')">
-                ×
+                Ã—
             </button>
         </div>
 
@@ -648,8 +648,8 @@ function abrirModalNovoIntegrante(idFrota) {
                         .join("")
                     : `
                         <div class="estado-vazio compacto">
-                            <span>👨‍🚀</span>
-                            <p>Nenhum integrante disponível no POVO LIVRE.</p>
+                            <span>ðŸ‘¨â€ðŸš€</span>
+                            <p>Nenhum integrante disponÃ­vel no POVO LIVRE.</p>
                         </div>
                     `
             }
@@ -671,7 +671,7 @@ async function adicionarIntegrante(idFrota, idIntegrante) {
     const povoLivre = buscarPovoLivre();
 
     if (!frota || !povoLivre || frota.fixa) {
-        mostrarNotificacao("Frota não encontrada.", "error");
+        mostrarNotificacao("Frota nÃ£o encontrada.", "error");
         return;
     }
 
@@ -681,7 +681,7 @@ async function adicionarIntegrante(idFrota, idIntegrante) {
 
     if (!integrante) {
         mostrarNotificacao(
-            "Esse integrante não está disponível no POVO LIVRE.",
+            "Esse integrante nÃ£o estÃ¡ disponÃ­vel no POVO LIVRE.",
             "error"
         );
         return;
@@ -704,13 +704,13 @@ async function adicionarIntegrante(idFrota, idIntegrante) {
         abrirGerenciamentoFrota(idFrota);
 
         mostrarNotificacao(
-            `${integrante.nome} foi adicionado �  frota.`,
+            `${integrante.nome} foi adicionado Ã  frota.`,
             "success"
         );
     } catch (erro) {
         console.error("Erro ao adicionar integrante:", erro);
         mostrarNotificacao(
-            "Não foi possível mover o integrante.",
+            "NÃ£o foi possÃ­vel mover o integrante.",
             "error"
         );
     }
@@ -727,7 +727,7 @@ function solicitarRemocaoIntegrante(idFrota, idIntegrante) {
 
     confirmar(
         `Remover ${escaparHTML(integrante.nome)} da frota? `
-        + "O integrante voltará para o POVO LIVRE.",
+        + "O integrante voltarÃ¡ para o POVO LIVRE.",
         () => removerIntegrante(idFrota, idIntegrante)
     );
 }
@@ -762,7 +762,7 @@ async function removerIntegrante(idFrota, idIntegrante) {
     } catch (erro) {
         console.error("Erro ao remover integrante:", erro);
         mostrarNotificacao(
-            "Não foi possível remover o integrante.",
+            "NÃ£o foi possÃ­vel remover o integrante.",
             "error"
         );
     }
@@ -781,7 +781,7 @@ function abrirModalRenomearFrota(idFrota) {
         <div class="modal-cabecalho">
             <div>
                 <span class="modal-subtitulo">
-                    ALTERAÇÃO DE IDENTIFICAÇÃO
+                    ALTERAÃ‡ÃƒO DE IDENTIFICAÃ‡ÃƒO
                 </span>
                 <h2>Renomear Frota</h2>
             </div>
@@ -790,7 +790,7 @@ function abrirModalRenomearFrota(idFrota) {
                 type="button"
                 class="btn-fechar-modal"
                 onclick="abrirGerenciamentoFrota('${idFrota}')">
-                ×
+                Ã—
             </button>
         </div>
 
@@ -817,7 +817,7 @@ function abrirModalRenomearFrota(idFrota) {
                 </button>
 
                 <button type="submit" class="btn-principal">
-                    Salvar Alteração
+                    Salvar AlteraÃ§Ã£o
                 </button>
             </div>
         </form>
@@ -840,13 +840,13 @@ async function renomearFrota(idFrota, nomeInformado) {
     const novoNome = String(nomeInformado || "").trim();
 
     if (!frota || frota.fixa || !novoNome) {
-        mostrarNotificacao("Digite um nome válido.", "error");
+        mostrarNotificacao("Digite um nome vÃ¡lido.", "error");
         return;
     }
 
     if (nomeFrotaJaExiste(novoNome, idFrota)) {
         mostrarNotificacao(
-            "Já existe outra frota com esse nome.",
+            "JÃ¡ existe outra frota com esse nome.",
             "error"
         );
         return;
@@ -872,14 +872,14 @@ async function renomearFrota(idFrota, nomeInformado) {
     } catch (erro) {
         console.error("Erro ao renomear frota:", erro);
         mostrarNotificacao(
-            "Não foi possível renomear a frota.",
+            "NÃ£o foi possÃ­vel renomear a frota.",
             "error"
         );
     }
 }
 
 // ======================================
-// EXCLUSÃO
+// EXCLUSÃƒO
 // ======================================
 
 function solicitarExclusaoFrota(idFrota) {
@@ -889,7 +889,7 @@ function solicitarExclusaoFrota(idFrota) {
 
     if (frota.fixa) {
         mostrarNotificacao(
-            "A frota POVO LIVRE não pode ser excluída.",
+            "A frota POVO LIVRE nÃ£o pode ser excluÃ­da.",
             "error"
         );
         return;
@@ -899,7 +899,7 @@ function solicitarExclusaoFrota(idFrota) {
         `
             Excluir a frota
             <strong>${escaparHTML(frota.nome)}</strong>?
-            Os integrantes serão devolvidos ao POVO LIVRE.
+            Os integrantes serÃ£o devolvidos ao POVO LIVRE.
         `,
         () => excluirFrota(idFrota)
     );
@@ -937,13 +937,13 @@ async function excluirFrota(idFrota) {
         atualizarTelaFrotas();
 
         mostrarNotificacao(
-            "Frota excluída com sucesso.",
+            "Frota excluÃ­da com sucesso.",
             "success"
         );
     } catch (erro) {
         console.error("Erro ao excluir frota:", erro);
         mostrarNotificacao(
-            "Não foi possível excluir a frota.",
+            "NÃ£o foi possÃ­vel excluir a frota.",
             "error"
         );
     }
@@ -1031,7 +1031,7 @@ function escaparAtributo(valor) {
 }
 
 // ======================================
-// INTEGRAÇÃO COM AUTENTICAÇÃO
+// INTEGRAÃ‡ÃƒO COM AUTENTICAÃ‡ÃƒO
 // ======================================
 
 document.addEventListener(
