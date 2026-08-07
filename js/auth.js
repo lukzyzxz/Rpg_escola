@@ -15,6 +15,7 @@ window.addEventListener(
     "load",
     () => {
 
+        // Aguarda o loading principal da Nave 3B
         setTimeout(
             inicializarAutenticacao,
             1300
@@ -26,11 +27,7 @@ window.addEventListener(
 
 async function inicializarAutenticacao() {
 
-    // Esconde o sistema até sabermos
-    // se existe uma sessão válida.
     ocultarSistema();
-
-    
 
     try {
 
@@ -39,11 +36,14 @@ async function inicializarAutenticacao() {
             error
         } = await supabaseClient.auth.getSession();
 
+
         if (error) {
             throw error;
         }
 
+
         const sessao = data.session;
+
 
         if (sessao?.user) {
 
@@ -56,6 +56,7 @@ async function inicializarAutenticacao() {
             mostrarTelaLogin();
 
         }
+
 
     } catch (erro) {
 
@@ -71,7 +72,7 @@ async function inicializarAutenticacao() {
     }
 
 
-    // Detecta login/logout e mudanças de sessão.
+    // Detecta alterações de autenticação
     supabaseClient.auth.onAuthStateChange(
         async (evento, sessao) => {
 
@@ -84,15 +85,18 @@ async function inicializarAutenticacao() {
                 window.profileAtual = null;
 
                 ocultarSistema();
+
                 mostrarTelaLogin();
 
                 return;
 
             }
 
+
             if (
                 evento === "SIGNED_IN"
                 || evento === "TOKEN_REFRESHED"
+                || evento === "USER_UPDATED"
             ) {
 
                 await autenticarUsuarioNoSistema(
@@ -108,7 +112,7 @@ async function inicializarAutenticacao() {
 
 
 // ======================================
-// LOGIN
+// TELA DE LOGIN
 // ======================================
 
 function mostrarTelaLogin(
@@ -117,7 +121,8 @@ function mostrarTelaLogin(
 
     removerTelaAuth();
 
-    const tela = document.createElement("div");
+    const tela =
+        document.createElement("div");
 
     tela.id = "auth-screen";
 
@@ -126,7 +131,10 @@ function mostrarTelaLogin(
         <div class="auth-decoracao auth-decoracao-1"></div>
         <div class="auth-decoracao auth-decoracao-2"></div>
 
+
         <div class="auth-container">
+
+            <!-- IDENTIDADE -->
 
             <div class="auth-identidade">
 
@@ -148,119 +156,163 @@ function mostrarTelaLogin(
             <div class="auth-divisor"></div>
 
 
-            <form
-                id="form-login"
-                class="auth-form">
+            <!-- ÁREA DE AUTENTICAÇÃO -->
 
-                <div class="auth-titulo">
+            <div class="auth-area">
 
-                    <span>
-                        AUTENTICAÇÃO
-                    </span>
+                <div class="auth-abas">
 
-                    <h2>
-                        Acesso ao Sistema
-                    </h2>
+                    <button
+                        type="button"
+                        id="aba-login"
+                        class="auth-aba ativa"
+                        onclick="mostrarFormularioLogin()">
 
-                    <p>
-                        Insira suas credenciais
-                        de tripulante.
-                    </p>
+                        ENTRAR
+
+                    </button>
+
+                    <button
+                        type="button"
+                        id="aba-cadastro"
+                        class="auth-aba"
+                        onclick="mostrarFormularioCadastro()">
+
+                        CRIAR CONTA
+
+                    </button>
 
                 </div>
 
 
-                <div class="auth-campo">
+                <form
+                    id="form-login"
+                    class="auth-form">
 
-                    <label for="login-email">
-                        E-mail
-                    </label>
-
-                    <div class="auth-input-wrapper">
+                    <div class="auth-titulo">
 
                         <span>
-                            ✉
+                            AUTENTICAÇÃO
                         </span>
 
-                        <input
-                            id="login-email"
-                            name="email"
-                            type="email"
-                            autocomplete="email"
-                            placeholder="tripulante@email.com"
-                            required>
+                        <h2>
+                            Acesso ao Sistema
+                        </h2>
+
+                        <p>
+                            Insira suas credenciais
+                            de tripulante.
+                        </p>
 
                     </div>
 
-                </div>
 
+                    <!-- USUÁRIO -->
 
-                <div class="auth-campo">
+                    <div class="auth-campo">
 
-                    <label for="login-senha">
-                        Senha
-                    </label>
+                        <label for="login-usuario">
 
-                    <div class="auth-input-wrapper">
+                            Nome de usuário
 
-                        <span>
-                            ◈
-                        </span>
+                        </label>
 
-                        <input
-                            id="login-senha"
-                            name="senha"
-                            type="password"
-                            autocomplete="current-password"
-                            placeholder="••••••••"
-                            required>
+                        <div class="auth-input-wrapper">
 
-                        <button
-                            id="btn-mostrar-senha"
-                            type="button"
-                            class="auth-ver-senha"
-                            aria-label="Mostrar senha">
+                            <span>
+                                👨‍🚀
+                            </span>
 
-                            ◉
+                            <input
+                                id="login-usuario"
+                                name="usuario"
+                                type="text"
+                                autocomplete="username"
+                                maxlength="30"
+                                placeholder="ex.: lucas"
+                                required>
 
-                        </button>
+                        </div>
 
                     </div>
 
-                </div>
+
+                    <!-- SENHA -->
+
+                    <div class="auth-campo">
+
+                        <label for="login-senha">
+
+                            Senha
+
+                        </label>
+
+                        <div class="auth-input-wrapper">
+
+                            <span>
+                                ◈
+                            </span>
+
+                            <input
+                                id="login-senha"
+                                name="senha"
+                                type="password"
+                                autocomplete="current-password"
+                                placeholder="••••••••"
+                                required>
+
+                            <button
+                                id="btn-mostrar-senha"
+                                type="button"
+                                class="auth-ver-senha"
+                                aria-label="Mostrar senha">
+
+                                ◉
+
+                            </button>
+
+                        </div>
+
+                    </div>
 
 
-                <div
-                    id="auth-mensagem"
-                    class="auth-mensagem
-                    ${mensagem ? "visivel erro" : ""}">
+                    <!-- MENSAGEM -->
 
-                    ${escaparTextoAuth(mensagem)}
+                    <div
+                        id="auth-mensagem"
+                        class="auth-mensagem
+                        ${mensagem ? "visivel erro" : ""}">
 
-                </div>
+                        ${escaparTextoAuth(mensagem)}
 
-
-                <button
-                    id="btn-login"
-                    type="submit"
-                    class="auth-btn">
-
-                    <span>
-                        ENTRAR NO SISTEMA
-                    </span>
-
-                </button>
+                    </div>
 
 
-                <div class="auth-status">
+                    <!-- BOTÃO -->
 
-                    <span class="auth-status-ponto"></span>
+                    <button
+                        id="btn-login"
+                        type="submit"
+                        class="auth-btn">
 
-                    Servidor orbital disponível
+                        <span>
+                            ENTRAR NO SISTEMA
+                        </span>
 
-                </div>
+                    </button>
 
-            </form>
+
+                    <div class="auth-status">
+
+                        <span class="auth-status-ponto"></span>
+
+                        Servidor orbital disponível
+
+                    </div>
+
+                </form>
+
+            </div>
 
         </div>
 
@@ -268,12 +320,15 @@ function mostrarTelaLogin(
         <div class="auth-rodape">
 
             SISTEMA SOLAR TIÃO
+
             <span>•</span>
+
             NAVE 3B
 
         </div>
 
     `;
+
 
     document.body.appendChild(tela);
 
@@ -283,13 +338,15 @@ function mostrarTelaLogin(
 
 
 // ======================================
-// FORMULÁRIO
+// CONFIGURAR LOGIN
 // ======================================
 
 function configurarFormularioLogin() {
 
     const formulario =
-        document.getElementById("form-login");
+        document.getElementById(
+            "form-login"
+        );
 
     const botaoSenha =
         document.getElementById(
@@ -302,31 +359,44 @@ function configurarFormularioLogin() {
         );
 
 
-    botaoSenha.addEventListener(
-        "click",
-        () => {
+    if (
+        botaoSenha
+        && campoSenha
+    ) {
 
-            const mostrando =
-                campoSenha.type === "text";
+        botaoSenha.addEventListener(
+            "click",
+            () => {
 
-            campoSenha.type =
-                mostrando
-                    ? "password"
-                    : "text";
-
-            botaoSenha.textContent =
-                mostrando
-                    ? "◉"
-                    : "◎";
-
-        }
-    );
+                const senhaVisivel =
+                    campoSenha.type === "text";
 
 
-    formulario.addEventListener(
-        "submit",
-        realizarLogin
-    );
+                campoSenha.type =
+                    senhaVisivel
+                        ? "password"
+                        : "text";
+
+
+                botaoSenha.textContent =
+                    senhaVisivel
+                        ? "◉"
+                        : "◎";
+
+            }
+        );
+
+    }
+
+
+    if (formulario) {
+
+        formulario.addEventListener(
+            "submit",
+            realizarLogin
+        );
+
+    }
 
 }
 
@@ -339,22 +409,25 @@ async function realizarLogin(evento) {
 
     evento.preventDefault();
 
+
     const formulario =
         evento.currentTarget;
 
-    const email =
-        formulario.email.value
-            .trim()
-            .toLowerCase();
+
+    const username =
+        normalizarUsername(
+            formulario.usuario.value
+        );
+
 
     const senha =
         formulario.senha.value;
 
 
-    if (!email || !senha) {
+    if (!username || !senha) {
 
         mostrarErroAuth(
-            "Informe o e-mail e a senha."
+            "Informe o usuário e a senha."
         );
 
         return;
@@ -367,6 +440,10 @@ async function realizarLogin(evento) {
     limparErroAuth();
 
 
+    const emailInterno =
+        criarEmailInterno(username);
+
+
     try {
 
         const {
@@ -375,8 +452,11 @@ async function realizarLogin(evento) {
         } =
             await supabaseClient.auth
                 .signInWithPassword({
-                    email,
+
+                    email: emailInterno,
+
                     password: senha
+
                 });
 
 
@@ -406,15 +486,606 @@ async function realizarLogin(evento) {
             erro
         );
 
+
         mostrarErroAuth(
             traduzirErroLogin(erro)
         );
+
 
     } finally {
 
         alterarEstadoBotaoLogin(false);
 
     }
+
+}
+
+
+// ======================================
+// CADASTRO
+// ======================================
+
+function mostrarFormularioCadastro() {
+
+    const area =
+        document.querySelector(
+            ".auth-area"
+        );
+
+
+    if (!area) {
+        return;
+    }
+
+
+    area.innerHTML = `
+
+        <div class="auth-abas">
+
+            <button
+                type="button"
+                id="aba-login"
+                class="auth-aba"
+                onclick="mostrarFormularioLogin()">
+
+                ENTRAR
+
+            </button>
+
+            <button
+                type="button"
+                id="aba-cadastro"
+                class="auth-aba ativa">
+
+                CRIAR CONTA
+
+            </button>
+
+        </div>
+
+
+        <form
+            id="form-cadastro"
+            class="auth-form">
+
+            <div class="auth-titulo">
+
+                <span>
+                    NOVO TRIPULANTE
+                </span>
+
+                <h2>
+                    Criar Conta
+                </h2>
+
+                <p>
+                    Registre suas credenciais
+                    para acessar a Nave 3B.
+                </p>
+
+            </div>
+
+
+            <!-- NOME -->
+
+            <div class="auth-campo">
+
+                <label for="cadastro-nome">
+
+                    Nome
+
+                </label>
+
+                <div class="auth-input-wrapper">
+
+                    <span>
+                        👤
+                    </span>
+
+                    <input
+                        id="cadastro-nome"
+                        name="nome"
+                        type="text"
+                        autocomplete="name"
+                        maxlength="60"
+                        placeholder="Ex.: Lucas Felipe"
+                        required>
+
+                </div>
+
+            </div>
+
+
+            <!-- USERNAME -->
+
+            <div class="auth-campo">
+
+                <label for="cadastro-usuario">
+
+                    Nome de usuário
+
+                </label>
+
+                <div class="auth-input-wrapper">
+
+                    <span>
+                        🚀
+                    </span>
+
+                    <input
+                        id="cadastro-usuario"
+                        name="usuario"
+                        type="text"
+                        autocomplete="username"
+                        maxlength="30"
+                        placeholder="Ex.: lucas"
+                        required>
+
+                </div>
+
+            </div>
+
+
+            <!-- SENHA -->
+
+            <div class="auth-campo">
+
+                <label for="cadastro-senha">
+
+                    Senha
+
+                </label>
+
+                <div class="auth-input-wrapper">
+
+                    <span>
+                        ◈
+                    </span>
+
+                    <input
+                        id="cadastro-senha"
+                        name="senha"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="6"
+                        maxlength="72"
+                        placeholder="Mínimo 6 caracteres"
+                        required>
+
+                    <button
+                        id="btn-mostrar-senha-cadastro"
+                        type="button"
+                        class="auth-ver-senha"
+                        aria-label="Mostrar senha">
+
+                        ◉
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- CONFIRMAR SENHA -->
+
+            <div class="auth-campo">
+
+                <label for="cadastro-confirmar-senha">
+
+                    Confirmar senha
+
+                </label>
+
+                <div class="auth-input-wrapper">
+
+                    <span>
+                        ◈
+                    </span>
+
+                    <input
+                        id="cadastro-confirmar-senha"
+                        name="confirmarSenha"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="6"
+                        maxlength="72"
+                        placeholder="Digite a senha novamente"
+                        required>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="auth-mensagem"
+                class="auth-mensagem">
+            </div>
+
+
+            <button
+                id="btn-cadastro"
+                type="submit"
+                class="auth-btn">
+
+                CRIAR CONTA
+
+            </button>
+
+
+            <div class="auth-status">
+
+                <span class="auth-status-ponto"></span>
+
+                Novo tripulante será vinculado
+                à frota POVO LIVRE
+
+            </div>
+
+        </form>
+
+    `;
+
+
+    configurarFormularioCadastro();
+
+}
+
+
+// ======================================
+// CONFIGURAR CADASTRO
+// ======================================
+
+function configurarFormularioCadastro() {
+
+    const formulario =
+        document.getElementById(
+            "form-cadastro"
+        );
+
+
+    const campoSenha =
+        document.getElementById(
+            "cadastro-senha"
+        );
+
+
+    const campoConfirmacao =
+        document.getElementById(
+            "cadastro-confirmar-senha"
+        );
+
+
+    const botaoSenha =
+        document.getElementById(
+            "btn-mostrar-senha-cadastro"
+        );
+
+
+    if (
+        botaoSenha
+        && campoSenha
+        && campoConfirmacao
+    ) {
+
+        botaoSenha.addEventListener(
+            "click",
+            () => {
+
+                const senhaVisivel =
+                    campoSenha.type === "text";
+
+
+                const novoTipo =
+                    senhaVisivel
+                        ? "password"
+                        : "text";
+
+
+                campoSenha.type =
+                    novoTipo;
+
+
+                campoConfirmacao.type =
+                    novoTipo;
+
+
+                botaoSenha.textContent =
+                    senhaVisivel
+                        ? "◉"
+                        : "◎";
+
+            }
+        );
+
+    }
+
+
+    if (formulario) {
+
+        formulario.addEventListener(
+            "submit",
+            realizarCadastro
+        );
+
+    }
+
+
+    const usuario =
+        document.getElementById(
+            "cadastro-usuario"
+        );
+
+
+    if (usuario) {
+
+        usuario.addEventListener(
+            "input",
+            () => {
+
+                const normalizado =
+                    normalizarUsername(
+                        usuario.value
+                    );
+
+
+                if (
+                    usuario.value
+                    !== normalizado
+                ) {
+
+                    usuario.value =
+                        normalizado;
+
+                }
+
+            }
+        );
+
+    }
+
+}
+
+
+// ======================================
+// REALIZAR CADASTRO
+// ======================================
+
+async function realizarCadastro(evento) {
+
+    if (evento) {
+        evento.preventDefault();
+    }
+
+
+    const nome =
+        document
+            .getElementById(
+                "cadastro-nome"
+            )
+            ?.value
+            .trim();
+
+
+    const username =
+        normalizarUsername(
+            document
+                .getElementById(
+                    "cadastro-usuario"
+                )
+                ?.value
+        );
+
+
+    const senha =
+        document
+            .getElementById(
+                "cadastro-senha"
+            )
+            ?.value;
+
+
+    const confirmarSenha =
+        document
+            .getElementById(
+                "cadastro-confirmar-senha"
+            )
+            ?.value;
+
+
+    if (
+        !nome
+        || !username
+        || !senha
+        || !confirmarSenha
+    ) {
+
+        mostrarErroAuth(
+            "Preencha todos os campos."
+        );
+
+        return;
+
+    }
+
+
+    if (nome.length < 2) {
+
+        mostrarErroAuth(
+            "Informe um nome válido."
+        );
+
+        return;
+
+    }
+
+
+    if (username.length < 3) {
+
+        mostrarErroAuth(
+            "O nome de usuário precisa ter pelo menos 3 caracteres."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !/^[a-z0-9._-]+$/.test(
+            username
+        )
+    ) {
+
+        mostrarErroAuth(
+            "O usuário pode conter apenas letras, números, ponto, hífen e underline."
+        );
+
+        return;
+
+    }
+
+
+    if (senha.length < 6) {
+
+        mostrarErroAuth(
+            "A senha precisa ter pelo menos 6 caracteres."
+        );
+
+        return;
+
+    }
+
+
+    if (senha !== confirmarSenha) {
+
+        mostrarErroAuth(
+            "As senhas não são iguais."
+        );
+
+        return;
+
+    }
+
+
+    limparErroAuth();
+
+    alterarEstadoBotaoCadastro(true);
+
+
+    const emailInterno =
+        criarEmailInterno(
+            username
+        );
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth.signUp({
+
+                email:
+                    emailInterno,
+
+                password:
+                    senha,
+
+                options: {
+
+                    data: {
+
+                        nome:
+                            nome,
+
+                        username:
+                            username
+
+                    }
+
+                }
+
+            });
+
+
+        if (error) {
+            throw error;
+        }
+
+
+        if (!data.user) {
+
+            throw new Error(
+                "Não foi possível criar a conta."
+            );
+
+        }
+
+
+        if (
+            typeof mostrarNotificacao
+            === "function"
+        ) {
+
+            mostrarNotificacao(
+                "Conta criada com sucesso!",
+                "success"
+            );
+
+        }
+
+
+        // Se confirmação de e-mail estiver
+        // desativada, haverá sessão imediatamente.
+        if (data.session) {
+
+            await autenticarUsuarioNoSistema(
+                data.user
+            );
+
+        } else {
+
+            mostrarTelaLogin(
+                "Conta criada. Faça login para continuar."
+            );
+
+        }
+
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao criar conta:",
+            erro
+        );
+
+
+        mostrarErroAuth(
+            traduzirErroCadastro(
+                erro
+            )
+        );
+
+
+    } finally {
+
+        alterarEstadoBotaoCadastro(false);
+
+    }
+
+}
+
+
+// ======================================
+// VOLTAR AO LOGIN
+// ======================================
+
+function mostrarFormularioLogin() {
+
+    mostrarTelaLogin();
 
 }
 
@@ -429,14 +1100,19 @@ async function autenticarUsuarioNoSistema(
 
     try {
 
-        window.usuarioAtual = usuario;
+        window.usuarioAtual =
+            usuario;
+
 
         const profile =
             await carregarProfileUsuario(
                 usuario.id
             );
 
-        window.profileAtual = profile;
+
+        window.profileAtual =
+            profile;
+
 
         removerTelaAuth();
 
@@ -447,20 +1123,31 @@ async function autenticarUsuarioNoSistema(
 
         console.log(
             "✅ Usuário autenticado:",
-            profile?.nome || usuario.email
+            profile?.username
+            || profile?.nome
+            || usuario.email
         );
 
 
         document.dispatchEvent(
+
             new CustomEvent(
                 "usuarioAutenticado",
                 {
+
                     detail: {
-                        usuario,
-                        profile
+
+                        usuario:
+                            usuario,
+
+                        profile:
+                            profile
+
                     }
+
                 }
             )
+
         );
 
 
@@ -471,7 +1158,31 @@ async function autenticarUsuarioNoSistema(
             erro
         );
 
-        await supabaseClient.auth.signOut();
+
+        window.usuarioAtual =
+            null;
+
+        window.profileAtual =
+            null;
+
+
+        try {
+
+            await supabaseClient.auth
+                .signOut();
+
+        } catch (erroLogout) {
+
+            console.error(
+                "Erro ao limpar sessão:",
+                erroLogout
+            );
+
+        }
+
+
+        ocultarSistema();
+
 
         mostrarTelaLogin(
             "Não foi possível carregar o perfil do usuário."
@@ -483,7 +1194,7 @@ async function autenticarUsuarioNoSistema(
 
 
 // ======================================
-// PROFILE
+// CARREGAR PROFILE
 // ======================================
 
 async function carregarProfileUsuario(
@@ -493,18 +1204,23 @@ async function carregarProfileUsuario(
     const {
         data,
         error
-    } = await supabaseClient
-        .from("profiles")
-        .select(
-            "id, nome, cargo, avatar, created_at"
-        )
-        .eq("id", usuarioId)
-        .single();
+    } =
+        await supabaseClient
+            .from("profiles")
+            .select(
+                "id, nome, username, cargo, avatar, created_at"
+            )
+            .eq(
+                "id",
+                usuarioId
+            )
+            .single();
 
 
     if (error) {
         throw error;
     }
+
 
     return data;
 
@@ -522,15 +1238,21 @@ async function logout() {
         const {
             error
         } =
-            await supabaseClient.auth.signOut();
+            await supabaseClient.auth
+                .signOut();
+
 
         if (error) {
             throw error;
         }
 
 
-        window.usuarioAtual = null;
-        window.profileAtual = null;
+        window.usuarioAtual =
+            null;
+
+        window.profileAtual =
+            null;
+
 
         ocultarSistema();
 
@@ -543,6 +1265,7 @@ async function logout() {
             "Erro ao sair:",
             erro
         );
+
 
         if (
             typeof mostrarNotificacao
@@ -570,13 +1293,23 @@ function atualizarUsuarioInterface() {
     const profile =
         window.profileAtual;
 
-    if (!profile) return;
+
+    if (!profile) {
+        return;
+    }
 
 
     const nome =
         document.getElementById(
             "usuario-logado-nome"
         );
+
+
+    const username =
+        document.getElementById(
+            "usuario-logado-username"
+        );
+
 
     const cargo =
         document.getElementById(
@@ -585,11 +1318,26 @@ function atualizarUsuarioInterface() {
 
 
     if (nome) {
-        nome.textContent = profile.nome;
+
+        nome.textContent =
+            profile.nome;
+
     }
 
+
+    if (username) {
+
+        username.textContent =
+            `@${profile.username}`;
+
+    }
+
+
     if (cargo) {
-        cargo.textContent = profile.cargo;
+
+        cargo.textContent =
+            profile.cargo;
+
     }
 
 }
@@ -602,12 +1350,18 @@ function atualizarUsuarioInterface() {
 function ocultarSistema() {
 
     const app =
-        document.getElementById("app");
+        document.getElementById(
+            "app"
+        );
+
 
     if (app) {
 
-        app.style.visibility = "hidden";
-        app.style.pointerEvents = "none";
+        app.style.visibility =
+            "hidden";
+
+        app.style.pointerEvents =
+            "none";
 
     }
 
@@ -617,12 +1371,18 @@ function ocultarSistema() {
 function mostrarSistema() {
 
     const app =
-        document.getElementById("app");
+        document.getElementById(
+            "app"
+        );
+
 
     if (app) {
 
-        app.style.visibility = "visible";
-        app.style.pointerEvents = "auto";
+        app.style.visibility =
+            "visible";
+
+        app.style.pointerEvents =
+            "auto";
 
     }
 
@@ -631,16 +1391,23 @@ function mostrarSistema() {
 
 // ======================================
 // TELA DE VERIFICAÇÃO
+// Mantida para uso futuro
 // ======================================
 
 function mostrarTelaVerificacao() {
 
     removerTelaAuth();
 
-    const tela =
-        document.createElement("div");
 
-    tela.id = "auth-screen";
+    const tela =
+        document.createElement(
+            "div"
+        );
+
+
+    tela.id =
+        "auth-screen";
+
 
     tela.innerHTML = `
 
@@ -660,13 +1427,16 @@ function mostrarTelaVerificacao() {
 
     `;
 
-    document.body.appendChild(tela);
+
+    document.body.appendChild(
+        tela
+    );
 
 }
 
 
 // ======================================
-// AUXILIARES
+// REMOVER TELA
 // ======================================
 
 function removerTelaAuth() {
@@ -676,23 +1446,38 @@ function removerTelaAuth() {
             "auth-screen"
         );
 
+
     if (tela) {
+
         tela.remove();
+
     }
 
 }
 
 
-function mostrarErroAuth(mensagem) {
+// ======================================
+// ERROS
+// ======================================
+
+function mostrarErroAuth(
+    mensagem
+) {
 
     const elemento =
         document.getElementById(
             "auth-mensagem"
         );
 
-    if (!elemento) return;
 
-    elemento.textContent = mensagem;
+    if (!elemento) {
+        return;
+    }
+
+
+    elemento.textContent =
+        mensagem;
+
 
     elemento.classList.add(
         "visivel",
@@ -709,9 +1494,15 @@ function limparErroAuth() {
             "auth-mensagem"
         );
 
-    if (!elemento) return;
 
-    elemento.textContent = "";
+    if (!elemento) {
+        return;
+    }
+
+
+    elemento.textContent =
+        "";
+
 
     elemento.classList.remove(
         "visivel",
@@ -720,6 +1511,10 @@ function limparErroAuth() {
 
 }
 
+
+// ======================================
+// BOTÃO LOGIN
+// ======================================
 
 function alterarEstadoBotaoLogin(
     carregando
@@ -730,10 +1525,14 @@ function alterarEstadoBotaoLogin(
             "btn-login"
         );
 
-    if (!botao) return;
+
+    if (!botao) {
+        return;
+    }
 
 
-    botao.disabled = carregando;
+    botao.disabled =
+        carregando;
 
 
     botao.innerHTML =
@@ -752,7 +1551,50 @@ function alterarEstadoBotaoLogin(
 }
 
 
-function traduzirErroLogin(erro) {
+// ======================================
+// BOTÃO CADASTRO
+// ======================================
+
+function alterarEstadoBotaoCadastro(
+    carregando
+) {
+
+    const botao =
+        document.getElementById(
+            "btn-cadastro"
+        );
+
+
+    if (!botao) {
+        return;
+    }
+
+
+    botao.disabled =
+        carregando;
+
+
+    botao.innerHTML =
+        carregando
+            ? `
+                <span class="auth-btn-loading">
+                    REGISTRANDO...
+                </span>
+            `
+            : `
+                CRIAR CONTA
+            `;
+
+}
+
+
+// ======================================
+// ERROS DE LOGIN
+// ======================================
+
+function traduzirErroLogin(
+    erro
+) {
 
     const mensagem =
         String(
@@ -766,7 +1608,7 @@ function traduzirErroLogin(erro) {
         )
     ) {
 
-        return "E-mail ou senha incorretos.";
+        return "Usuário ou senha incorretos.";
 
     }
 
@@ -777,7 +1619,7 @@ function traduzirErroLogin(erro) {
         )
     ) {
 
-        return "Este e-mail ainda não foi confirmado.";
+        return "Esta conta ainda não foi liberada.";
 
     }
 
@@ -786,6 +1628,10 @@ function traduzirErroLogin(erro) {
         mensagem.includes(
             "too many requests"
         )
+        ||
+        mensagem.includes(
+            "rate limit"
+        )
     ) {
 
         return "Muitas tentativas. Aguarde alguns instantes.";
@@ -793,9 +1639,7 @@ function traduzirErroLogin(erro) {
     }
 
 
-    if (
-        !navigator.onLine
-    ) {
+    if (!navigator.onLine) {
 
         return "Sem conexão com a internet.";
 
@@ -807,13 +1651,146 @@ function traduzirErroLogin(erro) {
 }
 
 
-function escaparTextoAuth(valor) {
+// ======================================
+// ERROS DE CADASTRO
+// ======================================
 
-    return String(valor ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+function traduzirErroCadastro(
+    erro
+) {
+
+    const mensagem =
+        String(
+            erro?.message || ""
+        ).toLowerCase();
+
+
+    if (
+        mensagem.includes(
+            "already registered"
+        )
+        ||
+        mensagem.includes(
+            "already been registered"
+        )
+        ||
+        mensagem.includes(
+            "user already"
+        )
+    ) {
+
+        return "Esse nome de usuário já está em uso.";
+
+    }
+
+
+    if (
+        mensagem.includes(
+            "password"
+        )
+    ) {
+
+        return "A senha informada não atende aos requisitos.";
+
+    }
+
+
+    if (
+        mensagem.includes(
+            "rate limit"
+        )
+        ||
+        mensagem.includes(
+            "too many requests"
+        )
+    ) {
+
+        return "Muitas contas foram criadas recentemente. Aguarde um pouco.";
+
+    }
+
+
+    if (!navigator.onLine) {
+
+        return "Sem conexão com a internet.";
+
+    }
+
+
+    return "Não foi possível criar a conta.";
+
+}
+
+
+// ======================================
+// USERNAME
+// ======================================
+
+function normalizarUsername(
+    valor
+) {
+
+    return String(
+        valor || ""
+    )
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .replace(
+            /[^a-z0-9._-]/g,
+            ""
+        );
+
+}
+
+
+// ======================================
+// E-MAIL INTERNO DO SUPABASE
+// ======================================
+
+function criarEmailInterno(
+    username
+) {
+
+    return `${username}@nave3b.app`;
+
+}
+
+
+// ======================================
+// SEGURANÇA DE TEXTO
+// ======================================
+
+function escaparTextoAuth(
+    valor
+) {
+
+    return String(
+        valor ?? ""
+    )
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 
 }

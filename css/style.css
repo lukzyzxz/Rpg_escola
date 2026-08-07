@@ -5623,3 +5623,64 @@ h2{
     }
 
 }
+/* ==========================================
+   LOGIN — ABAS
+========================================== */
+
+.auth-abas{
+
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:5px;
+
+    padding:5px;
+
+    margin-bottom:5px;
+
+    background:rgba(0,0,0,.22);
+
+    border:1px solid rgba(255,255,255,.07);
+
+    border-radius:10px;
+
+}
+
+.auth-aba{
+
+    padding:10px;
+
+    color:var(--texto2);
+
+    background:transparent;
+
+    border-radius:7px;
+
+    font-size:9px;
+
+    letter-spacing:1px;
+
+    transition:.2s;
+
+}
+
+.auth-aba:hover{
+
+    color:var(--texto);
+
+    background:rgba(255,255,255,.04);
+
+}
+
+.auth-aba.ativa{
+
+    color:#00130b;
+
+    background:var(--verde);
+
+    font-weight:700;
+
+    box-shadow:0 0 15px rgba(0,255,136,.2);
+
+}
