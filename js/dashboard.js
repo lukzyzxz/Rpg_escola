@@ -1,151 +1,204 @@
 // ======================================
 // DASHBOARD.JS
-// Painel principal da Nave 3B
+// Painel Principal da Nave 3B
 // ======================================
 
 function telaDashboard() {
 
-    const totalFrotas = banco.frotas.length;
+    const totalFrotas =
+        Array.isArray(banco.frotas)
+            ? banco.frotas.length
+            : 0;
 
-    const totalMissoes = banco.missoes.length;
+    const totalMissoes =
+        Array.isArray(banco.missoes)
+            ? banco.missoes.length
+            : 0;
 
-    const totalIntegrantes = banco.frotas.reduce(
-        (total, frota) => total + frota.integrantes.length,
-        0
-    );
+    const totalIntegrantes =
+        typeof obterTotalIntegrantes === "function"
+            ? obterTotalIntegrantes()
+            : calcularIntegrantesDashboard();
 
-    const planetasExplorados = banco.planetas.filter(
-        planeta => planeta.desbloqueado
-    ).length;
+    const totalPlanetas =
+        Array.isArray(banco.planetas)
+            ? banco.planetas.length
+            : 0;
+
+    const planetasDesbloqueados =
+        Array.isArray(banco.planetas)
+            ? banco.planetas.filter(
+                planeta => planeta.desbloqueado
+            ).length
+            : 0;
+
+    const totalInventario =
+        Array.isArray(banco.inventario)
+            ? banco.inventario.reduce(
+                (total, item) =>
+                    total + Number(item.quantidade || 0),
+                0
+            )
+            : 0;
+
+    const missoesConcluidas =
+        Array.isArray(banco.missoes)
+            ? banco.missoes.filter(
+                missao =>
+                    missao.status === "Concluída"
+            ).length
+            : 0;
 
     return `
 
-        <section id="dashboard" class="dashboard-grid">
+        <section id="dashboard" class="dashboard-painel">
 
-            <article class="card dashboard-card">
-
-                <div class="dashboard-icone">
-                    🛰️
-                </div>
+            <div class="dashboard-boas-vindas">
 
                 <div>
 
-                    <h3>Nave</h3>
+                    <span class="dashboard-selo">
+                        CENTRAL OPERACIONAL
+                    </span>
 
-                    <p>3B</p>
-
-                    <span>Central de Comando</span>
-
-                </div>
-
-            </article>
-
-
-            <article class="card dashboard-card">
-
-                <div class="dashboard-icone">
-                    🌌
-                </div>
-
-                <div>
-
-                    <h3>Planetas Explorados</h3>
+                    <h2>
+                        Sistema Solar Tião
+                    </h2>
 
                     <p>
-                        ${formatarNumero(planetasExplorados)}
-                        /
-                        ${formatarNumero(banco.planetas.length)}
+
+                        Monitoramento geral da Nave 3B
+                        e das operações da tripulação.
+
                     </p>
 
-                    <span>Corpos celestes liberados</span>
+                </div>
+
+                <div class="dashboard-status-geral">
+
+                    <span class="status-pulso"></span>
+
+                    <div>
+
+                        <small>STATUS DO SISTEMA</small>
+
+                        <strong>ONLINE</strong>
+
+                    </div>
 
                 </div>
 
-            </article>
+            </div>
 
 
-            <article class="card dashboard-card">
+            <div class="dashboard-grid">
 
-                <div class="dashboard-icone">
-                    🚀
-                </div>
+                ${criarCardDashboard(
+                    "🚀",
+                    "Frotas",
+                    formatarNumeroDashboard(totalFrotas),
+                    "Grupos operacionais registrados"
+                )}
 
-                <div>
+                ${criarCardDashboard(
+                    "📜",
+                    "Missões",
+                    formatarNumeroDashboard(totalMissoes),
+                    `${missoesConcluidas} concluída(s)`
+                )}
 
-                    <h3>Frotas</h3>
+                ${criarCardDashboard(
+                    "🌌",
+                    "Planetas",
+                    `${formatarNumeroDashboard(planetasDesbloqueados)} / ${formatarNumeroDashboard(totalPlanetas)}`,
+                    "Corpos celestes identificados"
+                )}
+
+                ${criarCardDashboard(
+                    "👨‍🚀",
+                    "Integrantes",
+                    formatarNumeroDashboard(totalIntegrantes),
+                    "Tripulantes registrados"
+                )}
+
+                ${criarCardDashboard(
+                    "📦",
+                    "Inventário",
+                    formatarNumeroDashboard(totalInventario),
+                    "Unidades disponíveis"
+                )}
+
+                ${criarCardDashboard(
+                    "📡",
+                    "Comunicação",
+                    "ATIVA",
+                    "Canal orbital estabilizado",
+                    true
+                )}
+
+            </div>
+
+
+            <div class="dashboard-inferior">
+
+                <div class="card dashboard-operacao">
+
+                    <div class="titulo-painel-dashboard">
+
+                        <div>
+
+                            <span>VISÃO OPERACIONAL</span>
+
+                            <h3>Progresso das Missões</h3>
+
+                        </div>
+
+                        <strong>
+                            ${calcularProgressoGeralMissoes()}%
+                        </strong>
+
+                    </div>
+
+                    <div class="barra-dashboard">
+
+                        <div
+                            class="barra-dashboard-preenchimento"
+                            style="width:${calcularProgressoGeralMissoes()}%">
+                        </div>
+
+                    </div>
 
                     <p>
-                        ${formatarNumero(totalFrotas)}
+
+                        Média do progresso de todas
+                        as operações cadastradas.
+
                     </p>
 
-                    <span>Frotas registradas</span>
+                </div>
+
+
+                <div class="card dashboard-resumo">
+
+                    <span class="dashboard-resumo-icone">
+                        🛰️
+                    </span>
+
+                    <div>
+
+                        <small>NAVE</small>
+
+                        <h3>NAVE 3B</h3>
+
+                        <p>
+                            Central de Comando Orbital
+                        </p>
+
+                    </div>
 
                 </div>
 
-            </article>
-
-
-            <article class="card dashboard-card">
-
-                <div class="dashboard-icone">
-                    📜
-                </div>
-
-                <div>
-
-                    <h3>Missões</h3>
-
-                    <p>
-                        ${formatarNumero(totalMissoes)}
-                    </p>
-
-                    <span>Operações cadastradas</span>
-
-                </div>
-
-            </article>
-
-
-            <article class="card dashboard-card">
-
-                <div class="dashboard-icone">
-                    👨‍🚀
-                </div>
-
-                <div>
-
-                    <h3>Tripulação</h3>
-
-                    <p>
-                        ${formatarNumero(totalIntegrantes)}
-                    </p>
-
-                    <span>Integrantes registrados</span>
-
-                </div>
-
-            </article>
-
-
-            <article class="card dashboard-card status-card">
-
-                <div class="dashboard-icone">
-                    📡
-                </div>
-
-                <div>
-
-                    <h3>Status</h3>
-
-                    <p class="status-online">
-                        ONLINE
-                    </p>
-
-                    <span>Sistemas operacionais</span>
-
-                </div>
-
-            </article>
+            </div>
 
         </section>
 
@@ -153,12 +206,137 @@ function telaDashboard() {
 
 }
 
+
 // ======================================
-// FORMATAÇÃO
+// CARDS
 // ======================================
 
-function formatarNumero(numero) {
+function criarCardDashboard(
+    icone,
+    tituloCard,
+    valor,
+    descricao,
+    status = false
+) {
 
-    return String(numero).padStart(2, "0");
+    return `
+
+        <article class="card dashboard-card">
+
+            <div class="dashboard-icone">
+
+                ${icone}
+
+            </div>
+
+            <div class="dashboard-card-conteudo">
+
+                <span>
+
+                    ${tituloCard}
+
+                </span>
+
+                <strong
+                    class="${status ? "dashboard-valor-status" : ""}">
+
+                    ${valor}
+
+                </strong>
+
+                <small>
+
+                    ${descricao}
+
+                </small>
+
+            </div>
+
+        </article>
+
+    `;
+
+}
+
+
+// ======================================
+// PROGRESSO GERAL
+// ======================================
+
+function calcularProgressoGeralMissoes() {
+
+    if (
+        !Array.isArray(banco.missoes)
+        || banco.missoes.length === 0
+    ) {
+
+        return 0;
+
+    }
+
+    const soma =
+        banco.missoes.reduce(
+            (total, missao) => {
+
+                const progresso =
+                    Number(missao.progresso);
+
+                return total + (
+                    Number.isFinite(progresso)
+                        ? Math.max(
+                            0,
+                            Math.min(100, progresso)
+                        )
+                        : 0
+                );
+
+            },
+            0
+        );
+
+    return Math.round(
+        soma / banco.missoes.length
+    );
+
+}
+
+
+// ======================================
+// AUXILIARES
+// ======================================
+
+function calcularIntegrantesDashboard() {
+
+    if (!Array.isArray(banco.frotas)) {
+        return 0;
+    }
+
+    return banco.frotas.reduce(
+        (total, frota) => {
+
+            return total + (
+                Array.isArray(frota.integrantes)
+                    ? frota.integrantes.length
+                    : 0
+            );
+
+        },
+        0
+    );
+
+}
+
+
+function formatarNumeroDashboard(numero) {
+
+    return String(
+        Number(numero) || 0
+    ).padStart(2, "0");
+
+}
+// Compatibilidade com os outros módulos
+function formatarNumero(numero){
+
+    return formatarNumeroDashboard(numero);
 
 }
