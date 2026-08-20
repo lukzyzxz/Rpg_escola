@@ -26,7 +26,7 @@ function inicializarSistema() {
     configurarNavegacao();
     configurarEventosGlobais();
 
-    atualizarRelogio();
+    atualizarRelogioNave();
     atualizarIndicadoresMenu();
 
     abrirPagina("dashboard");
@@ -125,7 +125,8 @@ function configurarNavegacao() {
         "mapa",
         "missoes",
         "frotas",
-        "inventario"
+        "inventario",
+        "integridade"
     ];
 
     rotas.forEach(pagina => {
@@ -217,6 +218,24 @@ function abrirPagina(pagina) {
                         "Inventário",
                         "O módulo de inventário será implementado em breve."
                     );
+
+            break;
+
+        case "integridade":
+
+            titulo.textContent = "Integridade da Nave";
+
+            conteudo.innerHTML =
+                typeof telaIntegridade === "function"
+                    ? telaIntegridade()
+                    : telaEmDesenvolvimento(
+                        "Integridade da Nave",
+                        "Não foi possível carregar o módulo."
+                    );
+
+            if (typeof inicializarPaginaIntegridade === "function") {
+                requestAnimationFrame(inicializarPaginaIntegridade);
+            }
 
             break;
 
