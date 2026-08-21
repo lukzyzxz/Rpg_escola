@@ -6023,3 +6023,238 @@ h2{
         font-size:10px;
     }
 }
+
+/* ======================================
+   FICHA DO TRIPULANTE
+   Acrescentar ao final de css/style.css
+   ====================================== */
+
+.ficha-pagina{
+    display:grid;
+    grid-template-columns:minmax(0,820px) minmax(280px,1fr);
+    gap:24px;
+    align-items:start;
+    padding:20px 0 40px;
+}
+
+.ficha-card{
+    position:relative;
+    padding:32px;
+    overflow:hidden;
+    border:1px solid rgba(0,255,136,.22);
+    border-radius:26px;
+    background:
+        radial-gradient(circle at 90% 10%,rgba(0,255,136,.12),transparent 34%),
+        linear-gradient(145deg,rgba(12,24,43,.97),rgba(6,13,26,.98));
+    box-shadow:
+        0 24px 65px rgba(0,0,0,.35),
+        inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.ficha-cabecalho{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    margin-bottom:22px;
+}
+
+.ficha-selo{
+    display:inline-block;
+    margin-bottom:10px;
+    color:var(--verde);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:2.2px;
+}
+
+.ficha-cabecalho h2{
+    margin:0;
+    font-size:26px;
+    color:var(--texto);
+}
+
+.ficha-icone{
+    display:grid;
+    flex:0 0 60px;
+    width:60px;
+    height:60px;
+    place-items:center;
+    border:1px solid rgba(0,255,136,.25);
+    border-radius:16px;
+    background:rgba(0,255,136,.08);
+    box-shadow:0 0 24px rgba(0,255,136,.1);
+    font-size:26px;
+}
+
+.ficha-status{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:24px;
+    padding:14px 18px;
+    border-radius:14px;
+    border:1px solid var(--borda);
+    background:rgba(0,0,0,.2);
+}
+
+.ficha-status strong{
+    display:block;
+    color:var(--texto);
+    font-size:13px;
+}
+
+.ficha-status span{
+    color:var(--texto2);
+    font-size:12px;
+}
+
+.ficha-status.erro{ border-color:rgba(255,90,90,.35); }
+.ficha-status.disponivel{ border-color:rgba(0,255,136,.3); }
+.ficha-status.alterada{ border-color:rgba(255,216,77,.4); }
+
+.ficha-status-icone{
+    font-size:18px;
+}
+
+.ficha-grade{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:14px;
+    margin-bottom:22px;
+}
+
+.ficha-atributo label{
+    display:block;
+    margin-bottom:6px;
+    color:var(--texto2);
+    font-size:11px;
+    letter-spacing:.5px;
+}
+
+.ficha-atributo input{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--borda);
+    border-radius:10px;
+    background:rgba(0,0,0,.25);
+    color:var(--texto);
+    font-size:16px;
+}
+
+.ficha-atributo input:focus{
+    outline:none;
+    border-color:var(--verde);
+}
+
+.ficha-itens-label{
+    display:block;
+    margin-bottom:8px;
+    color:var(--texto2);
+    font-size:11px;
+    letter-spacing:.5px;
+}
+
+.ficha-itens-texto{
+    width:100%;
+    padding:14px;
+    border:1px solid var(--borda);
+    border-radius:14px;
+    background:rgba(0,0,0,.25);
+    color:var(--texto);
+    font-size:13px;
+    line-height:1.6;
+    resize:vertical;
+}
+
+.ficha-itens-texto:focus{
+    outline:none;
+    border-color:var(--verde);
+}
+
+.btn-salvar-ficha{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    width:100%;
+    margin-top:20px;
+    padding:14px;
+    border:1px solid rgba(0,255,136,.35);
+    border-radius:14px;
+    background:rgba(0,255,136,.1);
+    color:var(--verde);
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:1px;
+    cursor:pointer;
+    transition:background .2s ease;
+}
+
+.btn-salvar-ficha:hover:not(:disabled){
+    background:rgba(0,255,136,.18);
+}
+
+.btn-salvar-ficha:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.ficha-equipe{
+    padding:26px;
+    border:1px solid var(--borda);
+    border-radius:22px;
+    background:rgba(13,21,37,.7);
+}
+
+.ficha-equipe h3{
+    margin:0 0 16px;
+    color:var(--texto);
+    font-size:15px;
+}
+
+.ficha-lista-equipe{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    max-height:600px;
+    overflow-y:auto;
+}
+
+.ficha-equipe-item{
+    padding:12px 14px;
+    border:1px solid var(--borda);
+    border-radius:12px;
+    background:rgba(0,0,0,.2);
+}
+
+.ficha-equipe-item-eu{
+    border-color:rgba(0,255,136,.35);
+    background:rgba(0,255,136,.06);
+}
+
+.ficha-equipe-item strong{
+    display:block;
+    margin-bottom:6px;
+    color:var(--texto);
+    font-size:13px;
+}
+
+.ficha-equipe-atributos{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    color:var(--texto2);
+    font-size:11px;
+}
+
+.ficha-equipe-vazio{
+    color:var(--texto2);
+    font-size:12px;
+}
+
+@media (max-width:900px){
+    .ficha-pagina{
+        grid-template-columns:1fr;
+    }
+}

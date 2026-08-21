@@ -126,7 +126,8 @@ function configurarNavegacao() {
         "missoes",
         "frotas",
         "inventario",
-        "integridade"
+        "integridade",
+        "ficha"
     ];
 
     rotas.forEach(pagina => {
@@ -235,6 +236,24 @@ function abrirPagina(pagina) {
 
             if (typeof inicializarPaginaIntegridade === "function") {
                 requestAnimationFrame(inicializarPaginaIntegridade);
+            }
+
+            break;
+
+        case "ficha":
+
+            titulo.textContent = "Ficha do Tripulante";
+
+            conteudo.innerHTML =
+                typeof telaFicha === "function"
+                    ? telaFicha()
+                    : telaEmDesenvolvimento(
+                        "Ficha do Tripulante",
+                        "Não foi possível carregar o módulo."
+                    );
+
+            if (typeof inicializarPaginaFicha === "function") {
+                requestAnimationFrame(inicializarPaginaFicha);
             }
 
             break;
