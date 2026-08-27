@@ -43,13 +43,6 @@ function telaFicha() {
                     ${campoAtributo("salva_vidas", "🩹 Salva-Vidas", 0)}
                 </div>
 
-                <h3 class="ficha-niveis-titulo">🎖️ Níveis de Missão</h3>
-                <div class="ficha-niveis-grade" id="ficha-grade-niveis">
-                    ${cartaoNivel("nivel_embaixador", "EMBAIXADOR", "Defesa")}
-                    ${cartaoNivel("nivel_combatente", "COMBATENTE", "Dano extra")}
-                    ${cartaoNivel("nivel_tripulante", "TRIPULANTE", "Agilidade")}
-                </div>
-
                 <label class="ficha-itens-label" for="ficha-itens-texto">
                     🎒 Itens e Cartas
                 </label>
@@ -92,26 +85,6 @@ function campoAtributo(chave, rotulo, valorInicial) {
     `;
 }
 
-function cartaoNivel(chave, titulo, atributoRelacionado) {
-    return `
-        <div class="ficha-nivel-cartao">
-            <span class="ficha-nivel-titulo">${titulo}</span>
-            <span class="ficha-nivel-subtitulo">Aprimora: ${atributoRelacionado}</span>
-            <label class="ficha-nivel-valor" for="ficha-campo-${chave}">
-                <span class="ficha-nivel-rotulo">Nível</span>
-                <input
-                    id="ficha-campo-${chave}"
-                    type="number"
-                    min="0"
-                    step="1"
-                    inputmode="numeric"
-                    data-nivel="${chave}"
-                    value="0">
-            </label>
-        </div>
-    `;
-}
-
 // ======================================
 // INICIALIZAÇÃO DA PÁGINA
 // ======================================
@@ -125,7 +98,7 @@ function inicializarPaginaFicha() {
     }
 
     document
-        .querySelectorAll("[data-atributo], [data-nivel], #ficha-itens-texto")
+        .querySelectorAll("[data-atributo], #ficha-itens-texto")
         .forEach(campo => {
             campo.addEventListener("input", marcarFichaComoAlterada);
         });
@@ -155,7 +128,7 @@ async function carregarMinhaFicha() {
     try {
         const { data, error } = await supabaseClient
             .from("fichas_tripulantes")
-            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
+            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, atualizado_em")
             .eq("id", window.usuarioAtual.id)
             .maybeSingle();
 
@@ -203,16 +176,7 @@ function renderizarMinhaFicha() {
             || "Tripulante";
     }
 
-    [
-        "vida",
-        "dano_extra",
-        "agilidade",
-        "defesa",
-        "salva_vidas",
-        "nivel_embaixador",
-        "nivel_combatente",
-        "nivel_tripulante"
-    ].forEach(chave => {
+    ["vida", "dano_extra", "agilidade", "defesa", "salva_vidas"].forEach(chave => {
         const campo = document.getElementById(`ficha-campo-${chave}`);
         if (campo) campo.value = minhaFicha[chave] ?? 0;
     });
@@ -256,9 +220,6 @@ async function salvarMinhaFicha() {
         agilidade: lerCampoNumerico("agilidade"),
         defesa: lerCampoNumerico("defesa"),
         salva_vidas: lerCampoNumerico("salva_vidas"),
-        nivel_embaixador: lerNivelMissao("nivel_embaixador"),
-        nivel_combatente: lerNivelMissao("nivel_combatente"),
-        nivel_tripulante: lerNivelMissao("nivel_tripulante"),
         itens_texto: document.getElementById("ficha-itens-texto")?.value?.trim() || "",
         atualizado_em: new Date().toISOString()
     };
@@ -317,10 +278,6 @@ function lerCampoNumerico(chave) {
     return Number.isFinite(valor) && valor >= 0 ? valor : 0;
 }
 
-function lerNivelMissao(chave) {
-    return Math.trunc(lerCampoNumerico(chave));
-}
-
 // ======================================
 // FICHAS DA TRIPULAÇÃO (SOMENTE LEITURA)
 // ======================================
@@ -331,7 +288,7 @@ async function carregarFichasEquipe() {
     try {
         const { data, error } = await supabaseClient
             .from("fichas_tripulantes")
-            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, nivel_embaixador, nivel_combatente, nivel_tripulante, profiles(nome, username, cargo)")
+            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, profiles(nome, username, cargo)")
             .order("id");
 
         if (error) throw error;
@@ -374,11 +331,6 @@ function renderizarFichasEquipe() {
                     <span>💨 ${ficha.agilidade}</span>
                     <span>🛡️ ${ficha.defesa}</span>
                     <span>🩹 ${ficha.salva_vidas}</span>
-                </div>
-                <div class="ficha-equipe-niveis" aria-label="Níveis de missão">
-                    <span>EMB <strong>${ficha.nivel_embaixador ?? 0}</strong></span>
-                    <span>COM <strong>${ficha.nivel_combatente ?? 0}</strong></span>
-                    <span>TRI <strong>${ficha.nivel_tripulante ?? 0}</strong></span>
                 </div>
             </div>
         `;

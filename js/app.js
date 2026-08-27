@@ -127,6 +127,8 @@ function configurarNavegacao() {
         "frotas",
         "inventario",
         "integridade",
+        "arena",
+        "torre",
         "ficha"
     ];
 
@@ -148,6 +150,14 @@ function configurarNavegacao() {
 }
 
 function abrirPagina(pagina) {
+
+    if (
+        paginaAtual === "torre"
+        && pagina !== "torre"
+        && typeof encerrarAcessoTorreArmas === "function"
+    ) {
+        encerrarAcessoTorreArmas();
+    }
 
     paginaAtual = pagina;
 
@@ -236,6 +246,42 @@ function abrirPagina(pagina) {
 
             if (typeof inicializarPaginaIntegridade === "function") {
                 requestAnimationFrame(inicializarPaginaIntegridade);
+            }
+
+            break;
+
+        case "arena":
+
+            titulo.textContent = "Arena de Combate";
+
+            conteudo.innerHTML =
+                typeof telaArena === "function"
+                    ? telaArena()
+                    : telaEmDesenvolvimento(
+                        "Arena de Combate",
+                        "Não foi possível carregar a arena."
+                    );
+
+            if (typeof inicializarPaginaArena === "function") {
+                requestAnimationFrame(inicializarPaginaArena);
+            }
+
+            break;
+
+        case "torre":
+
+            titulo.textContent = "Torre de Armas";
+
+            conteudo.innerHTML =
+                typeof telaTorreArmas === "function"
+                    ? telaTorreArmas()
+                    : telaEmDesenvolvimento(
+                        "Torre de Armas",
+                        "Não foi possível carregar o controle de armamento."
+                    );
+
+            if (typeof inicializarPaginaTorreArmas === "function") {
+                requestAnimationFrame(inicializarPaginaTorreArmas);
             }
 
             break;

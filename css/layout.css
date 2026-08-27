@@ -28,6 +28,8 @@
 
     flex-direction:column;
 
+    overflow-y:auto;
+
 }
 
 nav{
@@ -36,9 +38,9 @@ nav{
 
     flex-direction:column;
 
-    gap:14px;
+    gap:10px;
 
-    margin-top:45px;
+    margin-top:30px;
 
 }
 
@@ -48,7 +50,7 @@ nav button{
 
     color:white;
 
-    padding:16px;
+    padding:13px 14px;
 
     border-radius:12px;
 

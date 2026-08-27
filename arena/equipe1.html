@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Arena de Combate RPG — Equipe 1</title>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body data-team="equipe1">
+
+  <main class="arena-page">
+    <a class="back-home" href="index.html">← VOLTAR À ARENA</a>
+
+    <!-- ==============================
+         CABEÇALHO
+         ============================== -->
+
+    <header class="arena-header">
+
+      <div>
+
+        <small contenteditable="true" data-save="header-label">
+          CENTRAL DE COMBATE
+        </small>
+
+        <h1 contenteditable="true" data-save="title">
+          ARENA DE COMBATE — EQUIPE 1
+        </h1>
+
+        <p contenteditable="true" data-save="subtitle">
+          Sistema operacional de batalha
+        </p>
+
+      </div>
+
+
+      <div class="online-status">
+
+        <i></i>
+
+        <span contenteditable="true" data-save="status">
+          ONLINE
+        </span>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- ==============================
+         ÁREA PRINCIPAL
+         ============================== -->
+
+    <section class="battle-grid">
+
+
+      <!-- ==============================
+             JOGADORES 1 E 2
+             ============================== -->
+
+      <div class="players-column">
+
+
+        <!-- JOGADOR 1 -->
+
+        <article class="fighter-card cyan">
+
+          <!-- TÍTULO FIXO -->
+
+          <div class="fighter-number">
+            JOGADOR 1
+          </div>
+
+
+          <div class="fighter-heading">
+
+            <h2 contenteditable="true" data-save="warrior-name">
+              GUERREIRO
+            </h2>
+
+
+            <label class="image-button">
+
+              ✎ IMAGEM
+
+              <input type="file" accept="image/*" data-image="warrior">
+
+            </label>
+
+          </div>
+
+
+          <div class="fighter-image" id="image-warrior">
+          </div>
+
+
+          <div class="stats">
+
+            <label>
+
+              Vida
+
+              <span class="hp-row">
+
+                <button type="button" class="hp-minus" data-hp="warrior">
+                  −
+                </button>
+
+
+                <input type="number" id="hp-warrior" value="120" min="0" data-save="hp-warrior">
+
+
+                <span>/</span>
+
+
+                <input type="number" id="max-warrior" value="120" min="1" data-save="max-warrior">
+
+
+                <button type="button" class="hp-plus" data-hp="warrior">
+                  +
+                </button>
+
+              </span>
+
+            </label>
+
+
+            <label>
+
+              Defesa
+
+              <input type="number" value="1" min="0" data-save="def-warrior">
+
+            </label>
+
+
+            <label>
+
+              Agilidade
+
+              <input type="number" value="22" min="0" data-save="agi-warrior">
+
+            </label>
+
+
+            <label>
+
+              Dano Extra
+
+              <input type="number" value="10" min="0" data-save="dmg-warrior">
+
+            </label>
+
+          </div>
+
+        </article>
+
+
+
+        <!-- JOGADOR 2 -->
+
+        <article class="fighter-card green">
+
+          <!-- TÍTULO FIXO -->
+
+          <div class="fighter-number">
+            JOGADOR 2
+          </div>
+
+
+          <div class="fighter-heading">
+
+            <h2 contenteditable="true" data-save="archer-name">
+              ARQUEIRO
+            </h2>
+
+
+            <label class="image-button">
+
+              ✎ IMAGEM
+
+              <input type="file" accept="image/*" data-image="archer">
+
+            </label>
+
+          </div>
+
+
+          <div class="fighter-image" id="image-archer">
+          </div>
+
+
+          <div class="stats">
+
+            <label>
+
+              Vida
+
+              <span class="hp-row">
+
+                <button type="button" class="hp-minus" data-hp="archer">
+                  −
+                </button>
+
+
+                <input type="number" id="hp-archer" value="100" min="0" data-save="hp-archer">
+
+
+                <span>/</span>
+
+
+                <input type="number" id="max-archer" value="100" min="1" data-save="max-archer">
+
+
+                <button type="button" class="hp-plus" data-hp="archer">
+                  +
+                </button>
+
+              </span>
+
+            </label>
+
+
+            <label>
+
+              Defesa
+
+              <input type="number" value="5" min="0" data-save="def-archer">
+
+            </label>
+
+
+            <label>
+
+              Agilidade
+
+              <input type="number" value="40" min="0" data-save="agi-archer">
+
+            </label>
+
+
+            <label>
+
+              Dano Extra
+
+              <input type="number" value="15" min="0" data-save="dmg-archer">
+
+            </label>
+
+          </div>
+
+        </article>
+
+      </div>
+
+
+
+      <!-- ==============================
+             CHEFÃO
+             ============================== -->
+
+      <article class="boss-card">
+
+
+        <div class="boss-heading">
+
+          <div>
+
+            <small contenteditable="true" data-save="boss-label">
+              ALVO PRINCIPAL
+            </small>
+
+
+            <h2 contenteditable="true" data-save="boss-name">
+              NOME DO KAIJU
+            </h2>
+
+          </div>
+
+
+          <label class="image-button">
+
+            ✎ ALTERAR IMAGEM
+
+            <input type="file" accept="image/*" data-image="boss">
+
+          </label>
+
+        </div>
+
+
+
+        <div class="boss-image" id="image-boss">
+        </div>
+
+
+
+        <!-- VIDA DO CHEFÃO -->
+
+        <div class="boss-hp">
+
+          <span contenteditable="true" data-save="boss-hp-label">
+            Vida do Kaiju
+          </span>
+
+
+          <div class="boss-hp-controls">
+
+
+            <button type="button" class="boss-hp-minus" id="boss-hp-minus">
+              −
+            </button>
+
+
+            <div class="boss-hp-values" id="boss-hp-values">
+
+              <input type="number" id="boss-hp" value="7500" min="0" data-save="boss-hp">
+
+
+              <b>/</b>
+
+
+              <input type="number" id="boss-max" value="12000" min="1" data-save="boss-max">
+
+            </div>
+
+
+            <button type="button" class="boss-hp-plus" id="boss-hp-plus">
+              +
+            </button>
+
+
+            <div class="boss-damage-control">
+
+              <input type="number" id="boss-damage" min="0" placeholder="Dano">
+
+
+              <button type="button" id="boss-damage-apply">
+                Aplicar
+              </button>
+
+            </div>
+
+
+            <button type="button" class="boss-hide-hp" id="boss-hide-hp">
+              Ocultar vida
+            </button>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- BARRA DE VIDA -->
+
+        <div class="boss-bar">
+
+          <div id="boss-fill"></div>
+
+        </div>
+
+
+
+        <!-- ==============================
+                 ATAQUE DO CHEFÃO
+                 SEM NOME DO ATAQUE
+                 ============================== -->
+
+        <div class="boss-attack-panel">
+
+
+          <div class="boss-attack-title">
+            DANO DO KAIJU
+          </div>
+
+
+          <div class="boss-attack-content">
+
+
+            <div class="boss-damage-input">
+
+              <label for="boss-player-damage">
+                Dano
+              </label>
+
+
+              <input type="number" id="boss-player-damage" min="0" value="10" placeholder="Dano">
+
+            </div>
+
+
+
+            <div class="boss-targets">
+
+
+              <label class="target-option">
+
+                <input type="checkbox" class="boss-target" value="warrior">
+
+                <span>
+                  Jogador 1
+                </span>
+
+              </label>
+
+
+
+              <label class="target-option">
+
+                <input type="checkbox" class="boss-target" value="archer">
+
+                <span>
+                  Jogador 2
+                </span>
+
+              </label>
+
+
+
+              <label class="target-option">
+
+                <input type="checkbox" class="boss-target" value="mage">
+
+                <span>
+                  Jogador 3
+                </span>
+
+              </label>
+
+
+
+              <label class="target-option">
+
+                <input type="checkbox" class="boss-target" value="cleric">
+
+                <span>
+                  Jogador 4
+                </span>
+
+              </label>
+
+            </div>
+
+
+
+            <div class="boss-attack-buttons">
+
+              <button type="button" id="boss-select-all">
+                Todos
+              </button>
+
+
+              <button type="button" id="boss-attack-apply">
+                Aplicar dano
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </article>
+
+
+
+      <!-- ==============================
+             JOGADORES 3 E 4
+             ============================== -->
+
+      <div class="players-column">
+
+
+        <!-- JOGADOR 3 -->
+
+        <article class="fighter-card purple">
+
+          <!-- TÍTULO FIXO -->
+
+          <div class="fighter-number">
+            JOGADOR 3
+          </div>
+
+
+          <div class="fighter-heading">
+
+            <h2 contenteditable="true" data-save="mage-name">
+              MAGA
+            </h2>
+
+
+            <label class="image-button">
+
+              ✎ IMAGEM
+
+              <input type="file" accept="image/*" data-image="mage">
+
+            </label>
+
+          </div>
+
+
+          <div class="fighter-image" id="image-mage">
+          </div>
+
+
+          <div class="stats">
+
+            <label>
+
+              Vida
+
+              <span class="hp-row">
+
+                <button type="button" class="hp-minus" data-hp="mage">
+                  −
+                </button>
+
+
+                <input type="number" id="hp-mage" value="90" min="0" data-save="hp-mage">
+
+
+                <span>/</span>
+
+
+                <input type="number" id="max-mage" value="90" min="1" data-save="max-mage">
+
+
+                <button type="button" class="hp-plus" data-hp="mage">
+                  +
+                </button>
+
+              </span>
+
+            </label>
+
+
+            <label>
+
+              Defesa
+
+              <input type="number" value="3" min="0" data-save="def-mage">
+
+            </label>
+
+
+            <label>
+
+              Agilidade
+
+              <input type="number" value="35" min="0" data-save="agi-mage">
+
+            </label>
+
+
+            <label>
+
+              Dano Extra
+
+              <input type="number" value="20" min="0" data-save="dmg-mage">
+
+            </label>
+
+          </div>
+
+        </article>
+
+
+
+        <!-- JOGADOR 4 -->
+
+        <article class="fighter-card yellow">
+
+          <!-- TÍTULO FIXO -->
+
+          <div class="fighter-number">
+            JOGADOR 4
+          </div>
+
+
+          <div class="fighter-heading">
+
+            <h2 contenteditable="true" data-save="cleric-name">
+              CLÉRIGA
+            </h2>
+
+
+            <label class="image-button">
+
+              ✎ IMAGEM
+
+              <input type="file" accept="image/*" data-image="cleric">
+
+            </label>
+
+          </div>
+
+
+          <div class="fighter-image" id="image-cleric">
+          </div>
+
+
+          <div class="stats">
+
+            <label>
+
+              Vida
+
+              <span class="hp-row">
+
+                <button type="button" class="hp-minus" data-hp="cleric">
+                  −
+                </button>
+
+
+                <input type="number" id="hp-cleric" value="110" min="0" data-save="hp-cleric">
+
+
+                <span>/</span>
+
+
+                <input type="number" id="max-cleric" value="110" min="1" data-save="max-cleric">
+
+
+                <button type="button" class="hp-plus" data-hp="cleric">
+                  +
+                </button>
+
+              </span>
+
+            </label>
+
+
+            <label>
+
+              Defesa
+
+              <input type="number" value="2" min="0" data-save="def-cleric">
+
+            </label>
+
+
+            <label>
+
+              Agilidade
+
+              <input type="number" value="25" min="0" data-save="agi-cleric">
+
+            </label>
+
+
+            <label>
+
+              Dano Extra
+
+              <input type="number" value="10" min="0" data-save="dmg-cleric">
+
+            </label>
+
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         CARTAS DE ATAQUE
+         ============================== -->
+
+    <section class="cards-panel">
+
+      <div class="cards-heading">
+
+        <div>
+
+          <small contenteditable="true" data-save="cards-label">
+            CONTROLE DE AÇÕES
+          </small>
+
+
+          <h2 contenteditable="true" data-save="cards-title">
+            CARTAS DA BATALHA
+          </h2>
+
+        </div>
+
+
+        <span contenteditable="true" data-save="cards-info">
+          13 cartas
+        </span>
+
+      </div>
+
+
+      <!--
+            As 13 cartas são criadas
+            automaticamente pelo script.js.
+        -->
+
+      <div class="cards"></div>
+
+    </section>
+
+
+
+    <!-- ==============================
+         RODAPÉ
+         ============================== -->
+
+    <footer>
+
+      <span>
+
+        ●
+
+        <span contenteditable="true" data-save="footer">
+          Arena salva automaticamente no navegador
+        </span>
+
+      </span>
+
+
+      <button id="clear-storage">
+        Limpar dados
+      </button>
+
+    </footer>
+
+  </main>
+
+
+  <script src="script.js"></script>
+
+</body>
+
+</html>

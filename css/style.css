@@ -6024,6 +6024,672 @@ h2{
     }
 }
 
+/* ==========================================
+   ARENA DE COMBATE INTEGRADA
+========================================== */
+
+.arena-integrada{
+    display:flex;
+    min-height:calc(100vh - 150px);
+    flex-direction:column;
+    gap:12px;
+}
+
+.arena-integrada-barra{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    padding:13px 16px;
+    border:1px solid rgba(0,255,136,.18);
+    border-radius:14px;
+    background:rgba(8,20,34,.88);
+}
+
+.arena-integrada-barra > div:first-child{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
+
+.arena-integrada-barra span{
+    color:#00ff88;
+    font-size:9px;
+    letter-spacing:1.5px;
+}
+
+.arena-integrada-barra strong{
+    color:#8fa8c6;
+    font-size:10px;
+    font-weight:500;
+}
+
+.arena-integrada-acoes{
+    display:flex;
+    gap:9px;
+}
+
+.arena-integrada-acoes button{
+    padding:9px 12px;
+    border:1px solid rgba(61,184,255,.24);
+    border-radius:9px;
+    color:#bfe6ff;
+    background:rgba(61,184,255,.08);
+    font-family:inherit;
+    font-size:9px;
+}
+
+.arena-integrada-acoes button:hover{
+    border-color:#3db8ff;
+    background:rgba(61,184,255,.16);
+}
+
+.arena-frota-painel{
+    padding:18px;
+    border:1px solid rgba(61,184,255,.2);
+    border-radius:16px;
+    background:
+        radial-gradient(circle at 95% 0,rgba(61,184,255,.09),transparent 34%),
+        rgba(8,17,31,.92);
+}
+
+.arena-frota-cabecalho{
+    display:flex;
+    align-items:end;
+    justify-content:space-between;
+    gap:24px;
+}
+
+.arena-frota-cabecalho > div{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.arena-frota-cabecalho > div span{
+    color:#3db8ff;
+    font-size:9px;
+    letter-spacing:1.7px;
+}
+
+.arena-frota-cabecalho > div strong{
+    font-size:14px;
+}
+
+.arena-frota-campo{
+    display:flex;
+    width:min(100%,390px);
+    flex-direction:column;
+    gap:7px;
+}
+
+.arena-frota-campo > span{
+    color:#8fa8c6;
+    font-size:8px;
+    letter-spacing:1px;
+}
+
+.arena-frota-campo select{
+    width:100%;
+    min-height:42px;
+    padding:9px 12px;
+    outline:none;
+    border:1px solid rgba(61,184,255,.22);
+    border-radius:10px;
+    color:#eaf7ff;
+    background:#091321;
+    font-family:inherit;
+    font-size:10px;
+}
+
+.arena-frota-campo select:focus{
+    border-color:#3db8ff;
+    box-shadow:0 0 0 3px rgba(61,184,255,.08);
+}
+
+.arena-frota-campo select:disabled{
+    cursor:not-allowed;
+    color:#5f738d;
+}
+
+.arena-frota-vazio{
+    margin-top:15px;
+    padding:14px;
+    border:1px dashed rgba(255,255,255,.08);
+    border-radius:10px;
+    color:#607590;
+    font-size:9px;
+    text-align:center;
+}
+
+.arena-frota-vazio.compacto{
+    grid-column:1 / -1;
+    margin:0;
+}
+
+.arena-integrantes-selecao{
+    margin-top:17px;
+    padding-top:16px;
+    border-top:1px solid rgba(255,255,255,.06);
+}
+
+.arena-integrantes-selecao[hidden]{
+    display:none !important;
+}
+
+.arena-integrantes-topo{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    margin-bottom:12px;
+}
+
+.arena-integrantes-topo > div{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.arena-integrantes-topo strong{
+    font-size:11px;
+}
+
+.arena-integrantes-topo small{
+    color:#7187a2;
+    font-size:8px;
+}
+
+#arena-contador-combatentes{
+    display:grid;
+    min-width:48px;
+    height:34px;
+    place-items:center;
+    border:1px solid rgba(0,255,136,.2);
+    border-radius:9px;
+    color:#00ff88;
+    background:rgba(0,255,136,.06);
+    font-size:10px;
+}
+
+.arena-lista-integrantes{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:9px;
+}
+
+.arena-integrante-opcao{
+    position:relative;
+    display:grid;
+    grid-template-columns:36px minmax(0,1fr) 20px;
+    align-items:center;
+    gap:9px;
+    min-width:0;
+    padding:10px;
+    cursor:pointer;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:11px;
+    background:rgba(255,255,255,.025);
+    transition:.2s;
+}
+
+.arena-integrante-opcao:hover{
+    border-color:rgba(61,184,255,.32);
+    background:rgba(61,184,255,.05);
+}
+
+.arena-integrante-opcao.selecionado{
+    border-color:rgba(0,255,136,.38);
+    background:rgba(0,255,136,.065);
+    box-shadow:inset 0 0 18px rgba(0,255,136,.025);
+}
+
+.arena-integrante-opcao input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+}
+
+.arena-integrante-avatar{
+    display:grid;
+    width:36px;
+    height:36px;
+    place-items:center;
+    border:1px solid rgba(61,184,255,.2);
+    border-radius:10px;
+    color:#3db8ff;
+    background:rgba(61,184,255,.07);
+    font-size:9px;
+}
+
+.arena-integrante-dados{
+    display:flex;
+    min-width:0;
+    flex-direction:column;
+    gap:4px;
+}
+
+.arena-integrante-dados strong,
+.arena-integrante-dados small{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.arena-integrante-dados strong{
+    font-size:9px;
+}
+
+.arena-integrante-dados small{
+    color:#6f849e;
+    font-size:7px;
+}
+
+.arena-integrante-opcao > i{
+    display:grid;
+    width:18px;
+    height:18px;
+    place-items:center;
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:50%;
+    color:transparent;
+    font-size:8px;
+    font-style:normal;
+}
+
+.arena-integrante-opcao.selecionado > i{
+    border-color:#00ff88;
+    color:#03130c;
+    background:#00ff88;
+}
+
+.btn-aplicar-frota-arena{
+    width:100%;
+    min-height:44px;
+    margin-top:13px;
+    border:1px solid #00ff88;
+    border-radius:10px;
+    color:#03150d;
+    background:linear-gradient(135deg,#00d879,#00ff9d);
+    font-family:inherit;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.8px;
+}
+
+.btn-aplicar-frota-arena:hover:not(:disabled){
+    filter:brightness(1.08);
+    box-shadow:0 10px 24px rgba(0,255,136,.14);
+}
+
+.btn-aplicar-frota-arena:disabled{
+    cursor:not-allowed;
+    border-color:rgba(255,255,255,.08);
+    color:#5d7088;
+    background:rgba(255,255,255,.035);
+}
+
+.arena-frota-status{
+    min-height:15px;
+    margin-top:10px;
+    color:#7187a2;
+    font-size:8px;
+    text-align:center;
+}
+
+.arena-frota-status.sucesso{ color:#00d982; }
+.arena-frota-status.aviso{ color:#ffd84d; }
+
+.arena-frame{
+    width:100%;
+    min-height:calc(100vh - 225px);
+    flex:1;
+    border:1px solid rgba(0,255,136,.18);
+    border-radius:18px;
+    background:#05070d;
+}
+
+/* ==========================================
+   TORRE DE ARMAS
+========================================== */
+
+.torre-pagina{
+    min-height:calc(100vh - 180px);
+    display:grid;
+    place-items:center;
+    padding:20px 0 40px;
+}
+
+.torre-card{
+    position:relative;
+    width:min(100%,820px);
+    overflow:hidden;
+    padding:38px;
+    border:1px solid rgba(255,72,92,.28);
+    border-radius:26px;
+    background:
+        radial-gradient(circle at 88% 7%,rgba(255,42,72,.16),transparent 34%),
+        linear-gradient(145deg,rgba(27,13,24,.98),rgba(7,12,24,.98));
+    box-shadow:
+        0 24px 65px rgba(0,0,0,.38),
+        inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.torre-card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,72,92,.045),transparent);
+    transform:translateX(-100%);
+    animation:varredura-torre 6s linear infinite;
+}
+
+@keyframes varredura-torre{
+    to{ transform:translateX(100%); }
+}
+
+.torre-cabecalho{
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:25px;
+}
+
+.torre-selo{
+    display:inline-block;
+    margin-bottom:13px;
+    color:#ff5267;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:2.2px;
+}
+
+.torre-cabecalho h2{
+    margin:0 0 12px;
+    font-size:29px;
+}
+
+.torre-cabecalho p{
+    max-width:590px;
+    margin:0;
+    color:#9d8fa3;
+    font-size:13px;
+    line-height:1.75;
+}
+
+.torre-icone{
+    display:grid;
+    flex:0 0 66px;
+    width:66px;
+    height:66px;
+    place-items:center;
+    border:1px solid rgba(255,72,92,.3);
+    border-radius:18px;
+    background:rgba(255,72,92,.09);
+    box-shadow:0 0 28px rgba(255,72,92,.12);
+    font-size:29px;
+}
+
+.torre-bloqueio{
+    position:relative;
+    display:flex;
+    align-items:center;
+    flex-direction:column;
+    margin-top:36px;
+    padding:32px 24px;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:18px;
+    background:rgba(0,0,0,.2);
+    text-align:center;
+}
+
+.torre-bloqueio[hidden],
+.torre-controle[hidden]{
+    display:none !important;
+}
+
+.torre-cadeado{
+    display:grid;
+    width:54px;
+    height:54px;
+    margin-bottom:16px;
+    place-items:center;
+    border:1px solid rgba(255,72,92,.28);
+    border-radius:50%;
+    color:#ff5267;
+    background:rgba(255,72,92,.08);
+    font-size:24px;
+    box-shadow:0 0 25px rgba(255,72,92,.1);
+}
+
+.torre-bloqueio > span{
+    color:#ff5267;
+    font-size:9px;
+    letter-spacing:2px;
+}
+
+.torre-bloqueio > strong{
+    margin-top:8px;
+    font-size:14px;
+}
+
+#form-senha-torre{
+    margin:23px 0 15px;
+}
+
+#senha-torre{
+    width:190px;
+    padding:15px 19px;
+    outline:none;
+    border:1px solid rgba(255,72,92,.3);
+    border-radius:12px;
+    color:#fff;
+    background:#080b13;
+    box-shadow:inset 0 2px 9px rgba(0,0,0,.55);
+    font-family:inherit;
+    font-size:24px;
+    letter-spacing:14px;
+    text-align:center;
+}
+
+#senha-torre:focus{
+    border-color:#ff5267;
+    box-shadow:0 0 0 3px rgba(255,72,92,.1),inset 0 2px 9px rgba(0,0,0,.55);
+}
+
+#torre-senha-status{
+    min-height:17px;
+    color:#756d7e;
+    font-size:9px;
+    line-height:1.5;
+}
+
+#torre-senha-status.erro{ color:#ff6d7e; }
+#torre-senha-status.carregando{ color:#ffd84d; }
+
+.torre-controle{
+    position:relative;
+    margin-top:34px;
+}
+
+.torre-medidor{
+    display:flex;
+    flex-direction:column;
+    padding:27px;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:18px;
+    background:rgba(0,0,0,.2);
+}
+
+.torre-medidor > span{
+    color:#9d8fa3;
+    font-size:9px;
+    letter-spacing:1.7px;
+}
+
+.torre-medidor > strong{
+    margin:8px 0 18px;
+    font-size:29px;
+}
+
+.torre-barra{
+    height:20px;
+    padding:4px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;
+    background:#05070d;
+    box-shadow:inset 0 3px 8px rgba(0,0,0,.65);
+}
+
+#torre-integridade-progresso{
+    height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg,#00b86b,#00ff88);
+    box-shadow:0 0 20px rgba(0,255,136,.35);
+    transition:width .55s ease,background .3s ease;
+}
+
+#torre-integridade-progresso.alerta{
+    background:linear-gradient(90deg,#d68b19,#ffd84d);
+    box-shadow:0 0 20px rgba(255,216,77,.3);
+}
+
+#torre-integridade-progresso.critico{
+    background:linear-gradient(90deg,#a8203d,#ff4d5a);
+    box-shadow:0 0 20px rgba(255,77,90,.38);
+}
+
+#torre-ultimo-disparo{
+    margin-top:13px;
+    color:#756d7e;
+    font-size:9px;
+}
+
+.btn-disparar-torre{
+    display:flex;
+    width:100%;
+    min-height:68px;
+    align-items:center;
+    justify-content:center;
+    gap:13px;
+    margin-top:22px;
+    padding:17px 22px;
+    border:1px solid #ff435b;
+    border-radius:14px;
+    color:#fff;
+    background:linear-gradient(135deg,#b61536,#ff435b);
+    box-shadow:0 14px 34px rgba(255,42,72,.2);
+    font-family:inherit;
+    font-size:12px;
+    letter-spacing:.8px;
+    transition:transform .2s,filter .2s,box-shadow .2s;
+}
+
+.btn-disparar-torre:not(:disabled):hover{
+    transform:translateY(-2px);
+    filter:brightness(1.1);
+    box-shadow:0 18px 42px rgba(255,42,72,.3);
+}
+
+.btn-disparar-torre:disabled{
+    cursor:not-allowed;
+    border-color:rgba(255,255,255,.09);
+    color:#6e6272;
+    background:rgba(255,255,255,.035);
+    box-shadow:none;
+}
+
+.torre-aviso{
+    margin:14px 0 0;
+    color:#756d7e;
+    font-size:9px;
+    line-height:1.5;
+    text-align:center;
+}
+
+.torre-tremer{
+    animation:torre-tremer .35s ease;
+}
+
+@keyframes torre-tremer{
+    0%,100%{ transform:translateX(0); }
+    25%{ transform:translateX(-7px); }
+    75%{ transform:translateX(7px); }
+}
+
+@media(max-width:700px){
+    .arena-integrada{
+        min-height:calc(100vh - 125px);
+    }
+
+    .arena-integrada-barra{
+        align-items:stretch;
+        flex-direction:column;
+    }
+
+    .arena-integrada-acoes button{
+        flex:1;
+    }
+
+    .arena-frota-cabecalho{
+        align-items:stretch;
+        flex-direction:column;
+    }
+
+    .arena-frota-campo{
+        width:100%;
+    }
+
+    .arena-integrantes-topo{
+        align-items:flex-start;
+    }
+
+    .arena-lista-integrantes{
+        grid-template-columns:1fr;
+    }
+
+    .arena-frame{
+        min-height:calc(100vh - 250px);
+        border-radius:12px;
+    }
+
+    .torre-pagina{
+        min-height:auto;
+        padding-top:0;
+    }
+
+    .torre-card{
+        padding:25px 20px;
+        border-radius:20px;
+    }
+
+    .torre-cabecalho h2{
+        font-size:23px;
+    }
+
+    .torre-icone{
+        display:none;
+    }
+
+    .torre-bloqueio{
+        margin-top:27px;
+        padding:25px 16px;
+    }
+
+    .torre-medidor{
+        padding:21px 17px;
+    }
+
+    .btn-disparar-torre{
+        min-height:60px;
+        padding:14px;
+        font-size:10px;
+    }
+}
+
 /* ======================================
    FICHA DO TRIPULANTE
    Acrescentar ao final de css/style.css
@@ -6251,96 +6917,6 @@ h2{
 .ficha-equipe-vazio{
     color:var(--texto2);
     font-size:12px;
-}
-
-.ficha-niveis-titulo{
-    margin:4px 0 14px;
-    color:var(--texto2);
-    font-size:11px;
-    letter-spacing:.5px;
-    text-transform:uppercase;
-}
-
-.ficha-niveis-grade{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:14px;
-    margin-bottom:24px;
-}
-
-.ficha-nivel-cartao{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:6px;
-    padding:18px 12px;
-    border:1px solid rgba(0,255,136,.3);
-    border-radius:10px;
-    background:#050805;
-    font-family:'Courier New',Consolas,monospace;
-    text-align:center;
-}
-
-.ficha-nivel-titulo{
-    color:var(--verde);
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:1.5px;
-}
-
-.ficha-nivel-subtitulo{
-    margin-bottom:6px;
-    color:rgba(0,255,136,.55);
-    font-size:11px;
-}
-
-.ficha-nivel-valor{
-    display:flex;
-    align-items:baseline;
-    gap:8px;
-}
-
-.ficha-nivel-rotulo{
-    color:rgba(0,255,136,.6);
-    font-size:12px;
-}
-
-.ficha-nivel-valor input{
-    width:52px;
-    padding:2px 4px;
-    border:none;
-    border-bottom:1px solid rgba(0,255,136,.35);
-    background:transparent;
-    color:var(--verde);
-    font-family:'Courier New',Consolas,monospace;
-    font-size:20px;
-    font-weight:700;
-    text-align:center;
-}
-
-.ficha-nivel-valor input:focus{
-    outline:none;
-    border-bottom-color:var(--verde);
-}
-
-.ficha-equipe-niveis{
-    display:flex;
-    flex-wrap:wrap;
-    gap:7px;
-    margin-top:10px;
-}
-
-.ficha-equipe-niveis span{
-    padding:4px 7px;
-    border:1px solid rgba(0,255,136,.2);
-    border-radius:6px;
-    color:rgba(0,255,136,.65);
-    font-family:'Courier New',Consolas,monospace;
-    font-size:10px;
-}
-
-.ficha-equipe-niveis strong{
-    color:var(--verde);
 }
 
 @media (max-width:900px){

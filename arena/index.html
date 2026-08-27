@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arena de Combate — Lobby</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="lobby-body">
+
+    <div class="lobby-intro">
+        <div class="lobby-intro-glow"></div>
+
+        <div class="lobby-intro-content">
+            <div class="lobby-intro-symbol">⚔</div>
+
+            <div class="lobby-intro-kicker">
+                SISTEMA OPERACIONAL DE BATALHA
+            </div>
+
+            <div class="lobby-intro-title">
+                ARENA DE COMBATE
+            </div>
+
+            <div class="lobby-intro-line"></div>
+
+            <div class="lobby-intro-status">
+                PREPARANDO ARENA...
+            </div>
+        </div>
+    </div>
+
+    <main class="lobby-page">
+            <div class="lobby-bg-orb orb-one"></div>
+            <div class="lobby-bg-orb orb-two"></div>
+            <div class="lobby-grid-lines"></div>
+
+            <div class="lobby-container">
+                <header class="lobby-hero">
+                    <div class="lobby-eyebrow">⚔ SISTEMA OPERACIONAL DE BATALHA ⚔</div>
+                    <h1>ARENA DE COMBATE</h1>
+                    <p>Escolha o confronto e entre com sua equipe.</p>
+                    <div class="lobby-line"></div>
+                </header>
+
+                <section class="boss-lobby-grid">
+                    <article class="boss-lobby-card">
+                        <div class="boss-lobby-top">
+                            <div>
+                                <span class="boss-lobby-kicker">CONFRONTO 01</span>
+                                <h2>KAIJU 01</h2>
+                            </div>
+                            <span class="boss-status">● ONLINE</span>
+                        </div>
+
+                        <label class="lobby-image-button">
+                            <span>🖼 ADICIONAR IMAGEM DO KAIJU</span>
+                            <input type="file" accept="image/*" data-boss-image="boss1">
+                        </label>
+
+                        <div class="boss-lobby-image-wrap">
+                            <div class="boss-lobby-image" data-boss-preview="boss1"></div>
+                            <div class="boss-placeholder" data-boss-placeholder="boss1">ADICIONE A IMAGEM DO KAIJU</div>
+                            <div class="boss-scanline"></div>
+                        </div>
+
+                        <div class="boss-lobby-name" contenteditable="true">KAIJU 01</div>
+
+                        <div class="lobby-team-buttons">
+                            <a href="equipe1.html" class="lobby-team team-a"><strong>EQUIPE 01</strong><small>ENTRAR NA
+                                    ARENA</small></a>
+                            <a href="equipe2.html" class="lobby-team team-b"><strong>EQUIPE 02</strong><small>ENTRAR NA
+                                    ARENA</small></a>
+                        </div>
+                    </article>
+
+                    <article class="boss-lobby-card boss-gold">
+                        <div class="boss-lobby-top">
+                            <div>
+                                <span class="boss-lobby-kicker">CONFRONTO 02</span>
+                                <h2>KAIJU 02</h2>
+                            </div>
+                            <span class="boss-status">● ONLINE</span>
+                        </div>
+
+                        <label class="lobby-image-button">
+                            <span>🖼 ADICIONAR IMAGEM DO KAIJU</span>
+                            <input type="file" accept="image/*" data-boss-image="boss2">
+                        </label>
+
+                        <div class="boss-lobby-image-wrap">
+                            <div class="boss-lobby-image" data-boss-preview="boss2"></div>
+                            <div class="boss-placeholder" data-boss-placeholder="boss2">ADICIONE A IMAGEM DO KAIJU</div>
+                            <div class="boss-scanline"></div>
+                        </div>
+
+                        <div class="boss-lobby-name" contenteditable="true">KAIJU 02</div>
+
+                        <div class="lobby-team-buttons">
+                            <a href="equipe3.html" class="lobby-team team-a"><strong>EQUIPE 03</strong><small>ENTRAR NA
+                                    ARENA</small></a>
+                            <a href="equipe4.html" class="lobby-team team-b"><strong>EQUIPE 04</strong><small>ENTRAR NA
+                                    ARENA</small></a>
+                        </div>
+                    </article>
+                </section>
+
+                <footer class="lobby-footer">
+                    <span>ARENA ONLINE</span><i>•</i><span>4 EQUIPES</span><i>•</i><span>2 KAIJUS</span>
+                </footer>
+            </div>
+        </main>
+
+        <script>
+            (function () {
+                const PREFIX = "arena-lobby-";
+
+                function loadBoss(id) {
+                    const image = localStorage.getItem(PREFIX + id + "-image");
+                    const name = localStorage.getItem(PREFIX + id + "-name");
+                    const preview = document.querySelector('[data-boss-preview="' + id + '"]');
+                    const placeholder = document.querySelector('[data-boss-placeholder="' + id + '"]');
+                    const title = preview?.closest('.boss-lobby-card')?.querySelector('.boss-lobby-name');
+
+                    if (preview && image) {
+                        preview.style.backgroundImage = "url(" + image + ")";
+                        if (placeholder) placeholder.hidden = true;
+                    }
+                    if (title && name) title.textContent = name;
+                }
+
+                ["boss1", "boss2"].forEach(loadBoss);
+
+                function resizeBossImage(source, maxSize, done) {
+                    const image = new Image();
+
+                    image.onload = () => {
+                        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+                        const canvas = document.createElement("canvas");
+                        canvas.width = Math.max(1, Math.round(image.width * scale));
+                        canvas.height = Math.max(1, Math.round(image.height * scale));
+
+                        const context = canvas.getContext("2d");
+                        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        done(canvas.toDataURL("image/jpeg", 0.86));
+                    };
+
+                    image.src = source;
+                }
+
+                document.querySelectorAll("[data-boss-image]").forEach(input => {
+                    input.addEventListener("change", event => {
+                        const file = event.target.files?.[0];
+                        const id = event.target.dataset.bossImage;
+                        if (!file) return;
+
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            resizeBossImage(reader.result, 1200, imageData => {
+                                try {
+                                    localStorage.setItem(PREFIX + id + "-image", imageData);
+                                    const preview = document.querySelector('[data-boss-preview="' + id + '"]');
+                                    const placeholder = document.querySelector('[data-boss-placeholder="' + id + '"]');
+                                    if (preview) preview.style.backgroundImage = "url(" + imageData + ")";
+                                    if (placeholder) placeholder.hidden = true;
+                                } catch (error) {
+                                    alert("A imagem é grande demais para ser salva. Tente outra imagem.");
+                                }
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                });
+
+                document.querySelectorAll(".boss-lobby-name").forEach(title => {
+                    const card = title.closest(".boss-lobby-card");
+                    const input = card?.querySelector("[data-boss-image]");
+                    const id = input?.dataset.bossImage;
+                    title.addEventListener("blur", () => {
+                        if (id) localStorage.setItem(PREFIX + id + "-name", title.textContent.trim());
+                    });
+                });
+            })();
+        </script>
+</body>
+
+</html>
