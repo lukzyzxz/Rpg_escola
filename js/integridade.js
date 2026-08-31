@@ -21,8 +21,9 @@ function telaIntegridade() {
                         <span class="integridade-selo">SISTEMA DE MANUTENÇÃO</span>
                         <h2>Integridade Estrutural</h2>
                         <p>
-                            Cada recuperação restaura 1 ponto e bloqueia o sistema
-                            para toda a tripulação durante 20 horas.
+                            Abaixo do limite, cada recuperação restaura 1 ponto. Em
+                            15/15, o sistema tenta gerar uma reserva extra com 50% de
+                            chance. Toda tentativa inicia o cooldown global de 20 horas.
                         </p>
                     </div>
                     <div class="integridade-icone" aria-hidden="true">🛡️</div>
@@ -48,6 +49,12 @@ function telaIntegridade() {
                         <span>CRÍTICA</span>
                         <span>ESTÁVEL</span>
                         <span>MÁXIMA</span>
+                    </div>
+
+                    <div id="integridade-reserva" class="integridade-reserva" hidden>
+                        <span>⚡ ARMAZÉM EXTRA</span>
+                        <strong id="integridade-reserva-valor">+0</strong>
+                        <small>Esta reserva recebe os próximos danos antes da integridade normal.</small>
                     </div>
                 </div>
 
@@ -105,7 +112,7 @@ async function carregarIntegridadeNave(silencioso = false) {
     try {
         const { data, error } = await supabaseClient
             .from("nave_integridade")
-            .select("id, valor, maximo, ultima_recuperacao, ultimo_usuario_nome")
+            .select("id, valor, maximo, reserva_extra, ultima_recuperacao, ultimo_usuario_nome")
             .eq("id", 1)
             .single();
 
@@ -150,15 +157,20 @@ async function recuperarIntegridadeNave() {
             await carregarIntegridadeNave(true);
         }
 
-        if (data?.sucesso) {
+        if (data?.codigo === "sobrecarga_sucesso") {
+            mostrarAvisoIntegridade(
+                `Sobrecarga bem-sucedida! Reserva extra: +${data.reserva_extra}.`,
+                "success"
+            );
+        } else if (data?.codigo === "sobrecarga_falhou") {
+            mostrarAvisoIntegridade(
+                "A tentativa de sobrecarga falhou. O cooldown de 20 horas foi iniciado.",
+                "info"
+            );
+        } else if (data?.sucesso) {
             mostrarAvisoIntegridade(
                 "Integridade recuperada em 1 ponto!",
                 "success"
-            );
-        } else if (data?.codigo === "integridade_maxima") {
-            mostrarAvisoIntegridade(
-                "A nave já está com integridade máxima.",
-                "info"
             );
         } else {
             mostrarAvisoIntegridade(
@@ -185,6 +197,10 @@ function normalizarEstadoIntegridade(dados) {
     return {
         valor: Number(dados?.valor ?? 5),
         maximo: Number(dados?.maximo ?? 15),
+        reservaExtra: Math.max(
+            0,
+            Number(dados?.reserva_extra ?? dados?.reservaExtra ?? 0)
+        ),
         ultimaRecuperacao:
             dados?.ultima_recuperacao
             || dados?.ultimaRecuperacao
@@ -212,6 +228,8 @@ function renderizarIntegridade() {
     const textoValor = document.getElementById("integridade-valor");
     const progresso = document.getElementById("integridade-progresso");
     const barra = document.querySelector(".integridade-barra");
+    const reserva = document.getElementById("integridade-reserva");
+    const reservaValor = document.getElementById("integridade-reserva-valor");
 
     if (textoValor) textoValor.textContent = `${valor}/${maximo}`;
 
@@ -229,6 +247,11 @@ function renderizarIntegridade() {
         barra.setAttribute("aria-valuenow", String(valor));
     }
 
+    if (reserva) reserva.hidden = estadoIntegridade.reservaExtra <= 0;
+    if (reservaValor) {
+        reservaValor.textContent = `+${estadoIntegridade.reservaExtra}`;
+    }
+
     atualizarDisponibilidadeIntegridade();
 }
 
@@ -240,19 +263,6 @@ function atualizarDisponibilidadeIntegridade() {
 
     if (recuperandoIntegridade) {
         renderizarBotaoRecuperando();
-        return;
-    }
-
-    if (estadoIntegridade.valor >= estadoIntegridade.maximo) {
-        botao.disabled = true;
-        botao.innerHTML = "<span>✓</span><strong>INTEGRIDADE MÁXIMA</strong>";
-
-        atualizarStatusIntegridade(
-            "maxima",
-            "Nave totalmente restaurada",
-            "Nenhuma manutenção é necessária no momento.",
-            "✓"
-        );
         return;
     }
 
@@ -275,20 +285,26 @@ function atualizarDisponibilidadeIntegridade() {
     }
 
     botao.disabled = false;
-    botao.innerHTML = `
-        <span>⚡</span>
-        <strong>RECUPERAR INTEGRIDADE DA NAVE</strong>
-    `;
+    const integridadeCheia =
+        estadoIntegridade.valor >= estadoIntegridade.maximo;
+
+    botao.innerHTML = integridadeCheia
+        ? `<span>⚡</span><strong>TENTAR SOBRECARGA — 50%</strong>`
+        : `<span>⚡</span><strong>RECUPERAR INTEGRIDADE DA NAVE</strong>`;
 
     const detalhe = estadoIntegridade.ultimaRecuperacao
         ? `Última recuperação por ${estadoIntegridade.ultimoUsuarioNome}.`
         : "Nenhuma recuperação foi registrada ainda.";
 
     atualizarStatusIntegridade(
-        "disponivel",
-        "Sistema de reparo disponível",
-        detalhe,
-        "●"
+        integridadeCheia ? "sobrecarga" : "disponivel",
+        integridadeCheia
+            ? "Núcleo pronto para sobrecarga"
+            : "Sistema de reparo disponível",
+        integridadeCheia
+            ? `Há 50% de chance de armazenar +1. ${detalhe}`
+            : detalhe,
+        integridadeCheia ? "⚡" : "●"
     );
 }
 

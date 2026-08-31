@@ -1,4 +1,5 @@
--- Execute este arquivo UMA ÚNICA VEZ no SQL Editor do Supabase.
+-- Execute esta versão completa no SQL Editor do Supabase.
+-- É seguro rodá-la novamente se a versão antiga já foi instalada.
 -- Pré-requisito: o arquivo supabase-integridade.sql já deve ter sido executado.
 --
 -- A senha é validada dentro do banco. O navegador nunca altera diretamente
@@ -16,8 +17,16 @@ create table if not exists public.nave_torre_armas_historico (
     usuario_nome text not null,
     valor_anterior integer not null,
     valor_novo integer not null,
+    reserva_anterior integer not null default 0,
+    reserva_nova integer not null default 0,
+    origem_consumo text not null default 'integridade',
     disparado_em timestamptz not null default now()
 );
+
+alter table public.nave_torre_armas_historico
+    add column if not exists reserva_anterior integer not null default 0,
+    add column if not exists reserva_nova integer not null default 0,
+    add column if not exists origem_consumo text not null default 'integridade';
 
 alter table public.nave_torre_armas_historico enable row level security;
 
@@ -59,6 +68,8 @@ declare
     v_usuario_nome text;
     v_estado public.nave_integridade%rowtype;
     v_valor_anterior integer;
+    v_reserva_anterior integer;
+    v_origem_consumo text;
     v_agora timestamptz := clock_timestamp();
 begin
     if v_usuario_id is null then
@@ -90,12 +101,13 @@ begin
         raise exception 'Estado de integridade não encontrado';
     end if;
 
-    if v_estado.valor <= 0 then
+    if v_estado.valor <= 0 and v_estado.reserva_extra <= 0 then
         return jsonb_build_object(
             'sucesso', false,
             'codigo', 'sem_integridade',
             'valor', v_estado.valor,
             'maximo', v_estado.maximo,
+            'reserva_extra', v_estado.reserva_extra,
             'ultimo_disparo', v_estado.ultimo_disparo,
             'ultimo_disparo_usuario_nome',
                 v_estado.ultimo_disparo_usuario_nome
@@ -103,9 +115,21 @@ begin
     end if;
 
     v_valor_anterior := v_estado.valor;
+    v_reserva_anterior := v_estado.reserva_extra;
+    v_origem_consumo := case
+        when v_estado.reserva_extra > 0 then 'reserva_extra'
+        else 'integridade'
+    end;
 
     update public.nave_integridade
-    set valor = valor - 1,
+    set valor = case
+            when reserva_extra > 0 then valor
+            else valor - 1
+        end,
+        reserva_extra = case
+            when reserva_extra > 0 then reserva_extra - 1
+            else reserva_extra
+        end,
         ultimo_disparo = v_agora,
         ultimo_disparo_usuario_id = v_usuario_id,
         ultimo_disparo_usuario_nome = v_usuario_nome,
@@ -118,20 +142,31 @@ begin
         usuario_nome,
         valor_anterior,
         valor_novo,
+        reserva_anterior,
+        reserva_nova,
+        origem_consumo,
         disparado_em
     ) values (
         v_usuario_id,
         v_usuario_nome,
         v_valor_anterior,
         v_estado.valor,
+        v_reserva_anterior,
+        v_estado.reserva_extra,
+        v_origem_consumo,
         v_agora
     );
 
     return jsonb_build_object(
         'sucesso', true,
-        'codigo', 'disparado',
+        'codigo', case
+            when v_origem_consumo = 'reserva_extra' then 'disparado_reserva'
+            else 'disparado'
+        end,
         'valor', v_estado.valor,
         'maximo', v_estado.maximo,
+        'reserva_extra', v_estado.reserva_extra,
+        'origem_consumo', v_origem_consumo,
         'ultimo_disparo', v_estado.ultimo_disparo,
         'ultimo_disparo_usuario_nome',
             v_estado.ultimo_disparo_usuario_nome

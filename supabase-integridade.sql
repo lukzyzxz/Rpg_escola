@@ -1,4 +1,5 @@
--- Execute este arquivo uma única vez no SQL Editor do Supabase.
+-- Execute esta versão completa no SQL Editor do Supabase.
+-- É seguro rodá-la novamente se a versão antiga já foi instalada.
 -- Ele cria o estado global da integridade, o histórico e a operação atômica
 -- que impede duas recuperações simultâneas.
 
@@ -6,14 +7,37 @@ create table if not exists public.nave_integridade (
     id smallint primary key default 1 check (id = 1),
     valor integer not null default 5,
     maximo integer not null default 15 check (maximo > 0),
+    reserva_extra integer not null default 0,
     ultima_recuperacao timestamptz,
     ultimo_usuario_id uuid references auth.users(id) on delete set null,
     ultimo_usuario_nome text,
     atualizado_em timestamptz not null default now(),
     constraint nave_integridade_valor_valido check (
         valor >= 0 and valor <= maximo
+    ),
+    constraint nave_integridade_reserva_extra_valida check (
+        reserva_extra >= 0
     )
 );
+
+-- Migração segura para quem já executou a primeira versão deste arquivo.
+alter table public.nave_integridade
+    add column if not exists reserva_extra integer not null default 0;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_constraint
+        where conname = 'nave_integridade_reserva_extra_valida'
+          and conrelid = 'public.nave_integridade'::regclass
+    ) then
+        alter table public.nave_integridade
+        add constraint nave_integridade_reserva_extra_valida
+        check (reserva_extra >= 0);
+    end if;
+end;
+$$;
 
 insert into public.nave_integridade (id, valor, maximo)
 values (1, 5, 15)
@@ -25,8 +49,16 @@ create table if not exists public.nave_integridade_historico (
     usuario_nome text not null,
     valor_anterior integer not null,
     valor_novo integer not null,
+    reserva_anterior integer not null default 0,
+    reserva_nova integer not null default 0,
+    resultado text not null default 'recuperado',
     recuperado_em timestamptz not null default now()
 );
+
+alter table public.nave_integridade_historico
+    add column if not exists reserva_anterior integer not null default 0,
+    add column if not exists reserva_nova integer not null default 0,
+    add column if not exists resultado text not null default 'recuperado';
 
 alter table public.nave_integridade enable row level security;
 alter table public.nave_integridade_historico enable row level security;
@@ -61,6 +93,10 @@ declare
     v_usuario_nome text;
     v_estado public.nave_integridade%rowtype;
     v_agora timestamptz := clock_timestamp();
+    v_valor_anterior integer;
+    v_reserva_anterior integer;
+    v_sobrecarga_sucesso boolean := false;
+    v_codigo text;
 begin
     if v_usuario_id is null then
         raise exception 'Usuário não autenticado';
@@ -87,17 +123,6 @@ begin
         raise exception 'Estado de integridade não encontrado';
     end if;
 
-    if v_estado.valor >= v_estado.maximo then
-        return jsonb_build_object(
-            'sucesso', false,
-            'codigo', 'integridade_maxima',
-            'valor', v_estado.valor,
-            'maximo', v_estado.maximo,
-            'ultima_recuperacao', v_estado.ultima_recuperacao,
-            'ultimo_usuario_nome', v_estado.ultimo_usuario_nome
-        );
-    end if;
-
     if v_estado.ultima_recuperacao is not null
        and v_estado.ultima_recuperacao > v_agora - interval '20 hours' then
         return jsonb_build_object(
@@ -105,13 +130,35 @@ begin
             'codigo', 'tempo_bloqueado',
             'valor', v_estado.valor,
             'maximo', v_estado.maximo,
+            'reserva_extra', v_estado.reserva_extra,
             'ultima_recuperacao', v_estado.ultima_recuperacao,
             'ultimo_usuario_nome', v_estado.ultimo_usuario_nome
         );
     end if;
 
+    v_valor_anterior := v_estado.valor;
+    v_reserva_anterior := v_estado.reserva_extra;
+
+    if v_estado.valor < v_estado.maximo then
+        v_codigo := 'recuperado';
+    else
+        v_sobrecarga_sucesso := random() < 0.5;
+        v_codigo := case
+            when v_sobrecarga_sucesso then 'sobrecarga_sucesso'
+            else 'sobrecarga_falhou'
+        end;
+    end if;
+
     update public.nave_integridade
-    set valor = valor + 1,
+    set valor = case
+            when valor < maximo then valor + 1
+            else valor
+        end,
+        reserva_extra = case
+            when valor >= maximo and v_sobrecarga_sucesso
+                then reserva_extra + 1
+            else reserva_extra
+        end,
         ultima_recuperacao = v_agora,
         ultimo_usuario_id = v_usuario_id,
         ultimo_usuario_nome = v_usuario_nome,
@@ -124,20 +171,28 @@ begin
         usuario_nome,
         valor_anterior,
         valor_novo,
+        reserva_anterior,
+        reserva_nova,
+        resultado,
         recuperado_em
     ) values (
         v_usuario_id,
         v_usuario_nome,
-        v_estado.valor - 1,
+        v_valor_anterior,
         v_estado.valor,
+        v_reserva_anterior,
+        v_estado.reserva_extra,
+        v_codigo,
         v_agora
     );
 
     return jsonb_build_object(
-        'sucesso', true,
-        'codigo', 'recuperado',
+        'sucesso', v_codigo in ('recuperado', 'sobrecarga_sucesso'),
+        'tentativa_realizada', true,
+        'codigo', v_codigo,
         'valor', v_estado.valor,
         'maximo', v_estado.maximo,
+        'reserva_extra', v_estado.reserva_extra,
         'ultima_recuperacao', v_estado.ultima_recuperacao,
         'ultimo_usuario_nome', v_estado.ultimo_usuario_nome
     );

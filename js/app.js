@@ -129,7 +129,8 @@ function configurarNavegacao() {
         "integridade",
         "arena",
         "torre",
-        "ficha"
+        "ficha",
+        "mechas"
     ];
 
     rotas.forEach(pagina => {
@@ -300,6 +301,24 @@ function abrirPagina(pagina) {
 
             if (typeof inicializarPaginaFicha === "function") {
                 requestAnimationFrame(inicializarPaginaFicha);
+            }
+
+            break;
+
+        case "mechas":
+
+            titulo.textContent = "Desenvolvimento de Mechas";
+
+            conteudo.innerHTML =
+                typeof telaMechas === "function"
+                    ? telaMechas()
+                    : telaEmDesenvolvimento(
+                        "Desenvolvimento de Mechas",
+                        "Não foi possível carregar o hangar individual."
+                    );
+
+            if (typeof inicializarPaginaMechas === "function") {
+                requestAnimationFrame(inicializarPaginaMechas);
             }
 
             break;

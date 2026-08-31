@@ -22,7 +22,8 @@ function telaTorreArmas() {
                         <span class="torre-selo">SISTEMA DE ARMAMENTO ORBITAL</span>
                         <h2>Torre de Armas da Nave</h2>
                         <p>
-                            Cada disparo consome 1 ponto da integridade estrutural.
+                            Cada disparo consome 1 ponto. A reserva extra é usada
+                            primeiro; depois, o dano atinge a integridade estrutural.
                             Não existe tempo de recarga entre disparos.
                         </p>
                     </div>
@@ -55,6 +56,7 @@ function telaTorreArmas() {
                     <div class="torre-medidor" aria-live="polite">
                         <span>INTEGRIDADE DISPONÍVEL</span>
                         <strong id="torre-integridade-valor">--/--</strong>
+                        <em id="torre-integridade-reserva" class="torre-integridade-reserva" hidden></em>
                         <div class="torre-barra" role="progressbar" aria-label="Integridade disponível">
                             <div id="torre-integridade-progresso"></div>
                         </div>
@@ -164,7 +166,7 @@ async function carregarEstadoTorreArmas(silencioso = false) {
         const { data, error } = await supabaseClient
             .from("nave_integridade")
             .select(
-                "id, valor, maximo, ultimo_disparo, ultimo_disparo_usuario_nome"
+                "id, valor, maximo, reserva_extra, ultimo_disparo, ultimo_disparo_usuario_nome"
             )
             .eq("id", 1)
             .single();
@@ -192,6 +194,7 @@ function normalizarEstadoTorreArmas(dados) {
     return {
         valor: Math.max(0, Number(dados?.valor ?? 0)),
         maximo: Math.max(1, Number(dados?.maximo ?? 15)),
+        reservaExtra: Math.max(0, Number(dados?.reserva_extra ?? 0)),
         ultimoDisparo: dados?.ultimo_disparo || null,
         ultimoUsuarioNome:
             dados?.ultimo_disparo_usuario_nome
@@ -205,12 +208,18 @@ function renderizarEstadoTorreArmas() {
     const valor = Math.min(estadoTorreArmas.valor, estadoTorreArmas.maximo);
     const porcentagem = (valor / estadoTorreArmas.maximo) * 100;
     const texto = document.getElementById("torre-integridade-valor");
+    const reserva = document.getElementById("torre-integridade-reserva");
     const progresso = document.getElementById("torre-integridade-progresso");
     const ultimo = document.getElementById("torre-ultimo-disparo");
     const barra = document.querySelector(".torre-barra");
     const botao = document.getElementById("btn-disparar-torre");
+    const totalDisponivel = valor + estadoTorreArmas.reservaExtra;
 
     if (texto) texto.textContent = `${valor}/${estadoTorreArmas.maximo}`;
+    if (reserva) {
+        reserva.hidden = estadoTorreArmas.reservaExtra <= 0;
+        reserva.textContent = `+${estadoTorreArmas.reservaExtra} NO ARMAZÉM EXTRA`;
+    }
 
     if (progresso) {
         progresso.style.width = `${porcentagem}%`;
@@ -231,8 +240,8 @@ function renderizarEstadoTorreArmas() {
     }
 
     if (botao) {
-        botao.disabled = disparandoTorre || valor <= 0;
-        botao.innerHTML = valor <= 0
+        botao.disabled = disparandoTorre || totalDisponivel <= 0;
+        botao.innerHTML = totalDisponivel <= 0
             ? "<span>×</span><strong>INTEGRIDADE INSUFICIENTE</strong>"
             : "<span>◎</span><strong>DISPARAR TORRE DE ARMAS</strong>";
     }
@@ -264,7 +273,9 @@ async function dispararTorreArmas() {
         if (data?.sucesso) {
             if (typeof mostrarNotificacao === "function") {
                 mostrarNotificacao(
-                    `Disparo confirmado. Integridade: ${data.valor}/${data.maximo}.`,
+                    data.origem_consumo === "reserva_extra"
+                        ? `Disparo confirmado. A reserva absorveu o custo e ficou em +${data.reserva_extra}.`
+                        : `Disparo confirmado. Integridade: ${data.valor}/${data.maximo}.`,
                     "success"
                 );
             }
