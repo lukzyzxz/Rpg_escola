@@ -8,12 +8,6 @@
     box-sizing:border-box;
 }
 
-/* Todas as imagens devem permanecer proporcionais e aparecer por inteiro. */
-img{
-    object-fit:contain !important;
-    object-position:center center !important;
-}
-
 :root{
 
     --bg:#050912;
@@ -6897,11 +6891,8 @@ h2{
 }
 
 .mecha-imagem-preview{
-    display:grid;
-    height:330px;
     min-height:330px;
     overflow:hidden;
-    place-items:center;
     border:1px dashed rgba(168,101,255,.32);
     border-radius:18px;
     background:
@@ -6913,13 +6904,10 @@ h2{
 
 .mecha-imagem-preview img{
     display:block;
-    width:auto;
-    height:auto;
-    min-height:0;
-    max-width:100%;
-    max-height:100%;
+    width:100%;
+    height:100%;
+    min-height:330px;
     object-fit:contain;
-    object-position:center;
     background:radial-gradient(circle,rgba(85,216,255,.08),transparent 65%);
 }
 
@@ -7190,252 +7178,455 @@ h2{
     .mecha-altura{ align-self:flex-end; }
     .mecha-lista-kaijus{ grid-template-columns:1fr; }
     .mecha-imagem-preview,
-    .mecha-imagem-vazia{ height:260px; min-height:260px; }
-    .mecha-imagem-preview img{ width:auto; height:auto; min-height:0; max-width:100%; max-height:260px; }
+    .mecha-imagem-preview img,
+    .mecha-imagem-vazia{ min-height:260px; }
     .mecha-atributos{ grid-template-columns:1fr; }
 }
 
 /* ==========================================
-   REGISTRO DE KAIJUS — ARQUIVO COMPARTILHADO
+   MISSÕES, KAIJUS E FICHA — SETEMBRO/2026
 ========================================== */
 
-body.modal-aberto{ overflow:hidden; }
-
-.kaiju-registro-pagina{
-    --kaiju-laranja:#ff9d45;
-    --kaiju-vermelho:#ff5576;
-    width:min(100%,1480px);
-    margin:0 auto;
-    padding:0 0 55px;
+.missoes-catalogo-pagina,
+.kaijus-pagina{
+    --registro-ciano:#55d8ff;
+    --registro-roxo:#a865ff;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    padding-bottom:40px;
 }
 
-.kaiju-registro-topo{
+.missoes-hero,
+.kaijus-hero{
+    position:relative;
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:25px;
-    margin-bottom:18px;
-    padding:28px 30px;
-    border:1px solid rgba(255,157,69,.2);
-    border-radius:22px;
-    background:radial-gradient(circle at 88% 20%,rgba(255,85,118,.12),transparent 32%),linear-gradient(140deg,rgba(17,27,47,.96),rgba(8,14,27,.98));
+    gap:24px;
+    overflow:hidden;
+    padding:26px 28px;
+    border:1px solid rgba(85,216,255,.19);
+    border-radius:18px;
+    background:
+        linear-gradient(110deg,rgba(10,27,48,.96),rgba(13,17,38,.92)),
+        radial-gradient(circle at 85% 20%,rgba(85,216,255,.18),transparent 34%);
 }
 
-.kaiju-registro-selo{ color:var(--kaiju-laranja); font-size:8px; font-weight:700; letter-spacing:2px; }
-.kaiju-registro-topo h2{ margin:9px 0 8px; font-size:27px; }
-.kaiju-registro-topo p{ max-width:720px; color:var(--texto2); font-size:10px; line-height:1.7; }
+.missoes-hero::after,
+.kaijus-hero::after{
+    content:"";
+    position:absolute;
+    top:-70px;
+    right:-45px;
+    width:230px;
+    height:230px;
+    border:1px solid rgba(85,216,255,.08);
+    border-radius:50%;
+    box-shadow:0 0 0 26px rgba(85,216,255,.025),0 0 0 52px rgba(85,216,255,.018);
+}
 
-.kaiju-btn-principal,.kaiju-btn-salvar{
+.missoes-hero > *,
+.kaijus-hero > *{ position:relative; z-index:1; }
+.missoes-selo,
+.kaijus-selo{ color:var(--registro-ciano); font-size:8px; letter-spacing:1.7px; }
+.missoes-hero h2,
+.kaijus-hero h2{ margin:8px 0 7px; font-size:27px; }
+.missoes-hero p,
+.kaijus-hero p{ max-width:730px; color:#8399b6; font-size:10px; line-height:1.7; }
+
+.missoes-regra,
+.kaijus-contagem{
     display:flex;
-    min-height:48px;
+    min-width:210px;
+    flex-direction:column;
+    gap:7px;
+    padding:15px 17px;
+    border:1px solid rgba(85,216,255,.18);
+    border-radius:13px;
+    background:rgba(3,10,21,.56);
+}
+.missoes-regra strong,
+.kaijus-contagem span{ color:#7e93ad; font-size:7px; letter-spacing:1px; }
+.missoes-regra span{ color:#d5e8ff; font-size:9px; line-height:1.5; }
+.kaijus-contagem strong{ color:var(--registro-ciano); font-size:23px; }
+
+.missoes-resumo-novo{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:10px;
+}
+.missao-resumo-item{
+    display:flex;
+    min-height:86px;
     align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:0 20px;
-    border:1px solid rgba(255,157,69,.55);
-    border-radius:12px;
-    color:#1d0c02;
-    background:linear-gradient(135deg,#ff8b36,#ffc067);
-    box-shadow:0 12px 30px rgba(255,119,43,.14);
+    gap:11px;
+    padding:14px;
+    border:1px solid rgba(255,255,255,.075);
+    border-radius:14px;
+    background:rgba(11,20,36,.86);
+}
+.missao-resumo-item > span{ font-size:20px; }
+.missao-resumo-item div{ display:grid; gap:2px; }
+.missao-resumo-item small{ color:#7389a5; font-size:7px; }
+.missao-resumo-item strong{ font-size:20px; }
+.missao-resumo-item em{ color:#5d718b; font-size:7px; font-style:normal; }
+
+.missoes-filtros{
+    display:grid;
+    grid-template-columns:190px 190px 1fr;
+    align-items:end;
+    gap:12px;
+    padding:14px;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:14px;
+    background:rgba(8,15,28,.78);
+}
+.missoes-filtros label{ display:grid; gap:6px; }
+.missoes-filtros label span{ color:#7187a3; font-size:7px; letter-spacing:1px; }
+.missoes-filtros select,
+.ficha-missao-form input,
+.ficha-missao-form select,
+.ficha-missao-form textarea,
+.ficha-campo-editavel input{
+    width:100%;
+    outline:none;
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:9px;
+    color:#eaf4ff;
+    background:#080f1d;
     font-family:inherit;
-    font-size:9px;
-    font-weight:800;
-    letter-spacing:1px;
-    cursor:pointer;
 }
+.missoes-filtros select{ padding:11px 12px; font-size:9px; }
+.missoes-filtro-aviso{ color:#617692; font-size:8px; line-height:1.55; text-align:right; }
 
-.kaiju-registro-resumo{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
-.kaiju-registro-resumo div{ display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border:1px solid var(--borda); border-radius:12px; background:rgba(10,18,33,.82); }
-.kaiju-registro-resumo span{ color:#7288a6; font-size:7px; letter-spacing:1.1px; }
-.kaiju-registro-resumo strong{ color:var(--kaiju-laranja); font-size:18px; }
+.missoes-lista-catalogo{ display:flex; flex-direction:column; gap:13px; }
+.missao-registro-card{
+    --classe:#55d8ff;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.075);
+    border-left:3px solid var(--classe);
+    border-radius:15px;
+    background:linear-gradient(110deg,rgba(12,21,37,.96),rgba(7,13,25,.93));
+    box-shadow:0 13px 30px rgba(0,0,0,.12);
+}
+.missao-registro-card.classe-embaixador{ --classe:#a865ff; }
+.missao-registro-card.classe-combatente{ --classe:#ff6578; }
+.missao-registro-card.classe-tripulante{ --classe:#55d8ff; }
+.missao-registro-card.concluida{ border-color:rgba(0,255,136,.22); border-left-color:#00ff88; }
 
-.kaiju-registro-ferramentas{ display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:0 15px; border:1px solid var(--borda); border-radius:12px; background:rgba(6,12,24,.78); }
-.kaiju-registro-ferramentas label{ color:var(--kaiju-laranja); font-size:22px; }
-.kaiju-registro-ferramentas input{ width:100%; padding:14px 0; border:0; outline:0; color:var(--texto); background:transparent; font-family:inherit; font-size:10px; }
+.missao-registro-topo{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:20px;
+    padding:20px 22px 14px;
+}
+.missao-registro-identidade{ min-width:0; }
+.missao-classe-badge,
+.missao-tipo-badge{
+    display:inline-flex;
+    align-items:center;
+    margin:0 6px 9px 0;
+    padding:5px 8px;
+    border:1px solid color-mix(in srgb,var(--classe) 35%,transparent);
+    border-radius:99px;
+    color:var(--classe);
+    background:color-mix(in srgb,var(--classe) 8%,transparent);
+    font-size:7px;
+    letter-spacing:.8px;
+}
+.missao-tipo-badge{ border-color:rgba(255,255,255,.08); color:#748aa5; background:rgba(255,255,255,.025); }
+.missao-registro-identidade h3{ margin-bottom:7px; font-size:15px; line-height:1.35; }
+.missao-registro-identidade p{ max-width:850px; color:#7e93ae; font-size:9px; line-height:1.65; }
 
-.kaiju-registro-status{ margin-bottom:16px; padding:10px 14px; border-left:2px solid #61728d; color:#7388a5; background:rgba(8,15,28,.7); font-size:8px; line-height:1.5; }
-.kaiju-registro-status.disponivel{ border-color:var(--verde); color:#83bda3; }
-.kaiju-registro-status.erro{ border-color:var(--kaiju-vermelho); color:#ff8da2; }
-
-.kaiju-registro-lista{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.kaiju-registro-vazio{ grid-column:1/-1; padding:45px 24px; border:1px dashed var(--borda); border-radius:18px; color:#6f839e; font-size:10px; text-align:center; }
-
-.kaiju-registro-card{ overflow:hidden; border:1px solid var(--borda); border-radius:18px; outline:none; background:linear-gradient(145deg,rgba(15,25,44,.95),rgba(7,13,25,.98)); box-shadow:0 18px 40px rgba(0,0,0,.22); cursor:pointer; transition:.2s; }
-.kaiju-registro-card:hover,.kaiju-registro-card:focus{ transform:translateY(-3px); border-color:rgba(255,157,69,.42); box-shadow:0 23px 50px rgba(0,0,0,.3); }
-.kaiju-registro-card-imagem{ position:relative; display:grid; height:220px; overflow:hidden; place-items:center; background:radial-gradient(circle,#1b2b45,#080f1e); }
-.kaiju-registro-card-imagem img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; object-position:center; background:#08101e; }
-.kaiju-registro-card:hover img{ transform:none; }
-.kaiju-sem-imagem{ display:grid; width:100%; height:100%; place-items:center; color:rgba(255,157,69,.62); font-size:52px; }
-.kaiju-status-etiqueta{ position:absolute; top:13px; right:13px; padding:6px 9px; border:1px solid var(--borda); border-radius:999px; color:#9cadc3; background:rgba(4,9,18,.82); backdrop-filter:blur(8px); font-size:6px; letter-spacing:1px; }
-.kaiju-status-etiqueta.status-ativo{ border-color:rgba(255,85,118,.45); color:#ff7c94; }
-.kaiju-status-etiqueta.status-derrotado{ border-color:rgba(0,255,136,.4); color:#50e7a0; }
-.kaiju-registro-card-corpo{ padding:18px; }
-.kaiju-registro-numero{ color:#5e728e; font-size:6px; letter-spacing:1.2px; }
-.kaiju-registro-card h3{ margin:7px 0 8px; font-size:15px; }
-.kaiju-registro-card p{ display:-webkit-box; min-height:34px; overflow:hidden; color:#788ca7; font-size:8px; line-height:1.55; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
-.kaiju-registro-atributos{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0; }
-.kaiju-registro-atributos span{ padding:8px 5px; border:1px solid rgba(255,255,255,.06); border-radius:8px; color:#637994; background:rgba(0,0,0,.16); font-size:6px; text-align:center; }
-.kaiju-registro-atributos strong{ color:#e7effa; font-size:9px; }
-.kaiju-registro-card-rodape{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:13px; border-top:1px solid var(--borda); }
-.kaiju-registro-card-rodape small{ color:#71849d; font-size:6px; }
-.kaiju-registro-card-rodape strong{ color:var(--kaiju-laranja); font-size:6px; letter-spacing:.7px; }
-
-.kaiju-modal-overlay,.ficha-modal-overlay{
-    position:fixed;
-    z-index:100000;
-    inset:0;
+.missao-check{
     display:flex;
+    min-width:168px;
+    min-height:42px;
     align-items:center;
     justify-content:center;
-    padding:22px;
-    overflow-y:auto;
-    background:rgba(1,5,12,.86);
-    backdrop-filter:blur(10px);
+    border:1px solid rgba(85,216,255,.26);
+    border-radius:10px;
+    color:#82dcf5;
+    background:rgba(85,216,255,.055);
+    cursor:pointer;
+    font-size:8px;
+    letter-spacing:.6px;
+    transition:.2s;
 }
-.kaiju-modal-overlay[hidden],.ficha-modal-overlay[hidden]{ display:none; }
+.missao-check:hover{ transform:translateY(-1px); border-color:#55d8ff; }
+.missao-check.ativo{ border-color:rgba(0,255,136,.38); color:#65f3ad; background:rgba(0,255,136,.07); }
+.missao-check input{ position:absolute; opacity:0; pointer-events:none; }
+.missao-check input:disabled + span{ opacity:.55; }
 
-.kaiju-modal{ width:min(100%,980px); max-height:calc(100vh - 44px); padding:25px; overflow-y:auto; border:1px solid rgba(255,157,69,.3); border-radius:20px; background:linear-gradient(145deg,#111d31,#070e1c); box-shadow:0 30px 90px rgba(0,0,0,.6); }
-.kaiju-modal-cabecalho,.ficha-modal-cabecalho{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:20px; }
-.kaiju-modal-cabecalho span,.ficha-modal-cabecalho span{ color:var(--kaiju-laranja); font-size:7px; letter-spacing:1.4px; }
-.kaiju-modal-cabecalho h3,.ficha-modal-cabecalho h3{ margin-top:6px; font-size:19px; }
-.kaiju-modal-fechar,.ficha-modal-fechar{ display:grid; flex:0 0 36px; width:36px; height:36px; place-items:center; border:1px solid var(--borda); border-radius:10px; color:#9cafc8; background:rgba(0,0,0,.2); font-family:inherit; font-size:20px; cursor:pointer; }
-.kaiju-form-grid{ display:grid; grid-template-columns:270px 1fr; gap:24px; }
-.kaiju-imagem-coluna > small{ display:block; margin-top:8px; color:#60748e; font-size:6px; line-height:1.5; text-align:center; }
-.kaiju-imagem-preview{ display:grid; min-height:330px; overflow:hidden; place-items:center; border:1px solid rgba(255,157,69,.2); border-radius:15px; background:radial-gradient(circle,#1a2c48,#070e1c); }
-.kaiju-imagem-preview img{ display:block; width:auto; height:auto; max-width:100%; max-height:330px; object-fit:contain; object-position:center; background:#08101e; }
-.kaiju-imagem-preview div{ display:flex; flex-direction:column; align-items:center; gap:8px; color:#8c6b55; }
-.kaiju-imagem-preview span{ font-size:40px; }
-.kaiju-imagem-preview small{ font-size:7px; letter-spacing:1px; }
-.kaiju-upload{ display:flex!important; align-items:center!important; justify-content:center; gap:8px; margin-top:10px; padding:12px!important; border:1px dashed rgba(255,157,69,.34); border-radius:10px; color:#e7a66f!important; background:rgba(255,157,69,.06); font-size:7px!important; text-align:center; cursor:pointer; }
-.kaiju-upload input{ display:none; }
-.kaiju-campos{ display:flex; flex-direction:column; gap:13px; }
-.kaiju-campos label,.ficha-modal form > label,.ficha-missao-linha label{ display:flex; flex-direction:column; gap:7px; color:#8498b3; font-size:7px; letter-spacing:.5px; }
-.kaiju-campos input,.kaiju-campos select,.kaiju-campos textarea,.ficha-modal input,.ficha-modal select,.ficha-modal textarea{ width:100%; padding:11px 12px; border:1px solid var(--borda); border-radius:9px; outline:none; color:var(--texto); background:rgba(0,0,0,.25); font-family:inherit; font-size:9px; line-height:1.5; resize:vertical; }
-.kaiju-campos input:focus,.kaiju-campos select:focus,.kaiju-campos textarea:focus,.ficha-modal input:focus,.ficha-modal select:focus,.ficha-modal textarea:focus{ border-color:rgba(255,157,69,.65); }
-.kaiju-campos option,.ficha-modal option{ background:#0d1728; }
-.kaiju-campos-linha{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.kaiju-campos-linha-2{ grid-template-columns:1fr 1fr; }
-.kaiju-btn-salvar{ width:100%; margin-top:20px; }
+.missao-metadados{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:0 22px 15px;
+}
+.missao-metadados span{ padding:6px 8px; border-radius:7px; color:#667d99; background:rgba(255,255,255,.035); font-size:7px; }
+.missao-detalhes{ border-top:1px solid rgba(255,255,255,.06); }
+.missao-detalhes summary,
+.kaiju-arquivo-detalhes summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 22px;
+    color:#7187a3;
+    cursor:pointer;
+    list-style:none;
+    font-size:7px;
+    letter-spacing:1px;
+}
+.missao-detalhes summary::-webkit-details-marker,
+.kaiju-arquivo-detalhes summary::-webkit-details-marker{ display:none; }
+.missao-detalhes[open] summary span,
+.kaiju-arquivo-detalhes[open] summary span{ transform:rotate(180deg); }
+.missao-detalhes-conteudo{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    padding:5px 22px 20px;
+}
+.missao-detalhe-bloco{ padding:14px; border:1px solid rgba(255,255,255,.06); border-radius:11px; background:rgba(0,0,0,.15); }
+.missao-detalhe-bloco h4{ margin-bottom:9px; color:var(--classe); font-size:8px; letter-spacing:.8px; }
+.missao-detalhe-bloco p,
+.missao-detalhe-bloco li{ color:#8599b3; font-family:Arial,sans-serif; font-size:12px; line-height:1.55; }
+.missao-detalhe-bloco ul{ display:grid; gap:6px; padding-left:17px; }
+.missao-detalhe-rodape{ grid-column:1/-1; display:flex; align-items:center; flex-wrap:wrap; gap:12px; color:#7187a2; font-size:8px; }
+.missao-detalhe-rodape strong{ color:#a9bdd3; }
+.missao-detalhe-rodape button{ margin-left:auto; padding:8px 10px; border:1px solid rgba(255,91,109,.22); border-radius:8px; color:#ff8493; background:rgba(255,91,109,.06); font-size:7px; }
+.missoes-carregando,
+.missoes-estado-vazio,
+.kaijus-carregando,
+.kaijus-estado-vazio{ grid-column:1/-1; display:grid; min-height:110px; place-items:center; gap:7px; padding:22px; border:1px dashed rgba(255,255,255,.1); border-radius:14px; color:#667c97; text-align:center; }
+.missoes-carregando span,
+.kaijus-carregando span{ color:#55d8ff; font-size:22px; animation:giro-integridade 1.2s linear infinite; }
+.missoes-carregando p,
+.missoes-estado-vazio p,
+.kaijus-carregando p,
+.kaijus-estado-vazio p{ color:#627792; font-size:9px; line-height:1.5; }
 
-.kaiju-detalhes-modal{ position:relative; width:min(100%,760px); max-height:calc(100vh - 44px); padding:25px; overflow-y:auto; border:1px solid rgba(255,157,69,.3); border-radius:20px; background:linear-gradient(145deg,#111d31,#070e1c); box-shadow:0 30px 90px rgba(0,0,0,.6); }
-.kaiju-detalhes-modal > .kaiju-modal-fechar{ position:absolute; z-index:2; top:16px; right:16px; }
-.kaiju-detalhes-hero{ display:grid; grid-template-columns:190px 1fr; align-items:center; gap:22px; padding:0 46px 20px 0; border-bottom:1px solid var(--borda); }
-.kaiju-detalhes-hero img,.kaiju-detalhes-hero > .kaiju-sem-imagem{ width:190px; height:190px; border-radius:14px; object-fit:contain; object-position:center; background:#08101e; }
-.kaiju-detalhes-hero span{ color:var(--kaiju-laranja); font-size:7px; letter-spacing:1.5px; }
-.kaiju-detalhes-hero h2{ margin:8px 0 10px; font-size:25px; }
-.kaiju-detalhes-hero p{ color:#788da8; font-size:8px; }
-.kaiju-detalhes-atributos{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
-.kaiju-detalhes-atributos div{ display:flex; align-items:center; justify-content:space-between; padding:14px; border:1px solid var(--borda); border-radius:10px; background:rgba(0,0,0,.18); }
-.kaiju-detalhes-atributos small{ color:#7085a1; font-size:7px; }
-.kaiju-detalhes-atributos strong{ color:var(--kaiju-laranja); font-size:17px; }
-.kaiju-detalhes-bloco{ margin-top:12px; padding:15px; border-left:2px solid rgba(255,157,69,.5); border-radius:3px 10px 10px 3px; background:rgba(255,157,69,.035); }
-.kaiju-detalhes-bloco h3{ margin-bottom:7px; color:#e6a36a; font-size:7px; letter-spacing:1px; }
-.kaiju-detalhes-bloco p{ color:#91a3bb; font-size:9px; line-height:1.7; white-space:pre-wrap; }
+/* Registro visual dos kaijus */
+.kaijus-grade{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.kaiju-registro-card{ overflow:hidden; border:1px solid rgba(255,255,255,.08); border-radius:17px; background:rgba(9,17,31,.94); box-shadow:0 18px 38px rgba(0,0,0,.16); }
+.kaiju-registro-card.derrotado{ border-color:rgba(0,255,136,.25); }
+.kaiju-imagem-wrap{ position:relative; min-height:280px; overflow:hidden; background:#030711; }
+.kaiju-imagem-wrap::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,transparent 55%,rgba(4,9,18,.92)); pointer-events:none; }
+.kaiju-imagem-wrap img{ display:block; width:100%; height:300px; object-fit:cover; transition:transform .45s; }
+.kaiju-registro-card:hover .kaiju-imagem-wrap img{ transform:scale(1.035); }
+.kaiju-numero,
+.kaiju-status{ position:absolute; z-index:1; top:14px; padding:7px 9px; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:rgba(2,7,16,.76); backdrop-filter:blur(7px); font-size:7px; letter-spacing:.9px; }
+.kaiju-numero{ left:14px; color:#7e94ae; }
+.kaiju-status{ right:14px; color:#ff8c9a; }
+.kaiju-registro-card.derrotado .kaiju-status{ color:#4af0a1; border-color:rgba(0,255,136,.27); }
+.kaiju-registro-corpo{ padding:19px 20px 0; }
+.kaiju-classificacao{ color:#55d8ff; font-size:7px; letter-spacing:1.2px; }
+.kaiju-registro-corpo h3{ margin:7px 0; font-size:18px; }
+.kaiju-registro-corpo > p{ min-height:46px; color:#7187a3; font-size:9px; line-height:1.6; }
+.kaiju-arquivo-detalhes{ margin:17px -20px 0; border-top:1px solid rgba(255,255,255,.06); }
+.kaiju-pecas-lista{ display:grid; gap:8px; padding:2px 20px 20px; }
+.kaiju-peca-registro{ display:grid; grid-template-columns:34px 1fr; gap:10px; padding:11px; border:1px solid rgba(255,255,255,.06); border-radius:10px; background:rgba(0,0,0,.17); }
+.kaiju-peca-registro > span{ display:grid; width:34px; height:34px; place-items:center; border-radius:9px; color:#55d8ff; background:rgba(85,216,255,.07); }
+.kaiju-peca-registro div{ display:grid; gap:3px; }
+.kaiju-peca-registro small{ color:#607691; font-size:6px; letter-spacing:.8px; }
+.kaiju-peca-registro strong{ font-size:9px; }
+.kaiju-peca-registro p{ color:#7b90aa; font-family:Arial,sans-serif; font-size:11px; line-height:1.45; }
 
-/* ==========================================
-   FICHA COMPLETA — IMAGENS E HISTÓRICOS
-========================================== */
+/* Ficha e progressão */
+.ficha-pagina-expandida{ grid-template-columns:minmax(0,1fr) 315px; align-items:start; }
+.ficha-coluna-principal{ display:flex; min-width:0; flex-direction:column; gap:17px; }
+.ficha-regra-atributos{ display:flex; justify-content:space-between; gap:12px; margin-bottom:13px; padding:10px 12px; border:1px solid rgba(85,216,255,.12); border-radius:9px; color:#6f849f; background:rgba(85,216,255,.035); font-size:7px; line-height:1.5; }
+.ficha-regra-atributos strong{ color:#83dcf6; }
+.ficha-grade-calculada{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+.ficha-atributo-calculado{ display:flex; align-items:center; gap:10px; padding:13px; border:1px solid rgba(255,255,255,.07); border-radius:12px; background:rgba(0,0,0,.18); }
+.ficha-atributo-calculado > span{ font-size:19px; }
+.ficha-atributo-calculado div{ display:grid; gap:2px; }
+.ficha-atributo-calculado small{ color:#758aa5; font-size:7px; }
+.ficha-atributo-calculado strong{ font-size:20px; }
+.ficha-atributo-calculado em{ color:#536984; font-size:6px; font-style:normal; line-height:1.4; }
+.ficha-niveis{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:13px 0 20px; }
+.ficha-nivel{ display:flex; align-items:center; gap:9px; padding:10px 11px; border:1px solid rgba(255,255,255,.07); border-radius:10px; background:rgba(255,255,255,.025); }
+.ficha-nivel > span{ font-size:15px; }
+.ficha-nivel div{ display:grid; gap:2px; }
+.ficha-nivel small{ color:#6e839f; font-size:6px; letter-spacing:.55px; }
+.ficha-nivel strong{ font-size:16px; }
+.ficha-editaveis{ display:grid; grid-template-columns:135px 1fr; gap:14px; align-items:start; }
+.ficha-campo-editavel{ display:grid; gap:8px; }
+.ficha-campo-editavel span{ color:#91a6c3; font-size:9px; }
+.ficha-campo-editavel input{ padding:13px; font-size:11px; }
+.ficha-editaveis .ficha-itens-label{ grid-column:2; margin:0 0 -8px; }
+.ficha-editaveis .ficha-itens-texto{ grid-column:2; }
+.ficha-equipe-subtitulo{ margin:-6px 0 13px; color:#617590; font-size:7px; line-height:1.5; }
+.ficha-equipe-item > small{ display:block; margin-top:8px; color:#637995; font-size:7px; }
 
-.ficha-pagina{ grid-template-columns:minmax(0,900px) minmax(260px,1fr); width:min(100%,1480px); margin:0 auto; }
-.ficha-conteudo-principal{ display:flex; min-width:0; flex-direction:column; gap:20px; }
-.ficha-equipe{ position:sticky; top:0; }
-.ficha-painel-secundario{ padding:26px; }
+.ficha-progresso-card{ padding:22px; }
+.ficha-secao-titulo{ display:flex; align-items:flex-start; justify-content:space-between; gap:15px; margin-bottom:16px; }
+.ficha-secao-titulo > div{ display:flex; align-items:center; gap:9px; }
+.ficha-secao-titulo > div > span{ display:grid; width:27px; height:27px; place-items:center; border-radius:8px; color:#55d8ff; background:rgba(85,216,255,.07); font-size:8px; }
+.ficha-secao-titulo h3{ font-size:13px; }
+.ficha-secao-titulo small{ max-width:260px; color:#647995; font-size:7px; line-height:1.5; text-align:right; }
+.ficha-missoes-lista{ display:grid; gap:12px; }
+.ficha-missoes-grupo{ --classe:#55d8ff; overflow:hidden; border:1px solid rgba(255,255,255,.065); border-radius:12px; }
+.ficha-missoes-grupo.classe-embaixador{ --classe:#a865ff; }
+.ficha-missoes-grupo.classe-combatente{ --classe:#ff6578; }
+.ficha-missoes-grupo-titulo{ display:flex; justify-content:space-between; gap:10px; padding:11px 13px; color:var(--classe); background:color-mix(in srgb,var(--classe) 6%,transparent); font-size:8px; }
+.ficha-missoes-grupo-titulo span{ color:#647a95; font-size:7px; }
+.ficha-missoes-opcoes{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; background:rgba(255,255,255,.035); }
+.ficha-missao-opcao{ position:relative; display:grid; grid-template-columns:23px 1fr auto; align-items:center; gap:9px; min-height:57px; padding:10px 12px; background:#0a1221; cursor:pointer; }
+.ficha-missao-opcao:hover{ background:#0d1829; }
+.ficha-missao-opcao input{ position:absolute; opacity:0; }
+.ficha-check-visual{ display:grid; width:22px; height:22px; place-items:center; border:1px solid rgba(255,255,255,.14); border-radius:6px; color:#06120d; font-size:10px; }
+.ficha-missao-opcao.concluida .ficha-check-visual{ border-color:#00ff88; background:#00d978; }
+.ficha-missao-texto{ display:grid; gap:4px; }
+.ficha-missao-texto strong{ font-size:8px; line-height:1.4; }
+.ficha-missao-texto small{ color:#5f7591; font-size:6px; }
+.ficha-missao-opcao button{ display:grid; width:22px; height:22px; place-items:center; border:1px solid rgba(255,92,108,.18); border-radius:6px; color:#ff7182; background:rgba(255,92,108,.055); }
 
-.ficha-secao-cabecalho{ display:flex; align-items:center; justify-content:space-between; gap:15px; margin:26px 0 14px; }
-.ficha-secao-cabecalho > div{ display:flex; align-items:center; gap:9px; }
-.ficha-secao-cabecalho > div > span{ display:grid; width:27px; height:27px; place-items:center; border:1px solid rgba(0,255,136,.22); border-radius:8px; color:var(--verde); background:rgba(0,255,136,.06); font-size:7px; }
-.ficha-secao-cabecalho h3{ font-size:12px; }
-.ficha-secao-cabecalho small{ color:#607791; font-size:7px; letter-spacing:1px; }
-.ficha-painel-secundario .ficha-secao-cabecalho{ margin-top:0; }
-.ficha-secao-com-acao{ align-items:center; }
-.ficha-btn-acao{ padding:9px 12px; border:1px solid rgba(0,255,136,.3); border-radius:9px; color:var(--verde); background:rgba(0,255,136,.07); font-family:inherit; font-size:7px; font-weight:700; letter-spacing:.7px; cursor:pointer; }
+.ficha-missao-form{ display:grid; gap:12px; }
+.ficha-form-grade{ display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; }
+.ficha-missao-form label{ display:grid; gap:7px; }
+.ficha-missao-form label > span{ color:#7287a2; font-size:7px; letter-spacing:.6px; text-transform:uppercase; }
+.ficha-missao-form input,
+.ficha-missao-form select,
+.ficha-missao-form textarea{ padding:12px; font-size:9px; }
+.ficha-missao-form textarea{ resize:vertical; line-height:1.55; }
+.ficha-btn-missao{ margin-top:2px; }
 
-.ficha-imagens-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.ficha-imagem-card{ min-width:0; padding:12px; border:1px solid var(--borda); border-radius:14px; background:rgba(0,0,0,.14); }
-.ficha-imagem-card > small{ display:block; margin-top:7px; overflow:hidden; color:#536a86; font-size:6px; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
-.ficha-imagem-preview{ display:grid; height:330px; overflow:hidden; place-items:center; border:1px solid rgba(0,255,136,.13); border-radius:11px; background:radial-gradient(circle,#152b3a,#07101d); }
-.ficha-imagem-preview img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; object-position:center; }
-.ficha-imagem-vazia{ display:flex; flex-direction:column; align-items:center; gap:6px; color:#4d6d72; }
-.ficha-imagem-vazia span{ font-size:36px; }
-.ficha-imagem-vazia strong{ color:#75969c; font-size:8px; letter-spacing:1px; }
-.ficha-imagem-vazia small{ font-size:6px; }
-.ficha-upload{ display:flex; align-items:center; justify-content:center; gap:7px; margin-top:9px; padding:10px; border:1px dashed rgba(0,255,136,.3); border-radius:9px; color:#7eeab8; background:rgba(0,255,136,.05); font-size:7px; letter-spacing:.5px; cursor:pointer; }
-.ficha-upload input{ display:none; }
+.ficha-kaijus-lista{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
+.ficha-kaiju-opcao{ position:relative; overflow:hidden; min-height:155px; border:1px solid rgba(255,255,255,.08); border-radius:11px; background:#070d18; cursor:pointer; }
+.ficha-kaiju-opcao.derrotado{ border-color:rgba(0,255,136,.36); box-shadow:inset 0 0 0 1px rgba(0,255,136,.08); }
+.ficha-kaiju-opcao input{ position:absolute; opacity:0; }
+.ficha-kaiju-opcao img{ width:100%; height:102px; object-fit:cover; opacity:.7; filter:saturate(.75); transition:.25s; }
+.ficha-kaiju-opcao:hover img,
+.ficha-kaiju-opcao.derrotado img{ opacity:1; filter:saturate(1); }
+.ficha-kaiju-opcao > span{ display:grid; gap:4px; padding:9px; }
+.ficha-kaiju-opcao strong{ font-size:8px; line-height:1.3; }
+.ficha-kaiju-opcao small{ color:#607690; font-size:5px; line-height:1.35; }
+.ficha-kaiju-opcao.derrotado small{ color:#48e99a; }
 
-.ficha-niveis{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
-.ficha-niveis > div{ display:grid; grid-template-columns:auto 1fr auto; grid-template-rows:auto auto; align-items:center; gap:2px 9px; padding:13px; border:1px solid var(--borda); border-radius:11px; background:rgba(0,0,0,.16); }
-.ficha-niveis span{ grid-row:span 2; font-size:17px; }
-.ficha-niveis small{ color:#70849e; font-size:6px; letter-spacing:.8px; }
-.ficha-niveis strong{ grid-column:3; grid-row:1/3; color:var(--verde); font-size:20px; }
-
-.ficha-resumo-missoes{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
-.ficha-resumo-missoes div{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--borda); border-radius:10px; background:rgba(0,0,0,.16); }
-.ficha-resumo-missoes span{ color:#69809b; font-size:6px; letter-spacing:.8px; }
-.ficha-resumo-missoes strong{ color:var(--verde); font-size:17px; }
-.ficha-lista-missoes{ display:flex; flex-direction:column; gap:9px; }
-.ficha-missao-item{ display:grid; grid-template-columns:40px 1fr auto; gap:12px; padding:13px; border:1px solid var(--borda); border-radius:11px; background:rgba(0,0,0,.17); }
-.ficha-missao-icone{ display:grid; width:40px; height:40px; place-items:center; border:1px solid rgba(0,255,136,.18); border-radius:10px; background:rgba(0,255,136,.05); }
-.ficha-missao-conteudo{ min-width:0; }
-.ficha-missao-conteudo > span{ color:#5f7792; font-size:6px; letter-spacing:.8px; }
-.ficha-missao-conteudo h4{ margin:5px 0; font-size:10px; }
-.ficha-missao-conteudo p{ color:#788ca6; font-size:8px; line-height:1.55; white-space:pre-wrap; }
-.ficha-missao-acoes{ display:flex; gap:5px; }
-.ficha-missao-acoes button{ display:grid; width:28px; height:28px; place-items:center; border:1px solid var(--borda); border-radius:8px; color:#7f93ad; background:rgba(0,0,0,.2); cursor:pointer; }
-
-.ficha-ajuda{ margin:-3px 0 14px; color:#667d98; font-size:7px; line-height:1.5; }
-.ficha-kaijus-derrotados{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
-.ficha-kaiju-chip{ display:grid; min-width:0; grid-template-columns:46px 1fr auto; align-items:center; gap:9px; padding:7px; border:1px solid rgba(255,157,69,.2); border-radius:11px; color:var(--texto); background:rgba(255,157,69,.04); font-family:inherit; text-align:left; cursor:pointer; }
-.ficha-kaiju-chip img,.ficha-kaiju-chip > span{ display:grid; width:46px; height:46px; place-items:center; border-radius:8px; object-fit:contain; object-position:center; background:#0a1424; }
-.ficha-kaiju-chip strong{ overflow:hidden; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
-.ficha-kaiju-chip i{ color:#dc975e; font-style:normal; }
-
-.ficha-modal{ width:min(100%,620px); max-height:calc(100vh - 44px); padding:24px; overflow-y:auto; border:1px solid rgba(0,255,136,.25); border-radius:18px; background:linear-gradient(145deg,#111d31,#070e1c); box-shadow:0 30px 90px rgba(0,0,0,.6); }
-.ficha-modal-cabecalho span{ color:var(--verde); }
-.ficha-modal form{ display:flex; flex-direction:column; gap:14px; }
-.ficha-missao-linha{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.ficha-modal-kaijus{ width:min(100%,760px); }
-.ficha-kaijus-opcoes{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-height:480px; overflow-y:auto; padding-right:4px; }
-.ficha-kaiju-opcao{ display:grid; grid-template-columns:auto 42px 1fr auto; align-items:center; gap:9px; padding:8px; border:1px solid var(--borda); border-radius:10px; background:rgba(0,0,0,.17); cursor:pointer; }
-.ficha-kaiju-opcao.selecionado{ border-color:rgba(0,255,136,.35); background:rgba(0,255,136,.06); }
-.ficha-kaiju-opcao input{ position:absolute; width:1px; height:1px; opacity:0; }
-.ficha-kaiju-opcao img,.ficha-kaiju-opcao > span{ display:grid; width:42px; height:42px; place-items:center; border-radius:8px; object-fit:contain; object-position:center; background:#091321; }
-.ficha-kaiju-opcao strong{ font-size:8px; }
-.ficha-kaiju-opcao i{ display:grid; width:24px; height:24px; place-items:center; border:1px solid var(--borda); border-radius:50%; color:#71849e; font-size:9px; font-style:normal; }
-.ficha-kaiju-opcao.selecionado i{ border-color:rgba(0,255,136,.4); color:var(--verde); }
+.mecha-kaiju{ overflow:hidden; padding:0 0 13px; }
+.mecha-kaiju-imagem{ width:100%; height:80px; object-fit:cover; opacity:.68; }
+.mecha-kaiju.selecionado .mecha-kaiju-imagem{ opacity:1; }
+.mecha-kaiju > .mecha-kaiju-numero{ position:absolute; top:9px; left:9px; padding:4px 6px; border-radius:5px; background:rgba(3,8,17,.76); }
+.mecha-kaiju > div{ padding:0 12px; }
+.mecha-kaiju > i{ top:9px; right:9px; background:rgba(3,8,17,.8); }
+.mecha-peca-detalhe p strong{ color:#b8d7e8; font-size:8px; }
 
 @media(max-width:1180px){
-    .kaiju-registro-lista{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .ficha-pagina{ grid-template-columns:1fr; }
+    .missoes-resumo-novo{ grid-template-columns:repeat(3,1fr); }
+    .ficha-pagina-expandida{ grid-template-columns:1fr; }
     .ficha-equipe{ position:static; }
 }
 
-@media(max-width:760px){
-    .kaiju-registro-topo{ align-items:flex-start; flex-direction:column; padding:22px 19px; }
-    .kaiju-btn-principal{ width:100%; }
-    .kaiju-registro-lista{ grid-template-columns:1fr; }
-    .kaiju-form-grid{ grid-template-columns:1fr; }
-    .kaiju-imagem-preview{ height:280px; min-height:280px; }
-    .kaiju-imagem-preview img{ width:auto; height:auto; min-height:0; max-width:100%; max-height:280px; }
-    .kaiju-detalhes-hero{ grid-template-columns:120px 1fr; }
-    .kaiju-detalhes-hero img,.kaiju-detalhes-hero > .kaiju-sem-imagem{ width:120px; height:120px; }
-    .ficha-imagem-preview{ height:275px; }
-    .ficha-kaijus-derrotados{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+@media(max-width:850px){
+    .missoes-hero,
+    .kaijus-hero{ align-items:flex-start; flex-direction:column; }
+    .missoes-regra,
+    .kaijus-contagem{ min-width:0; width:100%; }
+    .missoes-filtros{ grid-template-columns:1fr 1fr; }
+    .missoes-filtro-aviso{ grid-column:1/-1; text-align:left; }
+    .missao-registro-topo{ grid-template-columns:1fr; }
+    .missao-check{ width:100%; }
+    .kaijus-grade{ grid-template-columns:1fr; }
+    .ficha-grade-calculada{ grid-template-columns:repeat(2,1fr); }
+    .ficha-kaijus-lista{ grid-template-columns:repeat(3,1fr); }
 }
 
-@media(max-width:520px){
-    .kaiju-registro-resumo{ grid-template-columns:1fr; }
-    .kaiju-modal-overlay,.ficha-modal-overlay{ align-items:flex-start; padding:10px; }
-    .kaiju-modal,.kaiju-detalhes-modal,.ficha-modal{ max-height:none; padding:18px; border-radius:14px; }
-    .kaiju-campos-linha,.kaiju-campos-linha-2,.ficha-missao-linha{ grid-template-columns:1fr; }
-    .kaiju-detalhes-hero{ grid-template-columns:1fr; padding-right:40px; }
-    .kaiju-detalhes-hero img,.kaiju-detalhes-hero > .kaiju-sem-imagem{ width:100%; height:220px; }
-    .kaiju-detalhes-atributos{ grid-template-columns:1fr; }
-    .ficha-card,.ficha-painel-secundario{ padding:19px; }
-    .ficha-secao-com-acao{ align-items:flex-start; flex-direction:column; }
-    .ficha-btn-acao{ width:100%; }
-    .ficha-imagens-grid,.ficha-niveis,.ficha-resumo-missoes,.ficha-kaijus-derrotados,.ficha-kaijus-opcoes{ grid-template-columns:1fr; }
-    .ficha-imagem-preview{ height:330px; }
-    .ficha-missao-item{ grid-template-columns:36px 1fr; }
-    .ficha-missao-icone{ width:36px; height:36px; }
-    .ficha-missao-acoes{ grid-column:2; }
+@media(max-width:620px){
+    .missoes-resumo-novo{ grid-template-columns:repeat(2,1fr); }
+    .missoes-filtros,
+    .missao-detalhes-conteudo,
+    .ficha-form-grade,
+    .ficha-missoes-opcoes{ grid-template-columns:1fr; }
+    .missao-detalhe-rodape{ grid-column:1; align-items:flex-start; flex-direction:column; }
+    .missao-detalhe-rodape button{ margin-left:0; }
+    .ficha-editaveis{ grid-template-columns:1fr; }
+    .ficha-editaveis .ficha-itens-label,
+    .ficha-editaveis .ficha-itens-texto{ grid-column:1; }
+    .ficha-niveis{ grid-template-columns:1fr; }
+    .ficha-kaijus-lista{ grid-template-columns:repeat(2,1fr); }
+    .ficha-secao-titulo{ flex-direction:column; }
+    .ficha-secao-titulo small{ text-align:left; }
+    .kaiju-imagem-wrap img{ height:240px; }
+}
+
+@media(max-width:420px){
+    .missoes-resumo-novo,
+    .ficha-grade-calculada,
+    .ficha-kaijus-lista{ grid-template-columns:1fr; }
+}
+
+/* Imagem pessoal da ficha */
+.ficha-identidade-perfil{
+    display:grid;
+    grid-template-columns:150px minmax(0,1fr);
+    align-items:start;
+    gap:22px;
+    margin-bottom:22px;
+}
+
+.ficha-identidade-conteudo{ min-width:0; }
+.ficha-identidade-conteudo .ficha-cabecalho{ margin-bottom:15px; }
+.ficha-identidade-conteudo .ficha-status{ margin-bottom:0; }
+
+.ficha-avatar-painel{
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+}
+
+.ficha-avatar-preview{
+    display:grid;
+    width:150px;
+    height:170px;
+    overflow:hidden;
+    place-items:center;
+    border:1px solid rgba(0,255,136,.28);
+    border-radius:18px;
+    color:#05140d;
+    background:
+        radial-gradient(circle at 50% 30%,rgba(85,216,255,.22),transparent 52%),
+        linear-gradient(145deg,#00ff88,#55d8ff);
+    box-shadow:0 15px 32px rgba(0,0,0,.24),0 0 25px rgba(0,255,136,.08);
+}
+
+.ficha-avatar-preview > span{
+    font-size:36px;
+    font-weight:800;
+    letter-spacing:2px;
+}
+
+.ficha-avatar-preview img{
+    display:block;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.ficha-avatar-botao{
+    display:flex;
+    min-height:35px;
+    align-items:center;
+    justify-content:center;
+    border:1px solid rgba(85,216,255,.3);
+    border-radius:9px;
+    color:#82dcf5;
+    background:rgba(85,216,255,.06);
+    cursor:pointer;
+    font-size:7px;
+    letter-spacing:.8px;
+    transition:.2s;
+}
+
+.ficha-avatar-botao:hover{ border-color:#55d8ff; background:rgba(85,216,255,.11); }
+.ficha-avatar-botao.enviando{ opacity:.55; pointer-events:none; }
+.ficha-avatar-botao input{ display:none; }
+.ficha-avatar-painel > small{ color:#607590; font-size:6px; line-height:1.4; text-align:center; }
+
+@media(max-width:620px){
+    .ficha-identidade-perfil{ grid-template-columns:1fr; }
+    .ficha-avatar-painel{ width:150px; }
 }

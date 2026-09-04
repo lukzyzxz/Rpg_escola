@@ -8,15 +8,14 @@ const MECHA_BUCKET = "mechas-designs";
 const MECHA_SLOTS = [
     { id: "cabeca", nome: "Cabeça", icone: "◉" },
     { id: "torso", nome: "Torso", icone: "⬡" },
-    { id: "braco_esquerdo", nome: "Braço Esquerdo", icone: "◀" },
-    { id: "braco_direito", nome: "Braço Direito", icone: "▶" },
-    { id: "perna_esquerda", nome: "Perna Esquerda", icone: "◢" },
-    { id: "perna_direita", nome: "Perna Direita", icone: "◣" }
+    { id: "bracos", nome: "Braços", icone: "⚔" },
+    { id: "pernas", nome: "Pernas", icone: "◢" }
 ];
 
 let mechaAtual = null;
 let catalogoKaijusMecha = [];
 let catalogoPecasMecha = [];
+let fichaPilotoMecha = null;
 let kaijusDerrotadosMecha = new Set();
 let pecasEquipadasMecha = {};
 let imagemMechaPendente = null;
@@ -110,7 +109,7 @@ function telaMechas() {
                                 <span>03</span>
                                 <h3>Montagem das Peças</h3>
                             </div>
-                            <small id="mecha-contador-pecas">0/6 EQUIPADAS</small>
+                            <small id="mecha-contador-pecas">0/4 EQUIPADAS</small>
                         </div>
                         <div id="mecha-slots" class="mecha-slots">
                             <p class="mecha-vazio">Selecione um kaiju derrotado para desbloquear peças.</p>
@@ -191,20 +190,27 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
 
     try {
         const usuarioId = window.usuarioAtual.id;
-        const [kaijus, pecas, mecha, derrotados, equipadas] = await Promise.all([
-            supabaseClient.from("mecha_kaijus_catalogo").select("id, nome, ordem").order("ordem"),
-            supabaseClient.from("mecha_pecas_catalogo").select("id, kaiju_id, slot, nome, vida, ataque, defesa, agilidade, passiva, descricao"),
+        const [kaijus, pecas, mecha, derrotados, equipadas, ficha] = await Promise.all([
+            supabaseClient.from("mecha_kaijus_catalogo").select("id, nome, ordem, imagem_path").order("ordem"),
+            supabaseClient.from("mecha_pecas_catalogo").select("id, kaiju_id, slot, nome, vida, ataque, defesa, agilidade, passiva, descricao, efeito, efeito_resumo"),
             supabaseClient.from("mechas_20m").select("usuario_id, nome, vida_base, descricao, imagem_path, atualizado_em").eq("usuario_id", usuarioId).maybeSingle(),
             supabaseClient.from("mecha_kaijus_derrotados").select("kaiju_id").eq("usuario_id", usuarioId),
-            supabaseClient.from("mecha_pecas_equipadas").select("slot, peca_id").eq("usuario_id", usuarioId)
+            supabaseClient.from("mecha_pecas_equipadas").select("slot, peca_id").eq("usuario_id", usuarioId),
+            supabaseClient.from("fichas_tripulantes").select("vida, dano_extra, agilidade, defesa, nivel_embaixador, nivel_combatente, nivel_tripulante").eq("id", usuarioId).maybeSingle()
         ]);
 
-        [kaijus, pecas, mecha, derrotados, equipadas].forEach(resultado => {
+        [kaijus, pecas, mecha, derrotados, equipadas, ficha].forEach(resultado => {
             if (resultado.error) throw resultado.error;
         });
 
         catalogoKaijusMecha = kaijus.data || [];
         catalogoPecasMecha = pecas.data || [];
+        fichaPilotoMecha = ficha.data || {
+            agilidade: 5,
+            nivel_embaixador: 0,
+            nivel_combatente: 0,
+            nivel_tripulante: 0
+        };
         mechaAtual = mecha.data || {
             usuario_id: usuarioId,
             nome: "MECHA 20M",
@@ -307,6 +313,7 @@ function renderizarKaijusMecha() {
         return `
             <label class="mecha-kaiju${selecionado ? " selecionado" : ""}">
                 <input type="checkbox" data-mecha-kaiju="${escaparAtributoMecha(kaiju.id)}" ${selecionado ? "checked" : ""}>
+                <img class="mecha-kaiju-imagem" src="${escaparAtributoMecha(kaiju.imagem_path || "")}" alt="${escaparAtributoMecha(kaiju.nome)}">
                 <span class="mecha-kaiju-numero">0${indice + 1}</span>
                 <div>
                     <strong>${escaparTextoMecha(kaiju.nome)}</strong>
@@ -401,14 +408,18 @@ function renderizarSlotsMecha() {
 }
 
 function renderizarDetalhePecaMecha(peca) {
+    const efeito = calcularEfeitoPecaMecha(peca);
+    const valores = [
+        criarBadgeEfeitoMecha("♥", efeito.vida),
+        criarBadgeEfeitoMecha("⚔", efeito.ataque),
+        criarBadgeEfeitoMecha("⬡", efeito.defesa),
+        criarBadgeEfeitoMecha("»", efeito.agilidade)
+    ].filter(Boolean).join("");
+
     return `
         <div class="mecha-peca-detalhe">
-            <div>
-                <span>♥ +${peca.vida}</span>
-                <span>⚔ +${peca.ataque}</span>
-                <span>⬡ +${peca.defesa}</span>
-                <span>» +${peca.agilidade}</span>
-            </div>
+            ${valores ? `<div>${valores}</div>` : ""}
+            <p><strong>${escaparTextoMecha(peca.efeito_resumo || "Efeito especial")}</strong></p>
             <p>${escaparTextoMecha(peca.descricao)}</p>
         </div>
     `;
@@ -417,7 +428,7 @@ function renderizarDetalhePecaMecha(peca) {
 function atualizarContadorPecasMecha() {
     const contador = document.getElementById("mecha-contador-pecas");
     const total = MECHA_SLOTS.filter(slot => pecasEquipadasMecha[slot.id]).length;
-    if (contador) contador.textContent = `${total}/6 EQUIPADAS`;
+    if (contador) contador.textContent = `${total}/4 EQUIPADAS`;
 }
 
 function renderizarResumoMecha() {
@@ -425,12 +436,16 @@ function renderizarResumoMecha() {
         .map(slot => obterPecaMecha(pecasEquipadasMecha[slot.id]))
         .filter(Boolean);
 
-    const totais = pecas.reduce((resultado, peca) => ({
-        vida: resultado.vida + Number(peca.vida || 0),
-        ataque: resultado.ataque + Number(peca.ataque || 0),
-        defesa: resultado.defesa + Number(peca.defesa || 0),
-        agilidade: resultado.agilidade + Number(peca.agilidade || 0)
-    }), { vida: MECHA_VIDA_BASE, ataque: 0, defesa: 0, agilidade: 0 });
+    const efeitos = pecas.map(calcularEfeitoPecaMecha);
+    const totais = efeitos.reduce((resultado, efeito) => ({
+        vida: resultado.vida + efeito.vida,
+        ataque: resultado.ataque + efeito.ataque,
+        defesa: resultado.defesa + efeito.defesa,
+        agilidade: resultado.agilidade + efeito.agilidade,
+        bloqueiaDefesa: resultado.bloqueiaDefesa || efeito.bloqueiaDefesa
+    }), { vida: MECHA_VIDA_BASE, ataque: 0, defesa: 0, agilidade: 0, bloqueiaDefesa: false });
+
+    if (totais.bloqueiaDefesa) totais.defesa = 0;
 
     const nome = document.getElementById("mecha-nome")?.value?.trim() || "MECHA 20M";
     definirTextoMecha("mecha-resumo-nome", nome);
@@ -446,13 +461,44 @@ function renderizarResumoMecha() {
             ? pecas.map(peca => `
                 <div class="mecha-passiva">
                     <strong>${escaparTextoMecha(peca.nome)}</strong>
-                    <p>${escaparTextoMecha(peca.passiva)}</p>
+                    <p>${escaparTextoMecha(peca.efeito_resumo || peca.passiva)}</p>
                 </div>
             `).join("")
             : `<p>Nenhuma peça equipada.</p>`;
     }
 
     atualizarContadorPecasMecha();
+}
+
+function calcularEfeitoPecaMecha(peca) {
+    const configuracao = peca?.efeito && typeof peca.efeito === "object"
+        ? peca.efeito
+        : {};
+    const nivelEmbaixador = Number(fichaPilotoMecha?.nivel_embaixador || 0);
+    const nivelCombatente = Number(fichaPilotoMecha?.nivel_combatente || 0);
+    const nivelTripulante = Number(fichaPilotoMecha?.nivel_tripulante || 0);
+    const niveisTotais = nivelEmbaixador + nivelCombatente + nivelTripulante;
+    const agilidadePiloto = Number(fichaPilotoMecha?.agilidade ?? 5);
+
+    return {
+        vida:
+            Number(configuracao.vida || 0)
+            + Number(configuracao.vida_por_nivel_combatente || 0) * nivelCombatente
+            + Number(configuracao.vida_por_nivel_total || 0) * niveisTotais
+            + Number(configuracao.vida_por_agilidade || 0) * agilidadePiloto,
+        ataque:
+            Number(configuracao.ataque || 0)
+            + (configuracao.ataque_igual_agilidade ? agilidadePiloto : 0),
+        defesa: Number(configuracao.defesa || 0),
+        agilidade: Number(configuracao.agilidade || 0),
+        bloqueiaDefesa: Boolean(configuracao.bloqueia_defesa)
+    };
+}
+
+function criarBadgeEfeitoMecha(icone, valor) {
+    if (!valor) return "";
+    const sinal = valor > 0 ? "+" : "";
+    return `<span>${icone} ${sinal}${valor}</span>`;
 }
 
 function obterPecaMecha(id) {
@@ -665,6 +711,7 @@ document.addEventListener("usuarioAutenticado", () => {
     mechaAtual = null;
     catalogoKaijusMecha = [];
     catalogoPecasMecha = [];
+    fichaPilotoMecha = null;
     kaijusDerrotadosMecha = new Set();
     pecasEquipadasMecha = {};
     limparImagemMechaPendente();
@@ -676,4 +723,3 @@ document.addEventListener("usuarioAutenticado", () => {
 
     if (paginaAtual === "mechas") carregarDesenvolvimentoMecha();
 });
-

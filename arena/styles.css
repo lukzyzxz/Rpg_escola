@@ -436,7 +436,7 @@ body::before {
 .boss-image {
 
     background:
-        #08101e center/contain no-repeat;
+        #08101e center/cover no-repeat;
 
     border-radius: 9px;
 

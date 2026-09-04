@@ -124,13 +124,13 @@ function configurarNavegacao() {
         "dashboard",
         "mapa",
         "missoes",
+        "kaijus",
         "frotas",
         "inventario",
         "integridade",
         "arena",
         "torre",
         "ficha",
-        "kaijus",
         "mechas"
     ];
 
@@ -203,6 +203,28 @@ function abrirPagina(pagina) {
                         "Registro de Missões",
                         "O módulo de missões será implementado em breve."
                     );
+
+            if (typeof inicializarPaginaMissoes === "function") {
+                requestAnimationFrame(inicializarPaginaMissoes);
+            }
+
+            break;
+
+        case "kaijus":
+
+            titulo.textContent = "Registro de Kaijus";
+
+            conteudo.innerHTML =
+                typeof telaKaijus === "function"
+                    ? telaKaijus()
+                    : telaEmDesenvolvimento(
+                        "Registro de Kaijus",
+                        "Não foi possível carregar o arquivo tático."
+                    );
+
+            if (typeof inicializarPaginaKaijus === "function") {
+                requestAnimationFrame(inicializarPaginaKaijus);
+            }
 
             break;
 
@@ -302,24 +324,6 @@ function abrirPagina(pagina) {
 
             if (typeof inicializarPaginaFicha === "function") {
                 requestAnimationFrame(inicializarPaginaFicha);
-            }
-
-            break;
-
-        case "kaijus":
-
-            titulo.textContent = "Registro de Kaijus";
-
-            conteudo.innerHTML =
-                typeof telaRegistroKaijus === "function"
-                    ? telaRegistroKaijus()
-                    : telaEmDesenvolvimento(
-                        "Registro de Kaijus",
-                        "Não foi possível carregar o banco de criaturas."
-                    );
-
-            if (typeof inicializarPaginaKaijus === "function") {
-                requestAnimationFrame(inicializarPaginaKaijus);
             }
 
             break;
