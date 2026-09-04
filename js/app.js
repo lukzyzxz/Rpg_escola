@@ -130,7 +130,6 @@ function configurarNavegacao() {
         "arena",
         "torre",
         "ficha",
-        "kaijus",
         "mechas"
     ];
 
@@ -302,24 +301,6 @@ function abrirPagina(pagina) {
 
             if (typeof inicializarPaginaFicha === "function") {
                 requestAnimationFrame(inicializarPaginaFicha);
-            }
-
-            break;
-
-        case "kaijus":
-
-            titulo.textContent = "Registro de Kaijus";
-
-            conteudo.innerHTML =
-                typeof telaRegistroKaijus === "function"
-                    ? telaRegistroKaijus()
-                    : telaEmDesenvolvimento(
-                        "Registro de Kaijus",
-                        "Não foi possível carregar o banco de criaturas."
-                    );
-
-            if (typeof inicializarPaginaKaijus === "function") {
-                requestAnimationFrame(inicializarPaginaKaijus);
             }
 
             break;

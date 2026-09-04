@@ -8,12 +8,6 @@
     box-sizing:border-box;
 }
 
-/* Todas as imagens devem permanecer proporcionais e aparecer por inteiro. */
-img{
-    object-fit:contain !important;
-    object-position:center center !important;
-}
-
 :root{
 
     --bg:#050912;
@@ -6897,11 +6891,8 @@ h2{
 }
 
 .mecha-imagem-preview{
-    display:grid;
-    height:330px;
     min-height:330px;
     overflow:hidden;
-    place-items:center;
     border:1px dashed rgba(168,101,255,.32);
     border-radius:18px;
     background:
@@ -6913,13 +6904,10 @@ h2{
 
 .mecha-imagem-preview img{
     display:block;
-    width:auto;
-    height:auto;
-    min-height:0;
-    max-width:100%;
-    max-height:100%;
+    width:100%;
+    height:100%;
+    min-height:330px;
     object-fit:contain;
-    object-position:center;
     background:radial-gradient(circle,rgba(85,216,255,.08),transparent 65%);
 }
 
@@ -7190,252 +7178,7 @@ h2{
     .mecha-altura{ align-self:flex-end; }
     .mecha-lista-kaijus{ grid-template-columns:1fr; }
     .mecha-imagem-preview,
-    .mecha-imagem-vazia{ height:260px; min-height:260px; }
-    .mecha-imagem-preview img{ width:auto; height:auto; min-height:0; max-width:100%; max-height:260px; }
+    .mecha-imagem-preview img,
+    .mecha-imagem-vazia{ min-height:260px; }
     .mecha-atributos{ grid-template-columns:1fr; }
-}
-
-/* ==========================================
-   REGISTRO DE KAIJUS — ARQUIVO COMPARTILHADO
-========================================== */
-
-body.modal-aberto{ overflow:hidden; }
-
-.kaiju-registro-pagina{
-    --kaiju-laranja:#ff9d45;
-    --kaiju-vermelho:#ff5576;
-    width:min(100%,1480px);
-    margin:0 auto;
-    padding:0 0 55px;
-}
-
-.kaiju-registro-topo{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:25px;
-    margin-bottom:18px;
-    padding:28px 30px;
-    border:1px solid rgba(255,157,69,.2);
-    border-radius:22px;
-    background:radial-gradient(circle at 88% 20%,rgba(255,85,118,.12),transparent 32%),linear-gradient(140deg,rgba(17,27,47,.96),rgba(8,14,27,.98));
-}
-
-.kaiju-registro-selo{ color:var(--kaiju-laranja); font-size:8px; font-weight:700; letter-spacing:2px; }
-.kaiju-registro-topo h2{ margin:9px 0 8px; font-size:27px; }
-.kaiju-registro-topo p{ max-width:720px; color:var(--texto2); font-size:10px; line-height:1.7; }
-
-.kaiju-btn-principal,.kaiju-btn-salvar{
-    display:flex;
-    min-height:48px;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:0 20px;
-    border:1px solid rgba(255,157,69,.55);
-    border-radius:12px;
-    color:#1d0c02;
-    background:linear-gradient(135deg,#ff8b36,#ffc067);
-    box-shadow:0 12px 30px rgba(255,119,43,.14);
-    font-family:inherit;
-    font-size:9px;
-    font-weight:800;
-    letter-spacing:1px;
-    cursor:pointer;
-}
-
-.kaiju-registro-resumo{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
-.kaiju-registro-resumo div{ display:flex; align-items:center; justify-content:space-between; padding:15px 18px; border:1px solid var(--borda); border-radius:12px; background:rgba(10,18,33,.82); }
-.kaiju-registro-resumo span{ color:#7288a6; font-size:7px; letter-spacing:1.1px; }
-.kaiju-registro-resumo strong{ color:var(--kaiju-laranja); font-size:18px; }
-
-.kaiju-registro-ferramentas{ display:flex; align-items:center; gap:10px; margin-bottom:12px; padding:0 15px; border:1px solid var(--borda); border-radius:12px; background:rgba(6,12,24,.78); }
-.kaiju-registro-ferramentas label{ color:var(--kaiju-laranja); font-size:22px; }
-.kaiju-registro-ferramentas input{ width:100%; padding:14px 0; border:0; outline:0; color:var(--texto); background:transparent; font-family:inherit; font-size:10px; }
-
-.kaiju-registro-status{ margin-bottom:16px; padding:10px 14px; border-left:2px solid #61728d; color:#7388a5; background:rgba(8,15,28,.7); font-size:8px; line-height:1.5; }
-.kaiju-registro-status.disponivel{ border-color:var(--verde); color:#83bda3; }
-.kaiju-registro-status.erro{ border-color:var(--kaiju-vermelho); color:#ff8da2; }
-
-.kaiju-registro-lista{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.kaiju-registro-vazio{ grid-column:1/-1; padding:45px 24px; border:1px dashed var(--borda); border-radius:18px; color:#6f839e; font-size:10px; text-align:center; }
-
-.kaiju-registro-card{ overflow:hidden; border:1px solid var(--borda); border-radius:18px; outline:none; background:linear-gradient(145deg,rgba(15,25,44,.95),rgba(7,13,25,.98)); box-shadow:0 18px 40px rgba(0,0,0,.22); cursor:pointer; transition:.2s; }
-.kaiju-registro-card:hover,.kaiju-registro-card:focus{ transform:translateY(-3px); border-color:rgba(255,157,69,.42); box-shadow:0 23px 50px rgba(0,0,0,.3); }
-.kaiju-registro-card-imagem{ position:relative; display:grid; height:220px; overflow:hidden; place-items:center; background:radial-gradient(circle,#1b2b45,#080f1e); }
-.kaiju-registro-card-imagem img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; object-position:center; background:#08101e; }
-.kaiju-registro-card:hover img{ transform:none; }
-.kaiju-sem-imagem{ display:grid; width:100%; height:100%; place-items:center; color:rgba(255,157,69,.62); font-size:52px; }
-.kaiju-status-etiqueta{ position:absolute; top:13px; right:13px; padding:6px 9px; border:1px solid var(--borda); border-radius:999px; color:#9cadc3; background:rgba(4,9,18,.82); backdrop-filter:blur(8px); font-size:6px; letter-spacing:1px; }
-.kaiju-status-etiqueta.status-ativo{ border-color:rgba(255,85,118,.45); color:#ff7c94; }
-.kaiju-status-etiqueta.status-derrotado{ border-color:rgba(0,255,136,.4); color:#50e7a0; }
-.kaiju-registro-card-corpo{ padding:18px; }
-.kaiju-registro-numero{ color:#5e728e; font-size:6px; letter-spacing:1.2px; }
-.kaiju-registro-card h3{ margin:7px 0 8px; font-size:15px; }
-.kaiju-registro-card p{ display:-webkit-box; min-height:34px; overflow:hidden; color:#788ca7; font-size:8px; line-height:1.55; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
-.kaiju-registro-atributos{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0; }
-.kaiju-registro-atributos span{ padding:8px 5px; border:1px solid rgba(255,255,255,.06); border-radius:8px; color:#637994; background:rgba(0,0,0,.16); font-size:6px; text-align:center; }
-.kaiju-registro-atributos strong{ color:#e7effa; font-size:9px; }
-.kaiju-registro-card-rodape{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:13px; border-top:1px solid var(--borda); }
-.kaiju-registro-card-rodape small{ color:#71849d; font-size:6px; }
-.kaiju-registro-card-rodape strong{ color:var(--kaiju-laranja); font-size:6px; letter-spacing:.7px; }
-
-.kaiju-modal-overlay,.ficha-modal-overlay{
-    position:fixed;
-    z-index:100000;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:22px;
-    overflow-y:auto;
-    background:rgba(1,5,12,.86);
-    backdrop-filter:blur(10px);
-}
-.kaiju-modal-overlay[hidden],.ficha-modal-overlay[hidden]{ display:none; }
-
-.kaiju-modal{ width:min(100%,980px); max-height:calc(100vh - 44px); padding:25px; overflow-y:auto; border:1px solid rgba(255,157,69,.3); border-radius:20px; background:linear-gradient(145deg,#111d31,#070e1c); box-shadow:0 30px 90px rgba(0,0,0,.6); }
-.kaiju-modal-cabecalho,.ficha-modal-cabecalho{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:20px; }
-.kaiju-modal-cabecalho span,.ficha-modal-cabecalho span{ color:var(--kaiju-laranja); font-size:7px; letter-spacing:1.4px; }
-.kaiju-modal-cabecalho h3,.ficha-modal-cabecalho h3{ margin-top:6px; font-size:19px; }
-.kaiju-modal-fechar,.ficha-modal-fechar{ display:grid; flex:0 0 36px; width:36px; height:36px; place-items:center; border:1px solid var(--borda); border-radius:10px; color:#9cafc8; background:rgba(0,0,0,.2); font-family:inherit; font-size:20px; cursor:pointer; }
-.kaiju-form-grid{ display:grid; grid-template-columns:270px 1fr; gap:24px; }
-.kaiju-imagem-coluna > small{ display:block; margin-top:8px; color:#60748e; font-size:6px; line-height:1.5; text-align:center; }
-.kaiju-imagem-preview{ display:grid; min-height:330px; overflow:hidden; place-items:center; border:1px solid rgba(255,157,69,.2); border-radius:15px; background:radial-gradient(circle,#1a2c48,#070e1c); }
-.kaiju-imagem-preview img{ display:block; width:auto; height:auto; max-width:100%; max-height:330px; object-fit:contain; object-position:center; background:#08101e; }
-.kaiju-imagem-preview div{ display:flex; flex-direction:column; align-items:center; gap:8px; color:#8c6b55; }
-.kaiju-imagem-preview span{ font-size:40px; }
-.kaiju-imagem-preview small{ font-size:7px; letter-spacing:1px; }
-.kaiju-upload{ display:flex!important; align-items:center!important; justify-content:center; gap:8px; margin-top:10px; padding:12px!important; border:1px dashed rgba(255,157,69,.34); border-radius:10px; color:#e7a66f!important; background:rgba(255,157,69,.06); font-size:7px!important; text-align:center; cursor:pointer; }
-.kaiju-upload input{ display:none; }
-.kaiju-campos{ display:flex; flex-direction:column; gap:13px; }
-.kaiju-campos label,.ficha-modal form > label,.ficha-missao-linha label{ display:flex; flex-direction:column; gap:7px; color:#8498b3; font-size:7px; letter-spacing:.5px; }
-.kaiju-campos input,.kaiju-campos select,.kaiju-campos textarea,.ficha-modal input,.ficha-modal select,.ficha-modal textarea{ width:100%; padding:11px 12px; border:1px solid var(--borda); border-radius:9px; outline:none; color:var(--texto); background:rgba(0,0,0,.25); font-family:inherit; font-size:9px; line-height:1.5; resize:vertical; }
-.kaiju-campos input:focus,.kaiju-campos select:focus,.kaiju-campos textarea:focus,.ficha-modal input:focus,.ficha-modal select:focus,.ficha-modal textarea:focus{ border-color:rgba(255,157,69,.65); }
-.kaiju-campos option,.ficha-modal option{ background:#0d1728; }
-.kaiju-campos-linha{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.kaiju-campos-linha-2{ grid-template-columns:1fr 1fr; }
-.kaiju-btn-salvar{ width:100%; margin-top:20px; }
-
-.kaiju-detalhes-modal{ position:relative; width:min(100%,760px); max-height:calc(100vh - 44px); padding:25px; overflow-y:auto; border:1px solid rgba(255,157,69,.3); border-radius:20px; background:linear-gradient(145deg,#111d31,#070e1c); box-shadow:0 30px 90px rgba(0,0,0,.6); }
-.kaiju-detalhes-modal > .kaiju-modal-fechar{ position:absolute; z-index:2; top:16px; right:16px; }
-.kaiju-detalhes-hero{ display:grid; grid-template-columns:190px 1fr; align-items:center; gap:22px; padding:0 46px 20px 0; border-bottom:1px solid var(--borda); }
-.kaiju-detalhes-hero img,.kaiju-detalhes-hero > .kaiju-sem-imagem{ width:190px; height:190px; border-radius:14px; object-fit:contain; object-position:center; background:#08101e; }
-.kaiju-detalhes-hero span{ color:var(--kaiju-laranja); font-size:7px; letter-spacing:1.5px; }
-.kaiju-detalhes-hero h2{ margin:8px 0 10px; font-size:25px; }
-.kaiju-detalhes-hero p{ color:#788da8; font-size:8px; }
-.kaiju-detalhes-atributos{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
-.kaiju-detalhes-atributos div{ display:flex; align-items:center; justify-content:space-between; padding:14px; border:1px solid var(--borda); border-radius:10px; background:rgba(0,0,0,.18); }
-.kaiju-detalhes-atributos small{ color:#7085a1; font-size:7px; }
-.kaiju-detalhes-atributos strong{ color:var(--kaiju-laranja); font-size:17px; }
-.kaiju-detalhes-bloco{ margin-top:12px; padding:15px; border-left:2px solid rgba(255,157,69,.5); border-radius:3px 10px 10px 3px; background:rgba(255,157,69,.035); }
-.kaiju-detalhes-bloco h3{ margin-bottom:7px; color:#e6a36a; font-size:7px; letter-spacing:1px; }
-.kaiju-detalhes-bloco p{ color:#91a3bb; font-size:9px; line-height:1.7; white-space:pre-wrap; }
-
-/* ==========================================
-   FICHA COMPLETA — IMAGENS E HISTÓRICOS
-========================================== */
-
-.ficha-pagina{ grid-template-columns:minmax(0,900px) minmax(260px,1fr); width:min(100%,1480px); margin:0 auto; }
-.ficha-conteudo-principal{ display:flex; min-width:0; flex-direction:column; gap:20px; }
-.ficha-equipe{ position:sticky; top:0; }
-.ficha-painel-secundario{ padding:26px; }
-
-.ficha-secao-cabecalho{ display:flex; align-items:center; justify-content:space-between; gap:15px; margin:26px 0 14px; }
-.ficha-secao-cabecalho > div{ display:flex; align-items:center; gap:9px; }
-.ficha-secao-cabecalho > div > span{ display:grid; width:27px; height:27px; place-items:center; border:1px solid rgba(0,255,136,.22); border-radius:8px; color:var(--verde); background:rgba(0,255,136,.06); font-size:7px; }
-.ficha-secao-cabecalho h3{ font-size:12px; }
-.ficha-secao-cabecalho small{ color:#607791; font-size:7px; letter-spacing:1px; }
-.ficha-painel-secundario .ficha-secao-cabecalho{ margin-top:0; }
-.ficha-secao-com-acao{ align-items:center; }
-.ficha-btn-acao{ padding:9px 12px; border:1px solid rgba(0,255,136,.3); border-radius:9px; color:var(--verde); background:rgba(0,255,136,.07); font-family:inherit; font-size:7px; font-weight:700; letter-spacing:.7px; cursor:pointer; }
-
-.ficha-imagens-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.ficha-imagem-card{ min-width:0; padding:12px; border:1px solid var(--borda); border-radius:14px; background:rgba(0,0,0,.14); }
-.ficha-imagem-card > small{ display:block; margin-top:7px; overflow:hidden; color:#536a86; font-size:6px; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
-.ficha-imagem-preview{ display:grid; height:330px; overflow:hidden; place-items:center; border:1px solid rgba(0,255,136,.13); border-radius:11px; background:radial-gradient(circle,#152b3a,#07101d); }
-.ficha-imagem-preview img{ display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; object-position:center; }
-.ficha-imagem-vazia{ display:flex; flex-direction:column; align-items:center; gap:6px; color:#4d6d72; }
-.ficha-imagem-vazia span{ font-size:36px; }
-.ficha-imagem-vazia strong{ color:#75969c; font-size:8px; letter-spacing:1px; }
-.ficha-imagem-vazia small{ font-size:6px; }
-.ficha-upload{ display:flex; align-items:center; justify-content:center; gap:7px; margin-top:9px; padding:10px; border:1px dashed rgba(0,255,136,.3); border-radius:9px; color:#7eeab8; background:rgba(0,255,136,.05); font-size:7px; letter-spacing:.5px; cursor:pointer; }
-.ficha-upload input{ display:none; }
-
-.ficha-niveis{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:22px; }
-.ficha-niveis > div{ display:grid; grid-template-columns:auto 1fr auto; grid-template-rows:auto auto; align-items:center; gap:2px 9px; padding:13px; border:1px solid var(--borda); border-radius:11px; background:rgba(0,0,0,.16); }
-.ficha-niveis span{ grid-row:span 2; font-size:17px; }
-.ficha-niveis small{ color:#70849e; font-size:6px; letter-spacing:.8px; }
-.ficha-niveis strong{ grid-column:3; grid-row:1/3; color:var(--verde); font-size:20px; }
-
-.ficha-resumo-missoes{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
-.ficha-resumo-missoes div{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--borda); border-radius:10px; background:rgba(0,0,0,.16); }
-.ficha-resumo-missoes span{ color:#69809b; font-size:6px; letter-spacing:.8px; }
-.ficha-resumo-missoes strong{ color:var(--verde); font-size:17px; }
-.ficha-lista-missoes{ display:flex; flex-direction:column; gap:9px; }
-.ficha-missao-item{ display:grid; grid-template-columns:40px 1fr auto; gap:12px; padding:13px; border:1px solid var(--borda); border-radius:11px; background:rgba(0,0,0,.17); }
-.ficha-missao-icone{ display:grid; width:40px; height:40px; place-items:center; border:1px solid rgba(0,255,136,.18); border-radius:10px; background:rgba(0,255,136,.05); }
-.ficha-missao-conteudo{ min-width:0; }
-.ficha-missao-conteudo > span{ color:#5f7792; font-size:6px; letter-spacing:.8px; }
-.ficha-missao-conteudo h4{ margin:5px 0; font-size:10px; }
-.ficha-missao-conteudo p{ color:#788ca6; font-size:8px; line-height:1.55; white-space:pre-wrap; }
-.ficha-missao-acoes{ display:flex; gap:5px; }
-.ficha-missao-acoes button{ display:grid; width:28px; height:28px; place-items:center; border:1px solid var(--borda); border-radius:8px; color:#7f93ad; background:rgba(0,0,0,.2); cursor:pointer; }
-
-.ficha-ajuda{ margin:-3px 0 14px; color:#667d98; font-size:7px; line-height:1.5; }
-.ficha-kaijus-derrotados{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
-.ficha-kaiju-chip{ display:grid; min-width:0; grid-template-columns:46px 1fr auto; align-items:center; gap:9px; padding:7px; border:1px solid rgba(255,157,69,.2); border-radius:11px; color:var(--texto); background:rgba(255,157,69,.04); font-family:inherit; text-align:left; cursor:pointer; }
-.ficha-kaiju-chip img,.ficha-kaiju-chip > span{ display:grid; width:46px; height:46px; place-items:center; border-radius:8px; object-fit:contain; object-position:center; background:#0a1424; }
-.ficha-kaiju-chip strong{ overflow:hidden; font-size:8px; text-overflow:ellipsis; white-space:nowrap; }
-.ficha-kaiju-chip i{ color:#dc975e; font-style:normal; }
-
-.ficha-modal{ width:min(100%,620px); max-height:calc(100vh - 44px); padding:24px; overflow-y:auto; border:1px solid rgba(0,255,136,.25); border-radius:18px; background:linear-gradient(145deg,#111d31,#070e1c); box-shadow:0 30px 90px rgba(0,0,0,.6); }
-.ficha-modal-cabecalho span{ color:var(--verde); }
-.ficha-modal form{ display:flex; flex-direction:column; gap:14px; }
-.ficha-missao-linha{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.ficha-modal-kaijus{ width:min(100%,760px); }
-.ficha-kaijus-opcoes{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-height:480px; overflow-y:auto; padding-right:4px; }
-.ficha-kaiju-opcao{ display:grid; grid-template-columns:auto 42px 1fr auto; align-items:center; gap:9px; padding:8px; border:1px solid var(--borda); border-radius:10px; background:rgba(0,0,0,.17); cursor:pointer; }
-.ficha-kaiju-opcao.selecionado{ border-color:rgba(0,255,136,.35); background:rgba(0,255,136,.06); }
-.ficha-kaiju-opcao input{ position:absolute; width:1px; height:1px; opacity:0; }
-.ficha-kaiju-opcao img,.ficha-kaiju-opcao > span{ display:grid; width:42px; height:42px; place-items:center; border-radius:8px; object-fit:contain; object-position:center; background:#091321; }
-.ficha-kaiju-opcao strong{ font-size:8px; }
-.ficha-kaiju-opcao i{ display:grid; width:24px; height:24px; place-items:center; border:1px solid var(--borda); border-radius:50%; color:#71849e; font-size:9px; font-style:normal; }
-.ficha-kaiju-opcao.selecionado i{ border-color:rgba(0,255,136,.4); color:var(--verde); }
-
-@media(max-width:1180px){
-    .kaiju-registro-lista{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .ficha-pagina{ grid-template-columns:1fr; }
-    .ficha-equipe{ position:static; }
-}
-
-@media(max-width:760px){
-    .kaiju-registro-topo{ align-items:flex-start; flex-direction:column; padding:22px 19px; }
-    .kaiju-btn-principal{ width:100%; }
-    .kaiju-registro-lista{ grid-template-columns:1fr; }
-    .kaiju-form-grid{ grid-template-columns:1fr; }
-    .kaiju-imagem-preview{ height:280px; min-height:280px; }
-    .kaiju-imagem-preview img{ width:auto; height:auto; min-height:0; max-width:100%; max-height:280px; }
-    .kaiju-detalhes-hero{ grid-template-columns:120px 1fr; }
-    .kaiju-detalhes-hero img,.kaiju-detalhes-hero > .kaiju-sem-imagem{ width:120px; height:120px; }
-    .ficha-imagem-preview{ height:275px; }
-    .ficha-kaijus-derrotados{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-
-@media(max-width:520px){
-    .kaiju-registro-resumo{ grid-template-columns:1fr; }
-    .kaiju-modal-overlay,.ficha-modal-overlay{ align-items:flex-start; padding:10px; }
-    .kaiju-modal,.kaiju-detalhes-modal,.ficha-modal{ max-height:none; padding:18px; border-radius:14px; }
-    .kaiju-campos-linha,.kaiju-campos-linha-2,.ficha-missao-linha{ grid-template-columns:1fr; }
-    .kaiju-detalhes-hero{ grid-template-columns:1fr; padding-right:40px; }
-    .kaiju-detalhes-hero img,.kaiju-detalhes-hero > .kaiju-sem-imagem{ width:100%; height:220px; }
-    .kaiju-detalhes-atributos{ grid-template-columns:1fr; }
-    .ficha-card,.ficha-painel-secundario{ padding:19px; }
-    .ficha-secao-com-acao{ align-items:flex-start; flex-direction:column; }
-    .ficha-btn-acao{ width:100%; }
-    .ficha-imagens-grid,.ficha-niveis,.ficha-resumo-missoes,.ficha-kaijus-derrotados,.ficha-kaijus-opcoes{ grid-template-columns:1fr; }
-    .ficha-imagem-preview{ height:330px; }
-    .ficha-missao-item{ grid-template-columns:36px 1fr; }
-    .ficha-missao-icone{ width:36px; height:36px; }
-    .ficha-missao-acoes{ grid-column:2; }
 }

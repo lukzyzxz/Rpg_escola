@@ -28,13 +28,9 @@ Esse SQL:
 ## 3. Testar a Arena de Combate
 
 1. Acesse **Arena de Combate** no menu da Nave.
-2. Em **Frota contra o Kaiju**, escolha uma das frotas cadastradas.
-3. Selecione entre um e quatro integrantes e clique em **Enviar frota para a Arena**.
-4. No lobby, adicione a imagem e edite o nome de cada Kaiju.
-5. Entre em uma das quatro equipes.
-6. A imagem e o nome do Kaiju aparecerão na batalha, e os combatentes escolhidos preencherão automaticamente as quatro vagas.
-
-As frotas e seus integrantes são carregados diretamente do Supabase. A frota fixa **POVO LIVRE** não aparece como opção de combate; primeiro mova os tripulantes para uma frota normal.
+2. No lobby, adicione a imagem e edite o nome de cada Kaiju.
+3. Entre em uma das quatro equipes.
+4. A imagem e o nome do Kaiju do confronto aparecerão na batalha.
 
 Os dados da arena são salvos separadamente para cada equipe no navegador. A arena também possui:
 

@@ -9,7 +9,6 @@ const LOBBY_BOSS_BY_TEAM = {
 };
 const LOBBY_BOSS_ID = LOBBY_BOSS_BY_TEAM[TEAM_ID];
 const LOBBY_PREFIX = "arena-lobby-";
-const FLEET_SELECTION_KEY = "arena-frota-combate-v1";
 
 
 /* ==================================================
@@ -240,197 +239,12 @@ function setImage(
 
   if (element) {
 
-    element.textContent = "";
-    element.classList.remove(
-      "fighter-image-initials",
-      "fighter-slot-empty"
-    );
-
     element.style.backgroundImage =
       `url("${data}")`;
 
   }
 
 }
-
-
-
-/* ==================================================
-   FROTA ESCOLHIDA NA CENTRAL DA NAVE
-   ================================================== */
-
-function applyFleetSelection(selection, registerLog = true) {
-
-  if (
-    !selection ||
-    !Array.isArray(selection.combatentes)
-  ) {
-    return;
-  }
-
-  const fighters = selection.combatentes.slice(0, 4);
-
-  PLAYER_TYPES.forEach((type, index) => {
-
-    const fighter = fighters[index] || null;
-    const nameElement = document.querySelector(
-      `[data-save="${type}-name"]`
-    );
-    const imageElement = document.getElementById("image-" + type);
-
-    if (fighter) {
-
-      const name = fighter.nome || fighter.username || "Tripulante";
-
-      if (nameElement) {
-        nameElement.textContent = name;
-      }
-
-      state[type + "-name"] = name;
-
-      if (fighter.avatar) {
-
-        if (imageElement) {
-          imageElement.textContent = "";
-          imageElement.classList.remove(
-            "fighter-image-initials",
-            "fighter-slot-empty"
-          );
-        }
-
-        setImage(type, fighter.avatar);
-
-      } else if (imageElement) {
-
-        delete state["image-" + type];
-        imageElement.style.backgroundImage = "";
-        imageElement.textContent = getFleetInitials(name);
-        imageElement.classList.add("fighter-image-initials");
-        imageElement.classList.remove("fighter-slot-empty");
-
-      }
-
-      return;
-    }
-
-    if (nameElement) {
-      nameElement.textContent = "VAGA LIVRE";
-    }
-
-    state[type + "-name"] = "VAGA LIVRE";
-    delete state["image-" + type];
-
-    if (imageElement) {
-      imageElement.style.backgroundImage = "";
-      imageElement.textContent = "+";
-      imageElement.classList.add("fighter-image-initials", "fighter-slot-empty");
-    }
-
-  });
-
-  state["fleet-selection"] = {
-    frotaId: selection.frotaId,
-    frotaNome: selection.frotaNome,
-    frotaCor: selection.frotaCor,
-    combatentes: fighters
-  };
-
-  save();
-  renderFleetBadge(selection);
-
-  if (registerLog) {
-    addBattleLog(
-      `Frota ${selection.frotaNome || "selecionada"} entrou na Arena com ${fighters.length} combatente${fighters.length === 1 ? "" : "s"}.`
-    );
-  }
-
-}
-
-
-function renderFleetBadge(selection) {
-
-  const header = document.querySelector(".arena-header");
-  if (!header) return;
-
-  let badge = document.getElementById("fleet-battle-badge");
-
-  if (!badge) {
-    badge = document.createElement("section");
-    badge.id = "fleet-battle-badge";
-    badge.className = "fleet-battle-badge";
-    header.insertAdjacentElement("afterend", badge);
-  }
-
-  const fighters = Array.isArray(selection.combatentes)
-    ? selection.combatentes.slice(0, 4)
-    : [];
-  const color = /^#[0-9a-f]{3,8}$/i.test(selection.frotaCor || "")
-    ? selection.frotaCor
-    : "#00eaff";
-
-  badge.style.setProperty("--fleet-color", color);
-  badge.innerHTML = `
-    <div>
-      <small>FROTA EM COMBATE</small>
-      <strong>${escapeBattleText(selection.frotaNome || "Frota selecionada")}</strong>
-    </div>
-    <div class="fleet-battle-members">
-      ${fighters.map(fighter => `
-        <span title="${escapeBattleText(fighter.nome || "Tripulante")}">
-          ${escapeBattleText(getFleetInitials(fighter.nome || fighter.username || "T"))}
-        </span>
-      `).join("")}
-    </div>
-  `;
-
-}
-
-
-function getFleetInitials(name) {
-
-  return String(name || "T")
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map(part => part.charAt(0).toUpperCase())
-    .join("") || "T";
-
-}
-
-
-function initializeSelectedFleet() {
-
-  try {
-
-    const selection = JSON.parse(
-      localStorage.getItem(FLEET_SELECTION_KEY) || "null"
-    );
-
-    if (selection) {
-      applyFleetSelection(selection, false);
-    }
-
-  } catch (error) {
-
-    console.warn("Não foi possível carregar a frota selecionada:", error);
-
-  }
-
-}
-
-
-window.addEventListener("message", event => {
-
-  if (
-    event.origin !== window.location.origin ||
-    event.data?.tipo !== "NAVE_RPG_FROTA_ARENA"
-  ) {
-    return;
-  }
-
-  applyFleetSelection(event.data.selecao, true);
-
-});
 
 
 
@@ -2053,4 +1867,3 @@ if (clearButton) {
 
 updateBoss();
 initializeBattleConsole();
-initializeSelectedFleet();
