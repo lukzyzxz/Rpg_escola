@@ -8,9 +8,9 @@ const scalar=async(sql,params=[])=>Object.values((await db.query(sql,params)).ro
 async function login(id=A,role='authenticated'){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role '+role);}
 async function rpc(name,...args){return scalar(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')})`,args.map(a=>typeof a==='object'&&a!==null?JSON.stringify(a):a));}
 const op=()=>require('node:crypto').randomUUID();
-before(async()=>{
- db=new PGlite();
- await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE SCHEMA auth;CREATE SCHEMA storage;
+async function criarBancoTeste(){
+ const banco=new PGlite();
+ await banco.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE SCHEMA auth;CREATE SCHEMA storage;
  CREATE TABLE auth.users(id uuid primary key);
  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  GRANT USAGE ON SCHEMA auth,storage TO authenticated,anon;
@@ -30,6 +30,10 @@ before(async()=>{
  INSERT INTO public.mecha_kaijus_catalogo(id,nome,ordem) VALUES ('rei-porco','Kaiju Porco',1),('rei-verdejante','Rei Verdejante',2),('cobra-falante','Cobra Falante',3),('hidra','Hidra',4),('tartaruga-dragao','Tartaruga Dragão',5);
  INSERT INTO auth.users VALUES ('${A}'),('${B}');INSERT INTO profiles VALUES ('${A}','Piloto A','a'),('${B}','Piloto B','b');
  INSERT INTO fichas_tripulantes(id,salva_vidas,itens_catalogo) VALUES ('${A}',5,'["manoplas-porco"]'),('${B}',3,'[]');`);
+ return banco;
+}
+before(async()=>{
+ db=await criarBancoTeste();
  for(const file of ['EXECUTAR-COMBATE-AUTOMATICO-V6.sql','EXECUTAR-REVISAO-GERAL-V7.sql'])await db.exec(fs.readFileSync(file,'utf8'));
  await login();
 });
@@ -105,3 +109,43 @@ test('banco recusa cartas com dano divergente e efeitos fora dos limites',async(
  const wrong=bossData();wrong.regras_combate.A.damage=9;await assert.rejects(()=>rpc('nave_salvar_kaiju',null,null,wrong),/dano da carta/);
  const invalid=bossData();invalid.regras_combate.A.effects[0].duration=0;await assert.rejects(()=>rpc('nave_salvar_kaiju',null,null,invalid),/duração/);
 });
+
+for(const tipo of ['text','varchar','json']){
+ test(`migração do cadastro antigo com ataques ${tipo} preserva textos e cartas`,async()=>{
+  const antigo=await criarBancoTeste();
+  try{
+   const defaultAntigo=tipo==='json'?"'{}'":"''";
+   await antigo.exec(`alter table mecha_kaijus_catalogo add column ataques ${tipo} default ${defaultAntigo}${tipo==='text'?' not null':''}`);
+   await assert.rejects(()=>antigo.query("select ataques='{}'::jsonb from mecha_kaijus_catalogo"),{code:'42883'});
+   const cartas={A:{nome:'Ataque preservado',dano:17,descricao:'Causa 17 de dano.'}};
+   const narrativa='Carta A: atordoa por 1 rodada.\nNão apagar esta anotação.';
+   const originais=[JSON.stringify(cartas),tipo==='json'?JSON.stringify(narrativa):narrativa,'[]','null','"texto JSON"'];
+   if(tipo!=='json')originais.push('   ','{"JSON incompleto":');
+   if(tipo!=='text')originais.push(null);
+   for(let i=0;i<originais.length;i++){
+    await antigo.query('insert into mecha_kaijus_catalogo(id,nome,ordem,ataques) values($1,$2,$3,$4)',[`legado-${i}`,`Kaiju legado ${i}`,i+6,originais[i]]);
+   }
+   await antigo.exec(fs.readFileSync('EXECUTAR-COMBATE-AUTOMATICO-V6.sql','utf8'));
+   const migracao=fs.readFileSync('EXECUTAR-REVISAO-GERAL-V7.sql','utf8');
+   await antigo.exec(migracao);
+   const tipoFinal=await antigo.query("select udt_name,column_default,is_nullable from information_schema.columns where table_schema='public' and table_name='mecha_kaijus_catalogo' and column_name='ataques'");
+   assert.equal(tipoFinal.rows[0].udt_name,'jsonb');
+   assert.equal(tipoFinal.rows[0].column_default,"'{}'::jsonb");
+   assert.equal(tipoFinal.rows[0].is_nullable,'NO');
+   const snapshot=()=>antigo.query("select id,ataques,ataques_legado from mecha_kaijus_catalogo where id like 'legado-%' order by id");
+   const antes=(await snapshot()).rows;
+   for(let i=0;i<originais.length;i++){
+    const row=antes.find(r=>r.id===`legado-${i}`);
+    assert.equal(row.ataques_legado,originais[i]??'');
+    assert.deepEqual(row.ataques,i===0?cartas:{});
+   }
+   assert.equal((await antigo.query("select count(*)::int as total from mecha_kaijus_catalogo where id not like 'legado-%' and ataques<>'{}'::jsonb")).rows[0].total,5);
+   await antigo.exec(migracao);
+   assert.deepEqual((await snapshot()).rows,antes);
+   await antigo.query("select set_config('request.jwt.claim.sub',$1,false)",[A]);
+   await antigo.exec('set role authenticated');
+   const salvo=(await antigo.query('select nave_salvar_kaiju(null,null,$1::jsonb) as kaiju',[JSON.stringify(bossData())])).rows[0].kaiju;
+   assert.equal(salvo.regras_combate.A.effects[0].kind,'stun');
+  }finally{await antigo.close();}
+ });
+}

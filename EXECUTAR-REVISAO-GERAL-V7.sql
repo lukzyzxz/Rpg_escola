@@ -77,6 +77,41 @@ alter table public.mecha_kaijus_catalogo
  add column if not exists versao integer not null default 0,
  add column if not exists atualizado_em timestamptz not null default now();
 
+-- Versões antigas criavam ataques como text. IF NOT EXISTS não muda o tipo.
+-- Guardar o original antes de converter; descrições livres não viram regras.
+alter table public.mecha_kaijus_catalogo
+ add column if not exists ataques_legado text not null default '';
+create or replace function pg_temp.nave_v7_ataques_jsonb(texto text) returns jsonb
+language plpgsql immutable as $$
+declare valor jsonb;
+begin
+ if texto is null or btrim(texto)='' then return '{}'::jsonb; end if;
+ begin
+  valor:=texto::jsonb;
+ exception when invalid_text_representation then
+  return '{}'::jsonb;
+ end;
+ if jsonb_typeof(valor)='object' then return valor; end if;
+ return '{}'::jsonb;
+end $$;
+do $$
+declare tipo text;
+begin
+ select udt_name into tipo from information_schema.columns
+ where table_schema='public' and table_name='mecha_kaijus_catalogo' and column_name='ataques';
+ if tipo<>'jsonb' then
+  update public.mecha_kaijus_catalogo
+   set ataques_legado=coalesce(ataques::text,'') where ataques_legado='';
+  -- O default textual antigo também precisa ser removido antes do ALTER TYPE.
+  alter table public.mecha_kaijus_catalogo alter column ataques drop default;
+  alter table public.mecha_kaijus_catalogo alter column ataques type jsonb
+   using pg_temp.nave_v7_ataques_jsonb(ataques::text);
+  alter table public.mecha_kaijus_catalogo alter column ataques set default '{}'::jsonb;
+  alter table public.mecha_kaijus_catalogo alter column ataques set not null;
+ end if;
+end $$;
+drop function pg_temp.nave_v7_ataques_jsonb(text);
+
 alter table public.nave_itens_catalogo enable row level security;
 alter table public.nave_planetas enable row level security;
 alter table public.nave_inventario enable row level security;

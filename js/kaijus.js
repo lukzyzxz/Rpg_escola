@@ -288,6 +288,13 @@ function renderizarRegistroKaijus() {
                     ` : ""}
 
                     <div class="kaiju-admin-actions">${kaiju.personalizado&&kaiju.criado_por===window.usuarioAtual?.id?`<button class="n-button" type="button" onclick="KaijuEditor.open('${escaparAtributoKaiju(kaiju.id)}')">Editar</button>`:''}<button class="n-button" type="button" onclick="KaijuEditor.open('${escaparAtributoKaiju(kaiju.id)}',true)">Duplicar</button></div>
+                    ${kaiju.ataques_legado?.trim() && kaiju.ataques_legado.trim() !== '{}' ? `
+                        <details class="kaiju-arquivo-detalhes">
+                            <summary>VER ATAQUES DO CADASTRO ANTIGO <span>⌄</span></summary>
+                            <p>Conteúdo original preservado. Revise as cartas antes de usá-las no combate.</p>
+                            <p style="white-space:pre-wrap;overflow-wrap:anywhere">${escaparTextoKaiju(kaiju.ataques_legado)}</p>
+                        </details>
+                    ` : ''}
                     <details class="kaiju-arquivo-detalhes">
                         <summary>VER PEÇAS E EFEITOS <span>⌄</span></summary>
                         <div class="kaiju-pecas-lista">

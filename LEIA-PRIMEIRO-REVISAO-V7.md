@@ -14,6 +14,12 @@ Não execute todos os SQLs antigos novamente. Eles documentam etapas anteriores 
 
 O SQL V7 pode ser reaplicado: os registros já migrados e os dados criados pelos jogadores são preservados. Se aparecer um erro, a transação é cancelada; confira a mensagem antes de publicar as novas telas.
 
+## Se a primeira tentativa mostrou `operator does not exist: text = jsonb`
+
+Use a versão corrigida deste SQL V7 e execute o arquivo completo novamente no SQL Editor. Não é necessário repetir a V6 se ela já foi aplicada. A tentativa que falhou dentro da transação não concluiu a instalação da V7.
+
+O cadastro antigo definia `ataques` como texto. A correção transforma essa coluna em `jsonb`, remove o default textual incompatível e preserva uma cópia exata do conteúdo antigo em `ataques_legado`. Objetos JSON existentes são mantidos; textos livres e formatos sem cartas ficam guardados para revisão. Eles aparecem em **Ver ataques do cadastro antigo**, no registro do Kaiju. Reexecutar a migração não substitui cartas já gravadas nem a cópia original.
+
 ## Onde os dados ficam
 
 O site usa um único Supabase com tabelas por área. Abas que mostram as mesmas informações consultam a mesma fonte, evitando cópias divergentes.
@@ -79,7 +85,7 @@ Essa estrutura prepara futuras integrações. Não foram configuradas tarefas ag
 
 ## Verificação
 
-Foram aprovados **48 testes automatizados** de combate, importação e PostgreSQL local. Eles cobrem duração de efeitos, isolamento entre frotas, imagens, saldo, versões de registros, importação antiga, autoria, permissões, sorteios idempotentes e reaplicação da migração. O banco local usa PGlite com os esquemas de autenticação e armazenamento necessários aos testes; isso não equivale a executar a migração no Supabase da escola.
+Foram aprovados **51 testes automatizados** de combate, importação e PostgreSQL local. Eles cobrem duração de efeitos, isolamento entre frotas, imagens, saldo, versões de registros, importação antiga, autoria, permissões, sorteios idempotentes e reaplicação da migração. O banco local usa PGlite com os esquemas de autenticação e armazenamento necessários aos testes; isso não equivale a executar a migração no Supabase da escola.
 
 Também foram conferidos cadastro de planeta, movimentação de estoque, criação de Kaiju com atordoamento, importação do chefe no combate e sorteio da oficina no navegador. As 12 abas foram verificadas a 320 pixels; os principais fluxos também foram conferidos em 390, 768 e 1280 pixels.
 
