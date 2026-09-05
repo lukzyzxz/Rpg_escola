@@ -220,12 +220,29 @@ async function atualizarSaldoSalvaVidas(){
     if(info) info.textContent="Consultando Salva-Vidas na ficha do tripulante...";
     try{
         const {data,error}=await supabaseClient.from("fichas_tripulantes")
-            .select("id, salva_vidas, itens_catalogo")
+            .select("id, salva_vidas, itens_catalogo, aprimoramentos_itens")
             .eq("id",usuarioConsultado)
             .maybeSingle();
         if(error) throw error;
         if(usuarioConsultado!==estadoOficina.tripulanteId) return;
         if(Array.isArray(data?.itens_catalogo)) definirItensDoTripulante(usuarioConsultado,data.itens_catalogo);
+        let aprimoramentosServidor=data?.aprimoramentos_itens||{};
+        const dadosLocais=carregarAprimoramentos();
+        if(usuarioConsultado===window.usuarioAtual?.id){
+            const importar={};
+            for(const [chave,valor]of Object.entries(dadosLocais)){
+                const [uid,item]=chave.split("::");
+                if(uid===usuarioConsultado) importar[item]=valor;
+            }
+            if(Object.keys(importar).length){
+                const migracao=await supabaseClient.rpc("combate_importar_aprimoramentos",{p_registros:importar});
+                if(migracao.error)throw migracao.error;
+                aprimoramentosServidor=migracao.data;
+            }
+        }
+        if(usuarioConsultado!==estadoOficina.tripulanteId)return;
+        for(const [item,valor]of Object.entries(aprimoramentosServidor))dadosLocais[`${usuarioConsultado}::${item}`]=valor;
+        try{salvarAprimoramentos(dadosLocais);}catch(erroCache){console.warn("Aprimoramentos disponíveis no servidor, cache local indisponível.");}
         estadoOficina.salvaVidas=Math.max(0,Number(data?.salva_vidas||0));
         renderizarOficinaAprimoramento();
     }catch(erro){
@@ -267,36 +284,6 @@ function atualizarBotaoAprimorar(){
     }
 }
 
-async function consumirSalvaVidaAprimoramento(id=estadoOficina.tripulanteId){
-    if(!id) return {ok:false,saldo:0};
-    // Compara o saldo lido antes de gravar para evitar que dois cliques simultâneos
-    // consumam o mesmo Salva-Vidas. Se houver concorrência, tenta novamente.
-    for(let tentativa=0;tentativa<2;tentativa++){
-        const {data:ficha,error:erroLeitura}=await supabaseClient.from("fichas_tripulantes")
-            .select("id, salva_vidas")
-            .eq("id",id)
-            .maybeSingle();
-        if(erroLeitura) throw erroLeitura;
-        const saldo=Math.max(0,Number(ficha?.salva_vidas||0));
-        if(saldo<1){ estadoOficina.salvaVidas=0; return {ok:false,saldo:0}; }
-        const novoSaldo=saldo-1;
-        const {data:atualizada,error:erroUpdate}=await supabaseClient.from("fichas_tripulantes")
-            .update({salva_vidas:novoSaldo, atualizado_em:new Date().toISOString()})
-            .eq("id",id)
-            .eq("salva_vidas",saldo)
-            .select("id, salva_vidas")
-            .maybeSingle();
-        if(erroUpdate) throw erroUpdate;
-        if(atualizada){
-            estadoOficina.salvaVidas=Math.max(0,Number(atualizada.salva_vidas||0));
-            // Se a ficha aberta em memória for do próprio usuário, mantém o valor sincronizado.
-            if(window.usuarioAtual?.id===id && typeof minhaFicha!=="undefined" && minhaFicha) minhaFicha.salva_vidas=estadoOficina.salvaVidas;
-            return {ok:true,saldo:estadoOficina.salvaVidas};
-        }
-    }
-    return {ok:false,saldo:estadoOficina.salvaVidas||0};
-}
-
 function anguloAlvoDaRaridade(raridade){
     // O conic-gradient começa no topo e avança no sentido horário:
     // comum 0..252°, incomum 252..324°, raro 324..360°.
@@ -331,13 +318,6 @@ async function iniciarAprimoramento(){
     const alvo={tripulanteId:estadoOficina.tripulanteId,itemId:estadoOficina.itemId};
     estadoOficina.girando=true; atualizarBotaoAprimorar();
     try{
-        const consumo=await consumirSalvaVidaAprimoramento(alvo.tripulanteId);
-        if(!consumo.ok){
-            estadoOficina.girando=false; atualizarBotaoAprimorar();
-            if(typeof mostrarNotificacao==="function") mostrarNotificacao("Sem Salva-Vidas disponível. Adicione um na Ficha do Tripulante antes de aprimorar.","error");
-            return;
-        }
-
         const categoria=disponiveis[Math.floor(Math.random()*disponiveis.length)];
         const roll=Math.random()*100; const raridade=roll<70?"comum":roll<90?"incomum":"raro";
         atualizarBotaoAprimorar();
@@ -345,7 +325,7 @@ async function iniciarAprimoramento(){
         if(ponteiro) ponteiro.className="apr-ponteiro girando";
         girarRoletaParaRaridade(raridade);
         // Salva antes da animação: navegar não pode perder ou redirecionar o resultado.
-        const texto=concluirAprimoramento(categoria,raridade,alvo);
+        const texto=await concluirAprimoramento(categoria,raridade,alvo);
         setTimeout(()=>{
             estadoOficina.girando=false;
             renderizarOficinaAprimoramento();
@@ -358,11 +338,11 @@ async function iniciarAprimoramento(){
         console.error("Erro ao consumir Salva-Vidas:",erro);
         estadoOficina.girando=false;
         await atualizarSaldoSalvaVidas();
-        if(typeof mostrarNotificacao==="function") mostrarNotificacao("Não foi possível consumir o Salva-Vidas da ficha. O aprimoramento foi cancelado.","error");
+        if(typeof mostrarNotificacao==="function") mostrarNotificacao("Não foi possível consumir o Salva-Vidas da ficha. Reabra a oficina para conferir o resultado no servidor antes de tentar novamente.","error");
     }
 }
 
-function concluirAprimoramento(categoria,raridade,alvo=estadoOficina){
+async function concluirAprimoramento(categoria,raridade,alvo=estadoOficina){
     const item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===alvo.itemId);
     const dados=carregarAprimoramentos(); const chave=`${alvo.tripulanteId}::${alvo.itemId}`; const reg=dados[chave]||{};
     let texto=CATEGORIAS_APRIMORAMENTO[categoria].raridades[raridade]; let extra=null;
@@ -376,7 +356,18 @@ function concluirAprimoramento(categoria,raridade,alvo=estadoOficina){
         if(raridade!=="comum" && item?.cartas?.length) chance=Math.round((100/item.cartas.length)*100)/100;
         texto=`${extra.nome}: ${extra.texto}` + (raridade!=="comum" ? ` Chance de ativação: ${chance}% por carta do item.` : "");
     }
-    reg[categoria]={raridade,texto,efeito:extra?.nome||null,data:new Date().toISOString()}; dados[chave]=reg; salvarAprimoramentos(dados);
+    const resultado={raridade,texto,efeito:extra?.nome||null,data:new Date().toISOString()};
+    const {data:gravado,error}=await supabaseClient.rpc("combate_aprimorar",{
+        p_item:alvo.itemId,p_categoria:categoria,p_resultado:resultado
+    });
+    if(error) throw error;
+    estadoOficina.salvaVidas=gravado.saldo;
+    // O servidor já confirmou custo e resultado atomicamente. Cache local é secundário.
+    if(typeof minhaFicha!=="undefined" && minhaFicha?.id===alvo.tripulanteId){
+        minhaFicha.salva_vidas=gravado.saldo;minhaFicha.aprimoramentos_itens=gravado.aprimoramentos;
+    }
+    for(const [id,valor] of Object.entries(gravado.aprimoramentos||{})) dados[`${alvo.tripulanteId}::${id}`]=valor;
+    try { salvarAprimoramentos(dados); } catch(erroCache) { console.warn("Cache local indisponível; resultado salvo no servidor."); }
     return texto;
 }
 

@@ -1,379 +1,78 @@
-// ======================================
-// ARENA.JS
-// Arena externa incorporada à Nave 3B
-// ======================================
-
-const ARENA_FROTA_KEY = "arena-frota-combate-v1";
-
-let frotaArenaSelecionadaId = "";
-let integrantesArenaSelecionados = new Set();
-
-function telaArena() {
-    return `
-        <section class="arena-integrada">
-            <div class="arena-integrada-barra">
-                <div>
-                    <span>⚔ MÓDULO TÁTICO</span>
-                    <strong>Escolha a frota e até quatro tripulantes para enfrentar o Kaiju.</strong>
-                </div>
-
-                <div class="arena-integrada-acoes">
-                    <button id="btn-recarregar-arena" type="button">↻ Recarregar</button>
-                    <button id="btn-tela-cheia-arena" type="button">⛶ Tela cheia</button>
-                </div>
-            </div>
-
-            <section class="arena-frota-painel">
-                <div class="arena-frota-cabecalho">
-                    <div>
-                        <span>FROTA CONTRA O KAIJU</span>
-                        <strong>Preparação do grupo de combate</strong>
-                    </div>
-
-                    <label class="arena-frota-campo">
-                        <span>Escolher frota</span>
-                        <select id="arena-frota-select" disabled>
-                            <option value="">Carregando frotas...</option>
-                        </select>
-                    </label>
-                </div>
-
-                <div id="arena-frota-vazio" class="arena-frota-vazio">
-                    Selecione uma frota para ver seus integrantes.
-                </div>
-
-                <div id="arena-integrantes-selecao" class="arena-integrantes-selecao" hidden>
-                    <div class="arena-integrantes-topo">
-                        <div>
-                            <strong>Selecione até 4 combatentes</strong>
-                            <small>Os escolhidos preencherão os quatro espaços da equipe.</small>
-                        </div>
-                        <span id="arena-contador-combatentes">0/4</span>
-                    </div>
-
-                    <div id="arena-lista-integrantes" class="arena-lista-integrantes"></div>
-
-                    <button id="btn-aplicar-frota-arena" class="btn-aplicar-frota-arena" type="button" disabled>
-                        ENVIAR FROTA PARA A ARENA
-                    </button>
-                </div>
-
-                <div id="arena-frota-status" class="arena-frota-status" aria-live="polite"></div>
-            </section>
-
-            <iframe
-                id="arena-frame"
-                class="arena-frame"
-                src="arena/index.html"
-                title="Arena de Combate da Nave 3B"
-                allow="fullscreen"
-                allowfullscreen>
-            </iframe>
-        </section>
-    `;
-}
-
-async function inicializarPaginaArena() {
-    const frame = document.getElementById("arena-frame");
-    const recarregar = document.getElementById("btn-recarregar-arena");
-    const telaCheia = document.getElementById("btn-tela-cheia-arena");
-    const seletor = document.getElementById("arena-frota-select");
-    const aplicar = document.getElementById("btn-aplicar-frota-arena");
-
-    if (!frame || !seletor || !aplicar) return;
-
-    recarregar?.addEventListener("click", () => {
-        frame.src = frame.src;
-    });
-
-    telaCheia?.addEventListener("click", async () => {
-        try {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-                return;
-            }
-
-            await frame.requestFullscreen();
-        } catch (erro) {
-            console.error("Não foi possível abrir a arena em tela cheia:", erro);
-
-            if (typeof mostrarNotificacao === "function") {
-                mostrarNotificacao("O navegador não permitiu abrir a tela cheia.", "error");
-            }
-        }
-    });
-
-    seletor.addEventListener("change", () => {
-        selecionarFrotaParaArena(seletor.value);
-    });
-
-    aplicar.addEventListener("click", aplicarFrotaNaArena);
-
-    await carregarFrotasParaArena();
-}
-
-async function carregarFrotasParaArena() {
-    const seletor = document.getElementById("arena-frota-select");
-    if (!seletor) return;
-
-    if (typeof carregarFrotasSupabase === "function") {
-        await carregarFrotasSupabase(false);
-    }
-
-    const frotasDisponiveis = obterFrotasDisponiveisParaArena();
-
-    if (frotasDisponiveis.length === 0) {
-        seletor.innerHTML = '<option value="">Nenhuma frota disponível</option>';
-        seletor.disabled = true;
-        atualizarStatusFrotaArena(
-            "Crie uma frota e adicione integrantes antes de iniciar o combate.",
-            "aviso"
-        );
-        return;
-    }
-
-    seletor.innerHTML = `
-        <option value="">Selecione uma frota</option>
-        ${frotasDisponiveis
-            .map(frota => `
-                <option value="${escaparAtributoArena(frota.id)}">
-                    ${escaparTextoArena(frota.nome)} — ${frota.integrantes.length} integrante${frota.integrantes.length === 1 ? "" : "s"}
-                </option>
-            `)
-            .join("")}
-    `;
-    seletor.disabled = false;
-
-    restaurarSelecaoFrotaArena();
-}
-
-function obterFrotasDisponiveisParaArena() {
-    const origem = Array.isArray(frotasSupabase) && frotasSupabase.length > 0
-        ? frotasSupabase
-        : typeof banco !== "undefined" && Array.isArray(banco.frotas)
-            ? banco.frotas
-            : [];
-
-    return origem.filter(frota => (
-        !frota.fixa
-        && String(frota.nome || "").trim().toUpperCase() !== "POVO LIVRE"
-    ));
-}
-
-function obterFrotaArenaPorId(frotaId) {
-    return obterFrotasDisponiveisParaArena().find(
-        frota => String(frota.id) === String(frotaId)
-    );
-}
-
-function selecionarFrotaParaArena(frotaId, idsPreSelecionados = []) {
-    const painel = document.getElementById("arena-integrantes-selecao");
-    const vazio = document.getElementById("arena-frota-vazio");
-    const lista = document.getElementById("arena-lista-integrantes");
-    const aplicar = document.getElementById("btn-aplicar-frota-arena");
-    const frota = obterFrotaArenaPorId(frotaId);
-
-    frotaArenaSelecionadaId = frota ? String(frota.id) : "";
-    const idsValidos = new Set(
-        Array.isArray(frota?.integrantes)
-            ? frota.integrantes.map(integrante => String(integrante.id))
-            : []
-    );
-
-    integrantesArenaSelecionados = new Set(
-        idsPreSelecionados
-            .map(id => String(id))
-            .filter(id => idsValidos.has(id))
-            .slice(0, 4)
-    );
-
-    if (!frota) {
-        if (painel) painel.hidden = true;
-        if (vazio) vazio.hidden = false;
-        if (lista) lista.innerHTML = "";
-        if (aplicar) aplicar.disabled = true;
-        atualizarContadorCombatentesArena();
-        atualizarStatusFrotaArena("", "");
-        return;
-    }
-
-    if (vazio) vazio.hidden = true;
-    if (painel) painel.hidden = false;
-
-    if (!Array.isArray(frota.integrantes) || frota.integrantes.length === 0) {
-        lista.innerHTML = `
-            <div class="arena-frota-vazio compacto">
-                Esta frota ainda não possui integrantes.
-            </div>
-        `;
-        aplicar.disabled = true;
-        atualizarContadorCombatentesArena();
-        return;
-    }
-
-    lista.innerHTML = frota.integrantes
-        .map(integrante => {
-            const id = String(integrante.id);
-            const marcado = integrantesArenaSelecionados.has(id);
-            const nome = integrante.nome || integrante.username || "Tripulante";
-
-            return `
-                <label class="arena-integrante-opcao${marcado ? " selecionado" : ""}">
-                    <input
-                        type="checkbox"
-                        value="${escaparAtributoArena(id)}"
-                        ${marcado ? "checked" : ""}>
-                    <span class="arena-integrante-avatar">${obterIniciaisArena(nome)}</span>
-                    <span class="arena-integrante-dados">
-                        <strong>${escaparTextoArena(nome)}</strong>
-                        <small>${escaparTextoArena(integrante.cargo || integrante.username || "Tripulante")}</small>
-                    </span>
-                    <i>✓</i>
-                </label>
-            `;
-        })
-        .join("");
-
-    lista.querySelectorAll('input[type="checkbox"]').forEach(input => {
-        input.addEventListener("change", () => alternarCombatenteArena(input));
-    });
-
-    atualizarContadorCombatentesArena();
-    atualizarStatusFrotaArena("", "");
-}
-
-function alternarCombatenteArena(input) {
-    const id = String(input.value);
-
-    if (input.checked && integrantesArenaSelecionados.size >= 4) {
-        input.checked = false;
-        atualizarStatusFrotaArena(
-            "A Arena permite no máximo quatro combatentes por batalha.",
-            "aviso"
-        );
-        return;
-    }
-
-    if (input.checked) {
-        integrantesArenaSelecionados.add(id);
-    } else {
-        integrantesArenaSelecionados.delete(id);
-    }
-
-    input.closest(".arena-integrante-opcao")?.classList.toggle(
-        "selecionado",
-        input.checked
-    );
-
-    atualizarContadorCombatentesArena();
-    atualizarStatusFrotaArena("", "");
-}
-
-function atualizarContadorCombatentesArena() {
-    const contador = document.getElementById("arena-contador-combatentes");
-    const aplicar = document.getElementById("btn-aplicar-frota-arena");
-    const quantidade = integrantesArenaSelecionados.size;
-
-    if (contador) contador.textContent = `${quantidade}/4`;
-    if (aplicar) aplicar.disabled = quantidade === 0 || !frotaArenaSelecionadaId;
-}
-
-function aplicarFrotaNaArena() {
-    const frota = obterFrotaArenaPorId(frotaArenaSelecionadaId);
-    const frame = document.getElementById("arena-frame");
-
-    if (!frota || integrantesArenaSelecionados.size === 0) return;
-
-    const combatentes = frota.integrantes
-        .filter(integrante => integrantesArenaSelecionados.has(String(integrante.id)))
-        .slice(0, 4)
-        .map(integrante => ({
-            id: integrante.id,
-            nome: integrante.nome || integrante.username || "Tripulante",
-            username: integrante.username || null,
-            cargo: integrante.cargo || null,
-            avatar: integrante.avatar || null
-        }));
-
-    const selecao = {
-        frotaId: frota.id,
-        frotaNome: frota.nome,
-        frotaCor: frota.cor || "#3db8ff",
-        combatentes,
-        atualizadoEm: new Date().toISOString()
-    };
-
-    localStorage.setItem(ARENA_FROTA_KEY, JSON.stringify(selecao));
-
-    frame?.contentWindow?.postMessage(
-        { tipo: "NAVE_RPG_FROTA_ARENA", selecao },
-        window.location.origin
-    );
-
-    atualizarStatusFrotaArena(
-        `${frota.nome} preparada com ${combatentes.length} combatente${combatentes.length === 1 ? "" : "s"}. Entre em uma equipe para lutar.`,
-        "sucesso"
-    );
-
-    if (typeof mostrarNotificacao === "function") {
-        mostrarNotificacao("Frota enviada para a Arena de Combate!", "success");
-    }
-}
-
-function restaurarSelecaoFrotaArena() {
-    try {
-        const selecao = JSON.parse(localStorage.getItem(ARENA_FROTA_KEY) || "null");
-        const seletor = document.getElementById("arena-frota-select");
-
-        if (!selecao?.frotaId || !seletor) return;
-
-        const frota = obterFrotaArenaPorId(selecao.frotaId);
-        if (!frota) return;
-
-        seletor.value = String(frota.id);
-        selecionarFrotaParaArena(
-            frota.id,
-            Array.isArray(selecao.combatentes)
-                ? selecao.combatentes.map(combatente => combatente.id)
-                : []
-        );
-
-        atualizarStatusFrotaArena(
-            `${frota.nome} continua preparada para o combate.`,
-            "sucesso"
-        );
-    } catch (erro) {
-        console.warn("Não foi possível restaurar a frota da Arena:", erro);
-        localStorage.removeItem(ARENA_FROTA_KEY);
-    }
-}
-
-function atualizarStatusFrotaArena(mensagem, tipo) {
-    const status = document.getElementById("arena-frota-status");
-    if (!status) return;
-
-    status.textContent = mensagem;
-    status.className = `arena-frota-status ${tipo || ""}`;
-}
-
-function obterIniciaisArena(nome) {
-    return String(nome || "T")
-        .trim()
-        .split(/\s+/)
-        .slice(0, 2)
-        .map(parte => parte.charAt(0).toUpperCase())
-        .join("") || "T";
-}
-
-function escaparTextoArena(valor) {
-    return String(valor ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-}
-
-function escaparAtributoArena(valor) {
-    return escaparTextoArena(valor);
-}
+// Arena automática — integração nativa à Central de Comando.
+const CombateUI=(()=>{
+ const M=CombateMotor,D=CombateDados;
+ let compact=true,historyPage=0,battlePage=0;
+ let data=null,draft=null,row=null,busy=false,screen='home',error='',saved='',modalActor=null,modalCard='A',modalRule=null;
+ const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const copy=M.clone,me=()=>window.usuarioAtual?.id,canEdit=()=>!row||row.criado_por===me();
+ const option=(v,label,selected)=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(label)}</option>`;
+ const buttons=(label,action,extra='')=>`<button type="button" data-cb="${action}" ${extra}>${label}</button>`;
+ const hint=()=>`<div id="cb-message" role="status" class="cb-message ${error?'error':''}" ${!error&&!saved?'hidden':''}>${esc(error||saved)}</div>`;
+ function wrapper(){return `<section class="cb-app compact" id="cb-app"><div id="cb-root"><p class="cb-empty">Carregando arena…</p></div><div class="cb-overlay" id="cb-modal" hidden></div></section>`;}
+ function setMessage(e='',s=''){error=e;saved=s;const box=$('cb-message');if(box){box.hidden=!e&&!s;box.className='cb-message '+(e?'error':'');box.textContent=e||s;}}
+ async function run(fn){if(busy)return;busy=true;document.querySelectorAll('[data-cb="resolve"],[data-cb="start"],[data-cb="undo"]').forEach(b=>b.disabled=true);try{setMessage();await fn();}catch(e){console.error(e);setMessage(e.message||String(e));}finally{busy=false;document.querySelectorAll('[data-cb="resolve"],[data-cb="start"],[data-cb="undo"]').forEach(b=>{b.disabled=(b.dataset.cb==='resolve'&&row?.estado.status!=='active')||(b.dataset.cb==='undo'&&!(row?.demo?row.undo?.length:row?.cursor_revisao));});}}
+ async function init(){if(!$('cb-root'))return;bind();$('cb-app').classList.toggle('compact',compact);if(screen==='setup'&&draft){renderSetup();return;}if(row){screen='battle';renderBattle();return;}await home();}
+ function bind(){const root=$('cb-app');if(root.dataset.bound)return;root.dataset.bound='1';root.addEventListener('click',event=>{const b=event.target.closest('[data-cb]');if(b&&!b.disabled)action(b.dataset.cb,b.dataset);});root.addEventListener('change',event=>change(event.target));root.addEventListener('keydown',event=>{const box=$('cb-modal');if(box.hidden)return;if(event.key==='Escape'){box.hidden=true;return;}if(event.key==='Tab'){const focusables=[...box.querySelectorAll('button,input,select,textarea,a[href]')].filter(e=>!e.disabled&&e.getClientRects().length);const first=focusables[0],last=focusables.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}});root.addEventListener('input',event=>{if(event.target.id==='cb-rule-text'){$('cb-rule-stale').hidden=false;$('cb-r-reviewed').checked=false;}});}
+ async function home(){screen='home';row=null;$('cb-root').innerHTML=`<div class="cb-heading"><div><small>CENTRAL TÁTICA</small><h2>Arena de Combate</h2><p>Prepare as regras uma vez. Nas rodadas, informe as cartas viradas.</p></div></div>${hint()}<div class="cb-home-actions">${buttons('＋ Preparar combate','new','class="cb-primary"')}${buttons('Experimentar demonstração','demo')}${buttons('Atualizar batalhas','refresh')}</div><section class="cb-panel"><h3>Batalhas salvas</h3><div id="cb-battles" class="cb-history-list">Consultando…</div><div class="cb-home-actions">${buttons('Anteriores','battleprev',battlePage===0?'disabled':'')}${buttons('Próximas','battlenext')}</div></section><details class="cb-panel"><summary>Como funciona</summary><p>Cada frota enfrenta sua própria vida do Kaiju. Uma carta da frota ativa as cartas de todos os integrantes, na ordem de agilidade. Informe também a carta do Kaiju. Empates favorecem os jogadores. A regra preparada é salva junto com a batalha.</p><p>Atordoamento, veneno, cura e outros efeitos aparecem com duração e histórico. Textos não reconhecidos precisam ser revisados na preparação. Regras sobre perguntas e baralhos físicos exigem uma decisão humana.</p><a href="arena/index.html" target="_blank" rel="noopener">Abrir arena anterior</a></details>`;
+ try{const list=await D.list(battlePage*30);if(screen!=='home')return;$('cb-battles').innerHTML=list.length?list.map(b=>`<div class="cb-history-row"><div><strong>${esc(b.titulo)}</strong><small>${new Date(b.atualizado_em).toLocaleString('pt-BR')} · revisão ${b.revisao}</small></div>${buttons('Abrir','open',`data-id="${b.id}"`)}</div>`).join(''):'Nenhuma batalha salva ainda.';}catch(e){$('cb-battles').textContent='Entre na sua conta e execute EXECUTAR-COMBATE-AUTOMATICO-V6.sql para usar o histórico online.';}
+ }
+ async function newBattle(){if(!me())throw Error('Entre na sua conta para importar fichas e salvar batalhas.');saved='Carregando frotas, fichas e Kaijus…';setMessage('',saved);data=await D.load();draft={title:'Combate da Nave 3B',boss:{...D.makeBoss(data.kaijus[0]),catalogId:data.kaijus[0]?.id},teams:[{id:'t1',name:'Frota 1',players:[]},{id:'t2',name:'Frota 2',players:[]}],mode:'piloto'};screen='setup';renderSetup();}
+ function renderSetup(){const names=draft.teams.flatMap(t=>t.players.map(p=>p.name));$('cb-root').innerHTML=`<div class="cb-heading"><div><small>01 / PREPARAÇÃO</small><h2>Preparar batalha</h2><p>Confira as fichas e o que cada carta faz antes de iniciar.</p></div>${buttons('Batalhas','home')}</div>${hint()}<div class="cb-settings cb-panel"><label>Nome da batalha<input id="cb-title" value="${esc(draft.title)}" maxlength="150"></label><label>Modo de importação<select id="cb-mode">${option('piloto','Ficha do tripulante',draft.mode)}${option('mecha','Mecha e peças equipadas',draft.mode)}</select></label><label>Kaiju<select id="cb-kaiju">${option('','Personalizado','')}${data.kaijus.map(k=>option(k.id,k.nome,draft.boss.catalogId)).join('')}</select></label>${buttons('Editar Kaiju e cartas','editboss','class="cb-primary"')}</div><div class="cb-prep-teams">${draft.teams.map((t,index)=>`<section class="cb-panel cb-team tone-${index}"><div class="cb-team-head"><h3>${esc(t.name)}</h3><small>${t.players.length}/5 integrantes</small></div><label>Importar frota<select data-team="${t.id}" class="cb-fleet">${option('','Selecione…','')}${data.frotas.map(f=>option(f.id,f.nome,t.fleetId)).join('')}</select></label><div class="cb-members">${t.fleetId?data.members.filter(m=>m.frota_id===t.fleetId).map(m=>{const p=data.profiles.find(p=>p.id===m.usuario_id);if(!p)return '';return `<label class="cb-check"><input type="checkbox" data-member="${p.id}" data-team="${t.id}" ${t.players.some(x=>x.profileId===p.id)?'checked':''}>${esc(p.nome||p.username)}</label>`;}).join(''):''}</div><div class="cb-prep-players">${t.players.map((p,pi)=>`<div class="cb-player-row">${portrait(p,'small')}<div><strong>${esc(p.name)}</strong><small>${p.maxHp} PV · ${p.extra} dano extra · ${p.speed} agilidade</small></div>${buttons('Ficha / cartas','editplayer',`data-team="${t.id}" data-index="${pi}"`)}${buttons('×','remove',`aria-label="Remover ${esc(p.name)}" data-team="${t.id}" data-index="${pi}"`)}</div>`).join('')}</div>${buttons('Alvos do Kaiju nesta frota','editteamboss',`data-team="${t.id}"`)}${buttons('+ Vaga editável','guest',`data-team="${t.id}" ${t.players.length>=5?'disabled':''}`)}${t.players.length<4?`<p class="cb-muted">${4-t.players.length} vaga(s) livre(s). Preencha com convidados ou jogue com menos integrantes.</p>`:''}</section>`).join('')}</div><section class="cb-panel cb-review"><h3>Revisão das regras</h3><div>${[draft.boss,...draft.teams.flatMap(t=>[...(t.boss?[t.boss]:[]),...t.players])].map(a=>`<details><summary>${esc(a.name)} · ${pending(a)} pendência(s)</summary>${a.notes?`<p class="cb-source">${esc(a.notes)}</p>`:''}${(a.reviewNotes||[]).map(x=>`<p>⚠ ${esc(x)}</p>`).join('')}${Object.entries(a.cards).filter(([c,r])=>r.warnings?.length&&!r.reviewed).map(([c,r])=>`<p><b>${c} · ${esc(r.name)}</b>: ${esc(r.warnings.join(' '))}</p>`).join('')}</details>`).join('')}</div><label class="cb-check"><input id="cb-reviewed" type="checkbox">Conferi alvos, passivas e a distribuição de itens nas cartas. As regras exibidas são as que serão usadas.</label><div class="cb-home-actions">${buttons('Iniciar e salvar batalha','start','class="cb-primary"')}</div></section>`;}
+ function pending(a){return (a.reviewNotes||[]).length+Object.values(a.cards).filter(r=>r.warnings?.length&&!r.reviewed).length;}
+ function portrait(a,size=''){const url=String(a.photo||'');const safe=/^(https?:\/\/|data:image\/(?:png|jpeg|webp|gif);base64,|assets\/)/.test(url);return `<div class="cb-portrait ${size}">${safe?`<img src="${esc(url)}" alt="${esc(a.name)}" loading="lazy">`:`<span>${esc(a.name?.split(' ').slice(0,2).map(x=>x[0]).join('')||'?' )}</span>`}</div>`;}
+ function hp(a){const pct=Math.max(0,Math.min(100,a.hp/a.maxHp*100));return `<div class="cb-hp-label"><strong>${a.hp} <small>/ ${a.maxHp} PV</small></strong></div><div class="cb-hp"><i style="width:${pct}%" class="${pct<30?'low':''}"></i></div>`;}
+ function combatant(a,t,index){const r=a.cards[row.estado.lastOrders?.[t.id]?.card];return `<article class="cb-fighter ${a.hp<=0?'fallen':''}">${portrait(a)}<div class="cb-fighter-name"><strong>${esc(a.name)}</strong><span>${a.hp<=0?'DERROTADO':'AGI '+M.stat(a,'speed')}</span></div>${hp(a)}<p class="cb-stats">⚔ ${M.stat(a,'extra')} extra · 🛡 ${M.stat(a,'defense')} defesa${a.memory.drone>0?' · Drone '+a.memory.drone+' PV':''}</p><div class="cb-effects">${a.effects.map(e=>`<span>${esc(M.KINDS[e.kind])}${e.value?' '+e.value:''} · ${e.actionKind?e.remaining:Math.max(1,e.expires-row.estado.round)}r</span>`).join('')||'<small>Sem efeitos ativos</small>'}${a.memory.nextDamage?`<span>Próximo ataque +${a.memory.nextDamage}</span>`:''}</div>${canEdit()?buttons('Ficha / efeitos','editlive',`data-team="${t.id}" data-index="${index}"`):''}</article>`;}
+ function renderBattle(){screen='battle';const s=row.estado;const own=canEdit();$('cb-root').innerHTML=`<div class="cb-heading"><div><small>${row.demo?'DEMONSTRAÇÃO LOCAL':own?'MESTRE DA BATALHA':'ACOMPANHANDO'} · RODADA ${s.round}</small><h2>${esc(s.title)}</h2></div><div class="cb-heading-actions">${buttons(compact?'Expandir imagens':'Modo compacto','compact')}${row.demo?buttons('Preparação','demosetup'):''}${row.demo?'':buttons('Sincronizar','reload')}${buttons('Tela cheia','fullscreen')}${buttons('Batalhas','home')}</div></div>${hint()}<section class="cb-boss-hero cb-panel">${portrait(s.teams[0].boss,'boss')}<div><small>KAIJU</small><h3>${esc(s.teams[0].boss.name)}</h3><p>Vida e efeitos independentes para cada frota.</p><div class="cb-effects">${s.teams.map(t=>`<span>${esc(t.name)}: ${t.boss.hp<=0?'vitória':!t.players.some(p=>p.hp>0)?'derrota':'em combate'}</span>`).join('')}</div></div></section><div class="cb-boards">${s.teams.map((t,index)=>`<section class="cb-team-board tone-${index}"><div class="cb-team-head"><h3>${esc(t.name)}</h3><span>${t.players.filter(p=>p.hp>0).length}/${t.players.length} em pé</span></div><div class="cb-boss-health"><div><strong>${esc(t.boss.name)}</strong>${own?buttons('Carta / efeitos','editliveboss',`data-team="${t.id}"`):''}</div>${hp(t.boss)}<div class="cb-effects">${t.boss.effects.map(e=>`<span>${esc(M.KINDS[e.kind])} ${e.value||''} · ${e.actionKind?e.remaining:Math.max(1,e.expires-s.round)}r</span>`).join('')}</div></div><div class="cb-fighters">${t.players.map((p,pi)=>combatant(p,t,pi)).join('')}</div></section>`).join('')}</div><section class="cb-round-bar cb-panel"><div><small>PRÓXIMA RODADA</small><strong>${s.round+1}</strong></div>${s.teams.map(t=>`<label>${esc(t.name)}<select class="cb-card-input" data-order="${t.id}" ${!own||t.boss.hp<=0||!t.players.some(p=>p.hp>0)?'disabled':''}>${option('','Carta…','')}${M.CARDS.map(c=>option(c,c,'')).join('')}</select></label>`).join('')}<label>Kaiju<select id="cb-boss-card" ${!own?'disabled':''}>${option('','Carta…','')}${M.CARDS.map(c=>option(c,c,'')).join('')}</select></label>${own?buttons('Resolver rodada','resolve',`class="cb-primary" ${s.status!=='active'?'disabled':''}`):buttons('Atualizar','reload')}<div class="cb-round-secondary">${own?buttons('↶ Desfazer','undo',`${!row.cursor_revisao&&!row.demo?'disabled':''}`):''}${own?buttons(s.status==='finished'?'Combate encerrado':'Encerrar combate','end',`${s.status==='finished'?'disabled':''}`):''}</div></section><details class="cb-panel"><summary>Cartas diferentes do Kaiju por frota</summary><p>Deixe em branco para usar a carta comum acima.</p><div class="cb-settings">${s.teams.map(t=>`<label>${esc(t.name)}<select data-boss-order="${t.id}">${option('','Usar carta comum','')}${M.CARDS.map(c=>option(c,c,'')).join('')}</select></label>`).join('')}</div></details><section class="cb-panel cb-log"><h3>Registro da rodada ${s.round}</h3><ol>${s.log.map(l=>`<li><span>${esc(s.teams.find(t=>t.id===l.team)?.name)}</span>${esc(l.text)}</li>`).join('')||'<li>Aguardando as primeiras cartas.</li>'}</ol>${buttons('Histórico completo','history')}</section>`;}
+ function getTargets(){const actors=screen==='battle'?(row.estado.teams.find(t=>t.boss.id===modalActor?.id||t.players.some(p=>p.id===modalActor?.id))?.players||[]):draft.teams.flatMap(t=>t.players);return [...new Set(actors.map(p=>p.name))];}
+ function targetOptions(selected='auto',effect=false){return (effect?[['target','Alvo da carta'],['self','Próprio usuário'],['allies','Aliados'],['boss','Kaiju']]:[['auto','Primeiro adversário vivo'],['all','Todos os adversários'],['random','Aleatório'],['random2','Dois aleatórios'],['lowest','Menor vida'],['highest','Maior vida'],['left','Esquerda'],['right','Direita'],['middle','Meio'],['self','Próprio usuário']]).concat(getTargets().map(n=>['name:'+n,n])).map(([v,l])=>option(v,l,selected)).join('');}
+ function actorModal(actor){modalActor=actor;modalCard='A';modalRule=copy(actor.cards.A||{...M.rule(),damage:3,name:'Soco'});const box=$('cb-modal');box.hidden=false;box.innerHTML=`<section class="cb-dialog" role="dialog" aria-modal="true" aria-label="Ficha e cartas"><div class="cb-dialog-head"><h3>${esc(actor.name)} · ficha e cartas</h3>${buttons('Fechar','close')}</div><div class="cb-settings"><label>Nome<input id="cb-actor-name" value="${esc(actor.name)}"></label><label>Vida máxima<input type="number" min="1" id="cb-actor-hp" value="${actor.maxHp}"></label>${screen==='battle'?`<label>Vida atual<input type="number" min="0" id="cb-actor-current" value="${actor.hp}"></label>`:''}<label>Dano extra<input type="number" id="cb-actor-extra" value="${actor.extra}"></label><label>Agilidade<input type="number" id="cb-actor-speed" value="${actor.speed}"></label><label>Defesa<input type="number" id="cb-actor-defense" value="${actor.defense}"></label><label>URL da imagem<input id="cb-actor-photo" value="${esc(actor.photo)}"></label><label>Enviar imagem<input type="file" id="cb-actor-upload" accept="image/png,image/jpeg,image/webp"></label></div>${actor.notes?`<details><summary>Texto original da ficha</summary><p class="cb-source">${esc(actor.notes)}</p></details>`:''}${actor.reviewNotes?.length?`<div class="cb-pending">${actor.reviewNotes.map(n=>`<p>⚠ ${esc(n)}</p>`).join('')}<label class="cb-check"><input type="checkbox" id="cb-actor-notes">Conferi estas observações nas cartas e nos atributos.</label></div>`:''}<div class="cb-card-tabs">${M.CARDS.map(c=>buttons(c,'cardtab',`data-card="${c}" class="${c==='A'?'active':''}"`)).join('')}</div><div id="cb-rule-editor"></div><div class="cb-dialog-actions">${buttons('Salvar ficha e regras','saveactor','class="cb-primary"')}</div><p class="cb-muted" id="cb-modal-error" role="alert"></p></section>`;renderRule();$('cb-actor-name').focus();}
+ function renderRule(){const r=modalRule;const opts=modalActor.options?.[modalCard]||[];$('cb-rule-editor').innerHTML=`<div class="cb-rule-heading"><h4>Carta ${modalCard}</h4>${r.warnings?.length&&!r.reviewed?'<span class="cb-warning">Revisão necessária</span>':'<span>Regra pronta</span>'}</div>${opts.length?`<label>Equipamento para esta carta<select id="cb-item-option">${option('','Regra atual / personalizada','')}${opts.map((o,i)=>option(String(i),o.name+(o.extraAssignment?' · carta escolhida':''),'')).join('')}</select></label>`:''}<label>Descrição do ataque ou passiva<textarea id="cb-rule-text" rows="3" placeholder="Ex.: causa 5 de dano e atordoa Lucas por 1 rodada">${esc(r.text)}</textarea></label><div class="cb-rule-parse">${buttons('Interpretar texto','parse','class="cb-primary"')}<span id="cb-rule-stale" hidden>Texto alterado. Interprete novamente ou ajuste os campos abaixo.</span></div>${r.warnings?.length?`<div class="cb-pending">${r.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</div>`:''}<div class="cb-settings"><label>Nome<input id="cb-r-name" value="${esc(r.name)}"></label><label>Dano base<input type="number" min="0" id="cb-r-damage" value="${r.damage??0}"></label><label>Cura própria<input type="number" min="0" id="cb-r-heal" value="${r.heal||0}"></label><label>Custo de vida<input type="number" min="0" id="cb-r-cost" value="${r.cost||0}"></label><label>Alvo<select id="cb-r-target">${targetOptions(r.target)}</select></label><label>Multiplicador de dano<input id="cb-r-multiplier" type="number" min="0" step=".1" value="${r.multiplier??1}"></label><label>Repetições<select id="cb-r-repeat">${option('1','Uma vez',String(r.repeat||1))}${option('2','Duas vezes',String(r.repeat||1))}</select></label></div><label>Regra especial<select id="cb-r-special">${[['','Sem regra especial'],['combo','Manoplas: combo de socos'],['cannon','Canhão: disparo / recarga'],['vorpal','Vorpal: triplica se mais ágil'],['overload','Coração: +10 no próximo ataque'],['drone','Vigilância: drone 15 PV / +4 dano'],['odd','Lâmina: 8 de dano contra carta ímpar'],['memory','Língua: condição da pergunta'],['guincho','Guincho: cura ou dobro do descarte']].map(([v,l])=>option(v,l,r.special)).join('')}</select></label><div class="cb-settings"><label>Dano do descarte escolhido (Guincho)<input type="number" min="0" id="cb-r-choice" value="${r.choiceDamage||0}"></label><label class="cb-check"><input type="checkbox" id="cb-r-condition" ${r.condition?'checked':''}>Condição da Língua de Cobra atendida</label></div><h4>Efeitos automáticos</h4><div id="cb-rule-effects">${(r.effects||[]).map((e,i)=>effectRow(e,i)).join('')}</div>${buttons('+ Adicionar efeito','addeffect')}<label class="cb-check"><input id="cb-r-reviewed" type="checkbox" ${r.reviewed?'checked':''}>Confirmo esta interpretação, incluindo o alvo e a duração.</label><p class="cb-muted">Atordoamento e dano contínuo duram oportunidades de ação do alvo. Buffs de atributo, escudo e esquiva duram até o fim da rodada indicada. 1 rodada inclui a rodada atual.</p>`;}
+ function effectRow(e,i){return `<div class="cb-effect-row" data-effect="${i}"><label>Efeito<select data-field="kind">${Object.entries(M.KINDS).map(([v,l])=>option(v,l,e.kind)).join('')}</select></label><label>Valor<input type="number" data-field="value" value="${e.value||0}"></label><label>Rodadas<input type="number" min="1" max="99" data-field="duration" value="${e.duration||1}"></label><label>Chance %<input type="number" min="0" max="100" data-field="chance" value="${e.chance??100}"></label><label>Aplicar em<select data-field="target">${targetOptions(e.target,true)}</select></label>${buttons('×','removeeffect',`data-index="${i}" aria-label="Remover efeito"`)}</div>`;}
+ function readRule(){if(!$('cb-rule-stale').hidden&&!$('cb-r-reviewed').checked)throw Error('Interprete o texto alterado ou confira os campos e confirme a interpretação antes de salvar.');const effects=[...document.querySelectorAll('.cb-effect-row')].map((el,i)=>{const obj={...modalRule.effects[i]};el.querySelectorAll('[data-field]').forEach(e=>obj[e.dataset.field]=e.type==='number'?Number(e.value):e.value);return obj;});return {...modalRule,name:$('cb-r-name').value,text:$('cb-rule-text').value,damage:Number($('cb-r-damage').value),heal:Number($('cb-r-heal').value),cost:Number($('cb-r-cost').value),target:$('cb-r-target').value,multiplier:Number($('cb-r-multiplier').value),repeat:Number($('cb-r-repeat').value),special:$('cb-r-special').value,choiceDamage:Number($('cb-r-choice').value),condition:$('cb-r-condition').checked,reviewed:$('cb-r-reviewed').checked,effects};}
+ function storeRule(){modalRule=readRule();modalActor.cards[modalCard]=copy(modalRule);}
+ async function saveActor(){storeRule();const a=modalActor;a.name=$('cb-actor-name').value.trim()||'Combatente';a.maxHp=Math.max(1,Number($('cb-actor-hp').value)||1);a.extra=Number($('cb-actor-extra').value)||0;a.speed=Number($('cb-actor-speed').value)||0;a.defense=Number($('cb-actor-defense').value)||0;if(a.photo!==$('cb-actor-photo').value){delete a.photoSource;delete a.photoFallback;}a.photo=$('cb-actor-photo').value;if($('cb-actor-current'))a.hp=Math.max(0,Math.min(a.maxHp,Number($('cb-actor-current').value)));if($('cb-actor-notes')?.checked)a.reviewNotes=[];D.updatePassives(a);
+ if(screen==='battle'){const next=copy(row.estado);let replaced=false;for(const t of next.teams){if(t.boss.id===a.id){t.boss=a;replaced=true;}t.players=t.players.map(p=>{if(p.id===a.id){replaced=true;return a;}return p;});}if(!replaced)throw Error('Combatente não encontrado.');next.log=[{team:next.teams[0].id,text:`Ficha/regras de ${a.name} ajustadas.`,round:next.round}];await persist(next,'ajuste');}else{const ref=modalActor._ref;if(ref==='boss'){draft.boss=a;for(const t of draft.teams)delete t.boss;}else if(ref?.startsWith('boss:'))draft.teams.find(t=>t.id===ref.slice(5)).boss=a;else if(ref){const [tid,index]=ref.split(':');draft.teams.find(t=>t.id===tid).players[Number(index)]=a;}}
+ $('cb-modal').hidden=true;if(screen==='battle')renderBattle();else renderSetup();}
+ async function persist(next,type){if(row.demo){row.undo=row.undo||[];row.undo.push(copy(row.estado));row.estado=next;row.revisao++;row.cursor_revisao=row.revisao;row.events=row.events||[];row.events.push({revisao:row.revisao,tipo:type,posterior:copy(next)});saved='Demonstração: não salva no servidor.';}else{row=await D.save(row,next,type);saved='Rodada e histórico confirmados pelo servidor.';}error='';}
+ async function start(){if(!$('cb-reviewed').checked)throw Error('Confira a revisão das regras antes de iniciar.');const teams=draft.teams.filter(t=>t.players.length);if(!teams.length)throw Error('Adicione pelo menos um integrante.');const pendingRules=[...(teams.some(t=>!t.boss)?[draft.boss]:[]),...teams.flatMap(t=>[...(t.boss?[t.boss]:[]),...t.players])].filter(a=>pending(a)>0);if(pendingRules.length)throw Error('Revise as pendências de: '+pendingRules.map(a=>a.name).join(', '));for(const t of teams){for(const p of t.players){const counts={};for(const [c,r]of Object.entries(p.cards)){if(r.itemId)counts[r.itemId]=(counts[r.itemId]||0)+1;}for(const [item,count]of Object.entries(counts)){const base=typeof CATALOGO_ITENS_APRIMORAMENTO!=='undefined'?CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===item):null;const bonus={comum:1,incomum:2,raro:3}[p.upgrades?.[item]?.cartas?.raridade]||0;if(base&&count>base.cartas.length+bonus)throw Error(`${p.name}: ${base.nome} excede a capacidade de cartas.`);}}}
+ historyPage=0;const state=M.create({teams,boss:draft.boss,title:draft.title,seed:crypto.getRandomValues(new Uint32Array(1))[0]});M.validate(state);row=draft.demo?{demo:true,id:'demo',criado_por:me(),estado:state,revisao:0,cursor_revisao:0,undo:[],events:[]}:await D.create(state);saved=draft.demo?'Demonstração preparada. Não salva no servidor.':'Batalha salva. Informe as cartas da primeira rodada.';renderBattle();}
+ async function resolve(){if(!canEdit())return;const orders={};for(const t of row.estado.teams){if(t.boss.hp<=0||!t.players.some(p=>p.hp>0))continue;orders[t.id]={card:document.querySelector(`[data-order="${t.id}"]`).value,bossCard:document.querySelector(`[data-boss-order="${t.id}"]`).value||$('cb-boss-card').value};}const next=M.resolve(row.estado,orders);next.lastOrders=orders;await persist(next,'rodada');renderBattle();}
+ function demo(){historyPage=0;const items=typeof CATALOGO_ITENS_APRIMORAMENTO!=='undefined'?CATALOGO_ITENS_APRIMORAMENTO:[];const make=(id,name,life,speed,item)=>D.makePlayer({id,nome:name},{vida:life,agilidade:speed,defesa:1,dano_extra:2,itens_catalogo:[item]},items);const boss=D.makeBoss({nome:'Kaiju de treinamento',vida:120,agilidade:6,imagem_path:'assets/kaijus/kaiju-porco.jpg'});boss.cards.A={...M.parse('Causa 5 de dano e atordoa o jogador da esquerda por 1 rodada',{boss:true}),reviewed:true};boss.cards['2']={...M.parse('Causa 3 de dano em todos',{boss:true}),reviewed:true};const state=M.create({title:'Treinamento · duas frotas',seed:42,boss,teams:[{id:'t1',name:'Frota Aurora',players:[make('a','Lucas',45,8,'manoplas-porco'),make('b','Marina',40,5,'canhao-verdejante'),make('c','Erica',35,7,'lamina-vorpal'),make('d','Thiago',50,4,'vigilancia-verdejante')]},{id:'t2',name:'Frota Horizonte',players:[make('e','Gabriel',40,5,'laminas-gemeas'),make('f','Igor',35,4,'mascara-cobra'),make('g','Henrique',40,6,'coracao-verdejante'),make('h','Sarah',35,3,'lamina-verdejante')]}]});row={demo:true,id:'demo',criado_por:me(),estado:state,revisao:0,cursor_revisao:0,undo:[],events:[]};saved='Demonstração: use A para testar dano, iniciativa e atordoamento.';renderBattle();}
+ async function action(key,attrs){if(key==='histprev'||key==='histnext'){historyPage=Math.max(0,historyPage+(key==='histnext'?1:-1));key='history';}if(key==='close'){$('cb-modal').hidden=true;return;}if(key==='cardtab'){try{storeRule();}catch(e){$('cb-modal-error').textContent=e.message;return;}modalCard=attrs.card;modalRule=copy(modalActor.cards[modalCard]||{...M.rule(),damage:['J','Q','K'].includes(modalCard)?0:3,name:['J','Q','K'].includes(modalCard)?'Sem ataque':'Soco'});document.querySelectorAll('.cb-card-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.card===modalCard));renderRule();return;}
+ if(key==='parse'){const text=$('cb-rule-text').value;modalRule=M.parse(text,{boss:modalActor.id?.startsWith('boss'),names:getTargets()});renderRule();return;}
+ if(key==='addeffect'){try{modalRule=readRule();}catch(e){$('cb-modal-error').textContent=e.message;return;}modalRule.effects.push({kind:'stun',value:0,duration:1,chance:100,target:'target'});renderRule();return;}
+ if(key==='removeeffect'){try{modalRule=readRule();}catch(e){$('cb-modal-error').textContent=e.message;return;}modalRule.effects.splice(Number(attrs.index),1);renderRule();return;}
+ await run(async()=>{switch(key){
+ case 'compact':compact=!compact;$('cb-app').classList.toggle('compact',compact);renderBattle();break;
+ case 'demosetup':data={profiles:[],fichas:[],frotas:[],members:[],kaijus:[],mechas:[],equipadas:[],pecas:[]};draft={demo:true,title:row.estado.title,boss:copy(row.estado.teams[0].boss),teams:copy(row.estado.teams),mode:'piloto'};for(const t of draft.teams){delete t.boss;delete draft.boss.hp;draft.boss.effects=[];delete draft.boss.memory;for(const p of t.players){delete p.hp;p.effects=[];delete p.memory;}}screen='setup';renderSetup();break;
+ case 'home':await home();break;case 'battleprev':battlePage=Math.max(0,battlePage-1);await home();break;case 'battlenext':battlePage++;await home();break;case 'refresh':await home();break;case 'new':await newBattle();break;case 'demo':demo();break;
+ case 'open':historyPage=0;row=await D.open(attrs.id);saved='Batalha retomada do servidor.';renderBattle();break;
+ case 'reload':row=await D.open(row.id);renderBattle();break;
+ case 'editteamboss':{const team=draft.teams.find(t=>t.id===attrs.team);const a=copy(team.boss||draft.boss);a._ref='boss:'+team.id;actorModal(a);break;}
+ case 'editboss':{const a=copy(draft.boss);a._ref='boss';a.reviewNotes=[...(a.reviewNotes||[]),...(draft.teams.some(t=>t.boss)?['Salvar o Kaiju comum substitui as personalizações de Kaiju das duas frotas.']:[])];actorModal(a);break;}
+ case 'editplayer':{const a=copy(draft.teams.find(t=>t.id===attrs.team).players[Number(attrs.index)]);a._ref=attrs.team+':'+attrs.index;actorModal(a);break;}
+ case 'editlive':actorModal(copy(row.estado.teams.find(t=>t.id===attrs.team).players[Number(attrs.index)]));break;
+ case 'editliveboss':actorModal(copy(row.estado.teams.find(t=>t.id===attrs.team).boss));break;
+ case 'guest':{const t=draft.teams.find(t=>t.id===attrs.team);if(t.players.length<5)t.players.push(D.makePlayer({nome:'Convidado '+(t.players.length+1)},{}));renderSetup();break;}
+ case 'remove':draft.teams.find(t=>t.id===attrs.team).players.splice(Number(attrs.index),1);renderSetup();break;
+ case 'saveactor':try{await saveActor();}catch(e){$('cb-modal-error').textContent=e.message;throw e;}break;
+ case 'start':await start();break;case 'resolve':await resolve();break;
+ case 'undo':if(row.demo){if(!row.undo?.length)throw Error('Nada para desfazer.');row.estado=row.undo.pop();row.revisao++;row.events=row.events||[];row.events.push({revisao:row.revisao,tipo:'desfazer',posterior:copy(row.estado)});}else row=await D.save(row,null,'desfazer');saved='Última alteração desfeita. Histórico preservado.';renderBattle();break;
+ case 'end':{const next=copy(row.estado);next.status='finished';await persist(next,'encerrar');renderBattle();break;}
+ case 'fullscreen':if(document.fullscreenElement)await document.exitFullscreen();else await $('cb-app').requestFullscreen();break;
+ case 'history':{const box=$('cb-modal');box.hidden=false;let events;if(row.demo)events=[...(row.events||[])].reverse().slice(historyPage*100,historyPage*100+100);else{const result=await supabaseClient.from('combate_eventos').select('revisao,tipo,posterior,criado_em').eq('batalha_id',row.id).order('revisao',{ascending:false}).range(historyPage*100,historyPage*100+99);if(result.error)throw result.error;events=result.data;}box.innerHTML=`<section class="cb-dialog" role="dialog" aria-modal="true"><div class="cb-dialog-head"><h3>Histórico da batalha</h3>${buttons('Fechar','close')}</div>${events.map(e=>`<details><summary>Revisão ${e.revisao} · ${esc(e.tipo)} · rodada ${e.posterior.round}</summary><ol>${e.posterior.log.map(l=>`<li>${esc(l.text)}</li>`).join('')}</ol></details>`).join('')||'Nenhum evento ainda.'}<div class="cb-home-actions">${buttons('Mais recentes','histprev',historyPage===0?'disabled':'')}${buttons('Mais antigos','histnext',events.length<100?'disabled':'')}</div></section>`;box.querySelector('button')?.focus();break;}
+ }});}
+ async function change(el){if(el.id==='cb-title')draft.title=el.value;
+ else if(el.id==='cb-mode'){draft.mode=el.value;for(const t of draft.teams)t.players=t.players.map(p=>p.profileId?D.importPlayer(p.profileId,data,draft.mode):p);renderSetup();}
+ else if(el.id==='cb-kaiju'){draft.boss=D.makeBoss(data.kaijus.find(k=>k.id===el.value));draft.boss.catalogId=el.value;for(const t of draft.teams)delete t.boss;renderSetup();}
+ else if(el.classList.contains('cb-fleet')){const t=draft.teams.find(t=>t.id===el.dataset.team),f=data.frotas.find(f=>f.id===el.value);t.fleetId=f?.id;t.name=f?.nome||'Frota';t.players=data.members.filter(m=>m.frota_id===f?.id).slice(0,4).map(m=>D.importPlayer(m.usuario_id,data,draft.mode));renderSetup();}
+ else if(el.dataset.member){const t=draft.teams.find(t=>t.id===el.dataset.team);if(el.checked){if(t.players.length>=5){el.checked=false;setMessage('Limite de cinco integrantes.');return;}t.players.push(D.importPlayer(el.dataset.member,data,draft.mode));}else t.players=t.players.filter(p=>p.profileId!==el.dataset.member);renderSetup();}
+ else if(el.id==='cb-item-option'&&el.value!==''){modalRule=copy(modalActor.options[modalCard][Number(el.value)]);renderRule();}
+ else if(el.id==='cb-actor-upload'){const f=el.files[0];if(!f)return;if(!['image/png','image/jpeg','image/webp'].includes(f.type)||f.size>4000000){$('cb-modal-error').textContent='Use PNG, JPG ou WEBP até 4 MB.';return;}try{const url=await resizePhoto(f);$('cb-actor-photo').value=url;}catch(e){$('cb-modal-error').textContent=e.message;}}
+ }
+ function resizePhoto(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{const ratio=Math.min(1,512/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*ratio);canvas.height=Math.round(img.height*ratio);canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);resolve(canvas.toDataURL('image/webp',.8));};img.onerror=()=>{URL.revokeObjectURL(url);reject(Error('Imagem inválida.'));};img.src=url;});}
+ let lastUser=me();document.addEventListener('usuarioAutenticado',()=>{if(lastUser!==me()){row=null;data=null;draft=null;screen='home';lastUser=me();}});
+ return {wrapper,init,demo};
+})();
+function telaArena(){return CombateUI.wrapper();}
+function inicializarPaginaArena(){return CombateUI.init();}

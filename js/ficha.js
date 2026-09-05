@@ -224,7 +224,7 @@ async function carregarMinhaFicha(silencioso = false) {
     try {
         const { data, error } = await supabaseClient
             .from("fichas_tripulantes")
-            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, itens_catalogo, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
+            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, itens_catalogo, aprimoramentos_itens, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
             .eq("id", window.usuarioAtual.id)
             .maybeSingle();
 
@@ -272,6 +272,9 @@ function renderizarMinhaFicha() {
         ? minhaFicha.itens_catalogo
         : obterItensDoTripulante(window.usuarioAtual.id);
     definirItensDoTripulante(window.usuarioAtual.id, ids);
+    const cache=carregarAprimoramentos();
+    for(const [item,registro]of Object.entries(minhaFicha.aprimoramentos_itens||{}))cache[`${window.usuarioAtual.id}::${item}`]=registro;
+    try{salvarAprimoramentos(cache);}catch(erroCache){console.warn("Cache de aprimoramentos indisponível.");}
     renderizarInventarioFicha();
 }
 

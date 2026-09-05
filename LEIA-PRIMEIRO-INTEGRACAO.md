@@ -1,5 +1,7 @@
 # Projeto integrado — 05/09/2026
 
+> Histórico da integração V5. Esta pasta já inclui o combate V6: siga **LEIA-PRIMEIRO-COMBATE-V6.md** para instalar a atualização atual. As observações abaixo sobre combate e aprimoramentos locais descrevem a etapa anterior.
+
 Base: Rpg_escola-main (2).zip.
 Contribuição: Rpg_escola-20260905T035516Z-1-001.zip.
 
