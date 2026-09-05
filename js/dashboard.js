@@ -82,7 +82,7 @@ function telaDashboard() {
 
                         <small>STATUS DO SISTEMA</small>
 
-                        <strong>ONLINE</strong>
+                        <strong>NAVE 3B</strong>
 
                     </div>
 

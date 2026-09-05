@@ -136,6 +136,7 @@ function telaKaijus() {
                 </div>
             </div>
 
+            <div class="n-actions kaiju-admin-actions"><button class="n-button primary" type="button" onclick="KaijuEditor.open()">Novo Kaiju</button><button class="n-button" type="button" onclick="carregarRegistroKaijus()">Atualizar registros</button></div>
             <div id="kaijus-lista" class="kaijus-grade">
                 <div class="kaijus-carregando"><span>◌</span><p>Decodificando arquivo biológico...</p></div>
             </div>
@@ -209,7 +210,7 @@ async function carregarRegistroKaijus() {
         const [kaijus, pecas, derrotados] = await Promise.all([
             supabaseClient
                 .from("mecha_kaijus_catalogo")
-                .select("id, nome, ordem, imagem_path, descricao, status")
+                .select("*")
                 .order("ordem"),
             supabaseClient
                 .from("mecha_pecas_catalogo")
@@ -225,7 +226,7 @@ async function carregarRegistroKaijus() {
             if (resultado.error) throw resultado.error;
         });
 
-        catalogoKaijusRegistro = kaijus.data || [];
+        catalogoKaijusRegistro = await NaveDados.hydrateKaijus(kaijus.data || []);
         pecasKaijusRegistro = pecas.data || [];
         kaijusDerrotadosRegistro = new Set(
             (derrotados.data || []).map(item => item.kaiju_id)
@@ -260,12 +261,12 @@ function renderizarRegistroKaijus() {
     lista.innerHTML = catalogoKaijusRegistro.map((kaiju, indice) => {
         const derrotado = kaijusDerrotadosRegistro.has(kaiju.id);
         const pecas = pecasKaijusRegistro.filter(peca => peca.kaiju_id === kaiju.id);
-        const codex = CODEX_KAIJUS[kaiju.id];
+        const codex = obterCodexKaiju(kaiju.id);
 
         return `
             <article class="kaiju-registro-card${derrotado ? " derrotado" : ""}">
                 <div class="kaiju-imagem-wrap">
-                    <img src="${escaparAtributoKaiju(kaiju.imagem_path)}" alt="${escaparAtributoKaiju(kaiju.nome)}">
+                    ${kaiju.imagem_url||kaiju.imagem_path ? `<img src="${escaparAtributoKaiju(kaiju.imagem_url||kaiju.imagem_path)}" alt="${escaparAtributoKaiju(kaiju.nome)}" loading="lazy">` : `<div class="kaiju-imagem-vazia" aria-hidden="true">◇</div>`}
                     <span class="kaiju-numero">K-${String(indice + 1).padStart(2, "0")}</span>
                     <span class="kaiju-status">${derrotado ? "✓ DERROTADO" : escaparTextoKaiju(kaiju.status || "NÃO REGISTRADO")}</span>
                 </div>
@@ -286,6 +287,7 @@ function renderizarRegistroKaijus() {
                         </button>
                     ` : ""}
 
+                    <div class="kaiju-admin-actions">${kaiju.personalizado&&kaiju.criado_por===window.usuarioAtual?.id?`<button class="n-button" type="button" onclick="KaijuEditor.open('${escaparAtributoKaiju(kaiju.id)}')">Editar</button>`:''}<button class="n-button" type="button" onclick="KaijuEditor.open('${escaparAtributoKaiju(kaiju.id)}',true)">Duplicar</button></div>
                     <details class="kaiju-arquivo-detalhes">
                         <summary>VER PEÇAS E EFEITOS <span>⌄</span></summary>
                         <div class="kaiju-pecas-lista">
@@ -300,8 +302,8 @@ function renderizarRegistroKaijus() {
     }).join("");
 }
 
-function abrirCodexKaiju(kaijuId) {
-    const codex = CODEX_KAIJUS[kaijuId];
+async function abrirCodexKaiju(kaijuId) {
+    const codex = obterCodexKaiju(kaijuId);
     const registro = catalogoKaijusRegistro.find(item => item.id === kaijuId);
     const modal = document.getElementById("kaiju-codex-modal");
     if (!codex || !registro || !modal) return;
@@ -311,7 +313,8 @@ function abrirCodexKaiju(kaijuId) {
     ultimoAbridorCodex = document.activeElement;
 
     const imagem = document.getElementById("kaiju-codex-imagem");
-    imagem.src = registro.imagem_path;
+    imagem.src = registro.imagem_url||registro.imagem_path;
+    imagem.hidden = !imagem.getAttribute("src");
     imagem.alt = registro.nome;
     document.getElementById("kaiju-codex-nome").textContent = registro.nome;
     document.getElementById("kaiju-codex-vida").textContent = codex.vida;
@@ -334,6 +337,7 @@ function abrirCodexKaiju(kaijuId) {
     modal.classList.add("aberto");
     modal.setAttribute("aria-hidden", "false");
     modal.querySelector(".kaiju-codex-fechar").focus();
+    await carregarHistoricoCodex(kaijuId);
 }
 
 function fecharCodexKaiju() {
@@ -365,47 +369,34 @@ function criarCartaAtaqueCodex(carta, ataque) {
     `;
 }
 
-function roletarAtaqueCodex() {
-    const codex = CODEX_KAIJUS[codexKaijuAtual];
-    const botao = document.getElementById("kaiju-codex-botao-roleta");
-    const cartaElemento = document.getElementById("kaiju-codex-carta");
-    if (!codex || !botao || !cartaElemento || botao.disabled) return;
-
-    cancelarRoletaCodex();
-    const cartas = ORDEM_CARTAS_CODEX.filter(carta => codex.ataques[carta]);
-    botao.disabled = true;
-    botao.textContent = "SORTEANDO...";
-    document.getElementById("kaiju-codex-resultado").classList.add("rolando");
-
-    intervaloRoletaCodex = window.setInterval(() => {
-        cartaElemento.textContent = cartas[Math.floor(Math.random() * cartas.length)];
-    }, 70);
-
-    esperaRoletaCodex = window.setTimeout(() => {
-        window.clearInterval(intervaloRoletaCodex);
-        intervaloRoletaCodex = null;
-
-        const carta = cartas[Math.floor(Math.random() * cartas.length)];
-        mostrarResultadoAtaqueCodex(carta);
-        document.getElementById("kaiju-codex-resultado")?.classList.remove("rolando");
-        botao.disabled = false;
-        botao.textContent = "🎲 ROLAR ATAQUE";
-        esperaRoletaCodex = null;
-    }, 900);
+async function roletarAtaqueCodex() {
+    const id=codexKaijuAtual, codex=obterCodexKaiju(id);
+    const button=document.getElementById('kaiju-codex-botao-roleta');
+    if(!codex||!button||button.disabled)return;
+    button.disabled=true;button.textContent='Sorteando…';
+    const requestId=operacoesCodex.get(id)||NaveDados.uuid();operacoesCodex.set(id,requestId);
+    try {
+        const result=await NaveDados.request('nave_sortear_ataque',{p_kaiju_id:id,p_operacao:requestId});
+        operacoesCodex.delete(id);
+        if(codexKaijuAtual!==id)return;
+        mostrarResultadoAtaqueCodex(result.carta,result.ataque);
+        await carregarHistoricoCodex(id);
+    }catch(error){mostrarNotificacao(NaveDados.message(error),'error');}
+    finally{if(button.isConnected){button.disabled=false;button.textContent='Sortear ataque';}}
 }
-
-function mostrarResultadoAtaqueCodex(carta) {
-    const ataque = CODEX_KAIJUS[codexKaijuAtual]?.ataques[carta];
-    if (!ataque) return;
-
-    document.getElementById("kaiju-codex-carta").textContent = carta;
-    document.getElementById("kaiju-codex-ataque-nome").textContent = ataque.nome;
-    document.getElementById("kaiju-codex-ataque-dano").textContent = Number(ataque.dano) === 0 ? "EFEITO ESPECIAL" : `DANO: ${ataque.dano}`;
-    document.getElementById("kaiju-codex-ataque-descricao").textContent = ataque.descricao;
-
-    historicoCodexKaijus.unshift({ carta, nome: ataque.nome, dano: ataque.dano });
-    historicoCodexKaijus = historicoCodexKaijus.slice(0, 8);
-    atualizarHistoricoCodex();
+const operacoesCodex=new Map();
+function mostrarResultadoAtaqueCodex(carta,ataque=obterCodexKaiju(codexKaijuAtual)?.ataques[carta]) {
+    if(!ataque)return;
+    document.getElementById('kaiju-codex-carta').textContent=carta;
+    document.getElementById('kaiju-codex-ataque-nome').textContent=ataque.nome;
+    document.getElementById('kaiju-codex-ataque-dano').textContent=Number(ataque.dano)===0?'Efeito especial':`Dano: ${ataque.dano}`;
+    document.getElementById('kaiju-codex-ataque-descricao').textContent=ataque.descricao;
+}
+async function carregarHistoricoCodex(id){
+    try{const result=await supabaseClient.from('kaiju_rolagens').select('carta,ataque,criado_em').eq('kaiju_id',id).eq('usuario_id',window.usuarioAtual.id).order('id',{ascending:false}).limit(20);
+    if(result.error)throw result.error;if(codexKaijuAtual!==id)return;
+    historicoCodexKaijus=(result.data||[]).map(r=>({carta:r.carta,...r.ataque}));atualizarHistoricoCodex();
+    }catch(error){if(codexKaijuAtual===id)document.getElementById('kaiju-codex-historico-lista').textContent='Histórico indisponível. Atualize após conferir a conexão e o SQL V7.';}
 }
 
 function limparResultadoCodex() {
@@ -495,3 +486,9 @@ document.addEventListener("usuarioAutenticado", () => {
     kaijusDerrotadosRegistro = new Set();
     if (paginaAtual === "kaijus") carregarRegistroKaijus();
 });
+
+function obterCodexKaiju(id){
+    const registro=catalogoKaijusRegistro.find(k=>k.id===id);
+    if(registro&&(registro.personalizado||Object.keys(registro.ataques||{}).length))return {vida:registro.vida,agilidade:registro.agilidade,defesa:registro.defesa,codex:registro.codex_texto||registro.descricao,ataques:registro.ataques||{}};
+    return CODEX_KAIJUS[id];
+}

@@ -151,58 +151,8 @@ function normalizarBanco(dados) {
 // ======================================
 
 function carregarBanco() {
-
-    const dadosSalvos =
-        localStorage.getItem(CHAVE_BANCO);
-
-    if (!dadosSalvos) {
-
-        const bancoInicial =
-            copiarDados(bancoPadrao);
-
-        localStorage.setItem(
-            CHAVE_BANCO,
-            JSON.stringify(bancoInicial)
-        );
-
-        return bancoInicial;
-
-    }
-
-    try {
-
-        const dadosConvertidos =
-            JSON.parse(dadosSalvos);
-
-        const dadosNormalizados =
-            normalizarBanco(dadosConvertidos);
-
-        localStorage.setItem(
-            CHAVE_BANCO,
-            JSON.stringify(dadosNormalizados)
-        );
-
-        return dadosNormalizados;
-
-    } catch (erro) {
-
-        console.error(
-            "Falha ao carregar os dados da Nave 3B:",
-            erro
-        );
-
-        const bancoRecuperado =
-            copiarDados(bancoPadrao);
-
-        localStorage.setItem(
-            CHAVE_BANCO,
-            JSON.stringify(bancoRecuperado)
-        );
-
-        return bancoRecuperado;
-
-    }
-
+    // O cache antigo permanece intacto para a importação explícita pelo módulo V7.
+    return normalizarBanco({frotas:[],missoes:[],inventario:[],planetas:[]});
 }
 
 // ======================================
@@ -216,16 +166,10 @@ let banco = carregarBanco();
 // ======================================
 
 function salvarBanco() {
-
+    // Compatibilidade com módulos anteriores: atualiza apenas a projeção em memória.
+    // Escritas persistentes usam os serviços/RPCs de cada módulo.
     banco = normalizarBanco(banco);
-
-    localStorage.setItem(
-        CHAVE_BANCO,
-        JSON.stringify(banco)
-    );
-
     emitirAtualizacaoBanco();
-
 }
 
 // ======================================

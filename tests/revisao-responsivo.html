@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verificação responsiva da revisão V7</title>
+<style>body{background:#030b13;color:white;font:16px Arial;margin:0}label{display:flex;align-items:center;gap:12px;padding:12px}select{padding:8px}output{display:block;padding:0 12px 12px}iframe{display:block;margin:0 auto;border:0;height:1200px;max-width:100%;width:1280px}</style></head>
+<body><label>Largura da tela<select><option value="1280">1280 px</option><option value="768">768 px</option><option value="390">390 px</option><option value="320">320 px</option></select></label>
+<output aria-live="polite">Carregando…</output><iframe title="Site em teste" src="../revisao-demonstracao.html"></iframe>
+<script>
+const frame=document.querySelector('iframe');
+function measure(){const d=frame.contentDocument;if(!d)return;const imgs=[...d.images];document.querySelector('output').textContent=`Largura: ${d.documentElement.clientWidth}px · Conteúdo: ${d.documentElement.scrollWidth}px · Imagens carregadas: ${imgs.filter(i=>i.complete&&i.naturalWidth>0).length}/${imgs.length} · Proporção: ${imgs.every(i=>d.defaultView.getComputedStyle(i).objectFit==='contain')?'preservada':'verificar'}`;}
+frame.onload=()=>{measure();new ResizeObserver(measure).observe(frame.contentDocument.documentElement);frame.contentDocument.addEventListener('load',measure,true);};
+document.querySelector('select').onchange=e=>{frame.style.width=e.target.value+'px';requestAnimationFrame(measure);};
+</script></body></html>

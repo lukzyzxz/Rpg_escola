@@ -191,7 +191,7 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
     try {
         const usuarioId = window.usuarioAtual.id;
         const [kaijus, pecas, mecha, derrotados, equipadas, ficha] = await Promise.all([
-            supabaseClient.from("mecha_kaijus_catalogo").select("id, nome, ordem, imagem_path").order("ordem"),
+            supabaseClient.from("mecha_kaijus_catalogo").select("id, nome, ordem, imagem_path, imagem_storage").order("ordem"),
             supabaseClient.from("mecha_pecas_catalogo").select("id, kaiju_id, slot, nome, vida, ataque, defesa, agilidade, passiva, descricao, efeito, efeito_resumo"),
             supabaseClient.from("mechas_20m").select("usuario_id, nome, vida_base, descricao, imagem_path, atualizado_em").eq("usuario_id", usuarioId).maybeSingle(),
             supabaseClient.from("mecha_kaijus_derrotados").select("kaiju_id").eq("usuario_id", usuarioId),
@@ -203,7 +203,7 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
             if (resultado.error) throw resultado.error;
         });
 
-        catalogoKaijusMecha = kaijus.data || [];
+        catalogoKaijusMecha = await NaveDados.hydrateKaijus(kaijus.data || []);
         catalogoPecasMecha = pecas.data || [];
         fichaPilotoMecha = ficha.data || {
             agilidade: 5,
@@ -310,10 +310,11 @@ function renderizarKaijusMecha() {
 
     lista.innerHTML = catalogoKaijusMecha.map((kaiju, indice) => {
         const selecionado = kaijusDerrotadosMecha.has(kaiju.id);
+        const imagem = kaiju.imagem_url || kaiju.imagem_path || "";
         return `
             <label class="mecha-kaiju${selecionado ? " selecionado" : ""}">
                 <input type="checkbox" data-mecha-kaiju="${escaparAtributoMecha(kaiju.id)}" ${selecionado ? "checked" : ""}>
-                <img class="mecha-kaiju-imagem" src="${escaparAtributoMecha(kaiju.imagem_path || "")}" alt="${escaparAtributoMecha(kaiju.nome)}">
+                ${imagem ? `<img class="mecha-kaiju-imagem" src="${escaparAtributoMecha(imagem)}" alt="${escaparAtributoMecha(kaiju.nome)}">` : '<div class="mecha-kaiju-imagem n-kaiju-sem-imagem" aria-hidden="true">◈</div>'}
                 <span class="mecha-kaiju-numero">0${indice + 1}</span>
                 <div>
                     <strong>${escaparTextoMecha(kaiju.nome)}</strong>

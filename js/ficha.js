@@ -417,7 +417,7 @@ async function carregarDadosProgressaoFicha() {
                 .eq("concluida", true),
             supabaseClient
                 .from("mecha_kaijus_catalogo")
-                .select("id, nome, ordem, imagem_path")
+                .select("id, nome, ordem, imagem_path, imagem_storage")
                 .order("ordem"),
             supabaseClient
                 .from("mecha_kaijus_derrotados")
@@ -431,7 +431,7 @@ async function carregarDadosProgressaoFicha() {
 
         missoesFicha = catalogo.data || [];
         missoesConcluidasFicha = new Set((concluidas.data || []).map(item => item.missao_id));
-        kaijusFicha = kaijus.data || [];
+        kaijusFicha = await NaveDados.hydrateKaijus(kaijus.data || []);
         kaijusDerrotadosFicha = new Set((derrotados.data || []).map(item => item.kaiju_id));
 
         renderizarMissoesFicha();
@@ -589,6 +589,7 @@ function renderizarKaijusFicha() {
 
     lista.innerHTML = kaijusFicha.map(kaiju => {
         const derrotado = kaijusDerrotadosFicha.has(kaiju.id);
+        const imagem = kaiju.imagem_url || kaiju.imagem_path || "";
         return `
             <label class="ficha-kaiju-opcao${derrotado ? " derrotado" : ""}">
                 <input
@@ -596,7 +597,7 @@ function renderizarKaijusFicha() {
                     ${derrotado ? "checked" : ""}
                     ${alterandoProgressaoFicha ? "disabled" : ""}
                     onchange="definirKaijuFicha('${escaparAtributoFicha(kaiju.id)}', this.checked)">
-                <img src="${escaparAtributoFicha(kaiju.imagem_path)}" alt="${escaparAtributoFicha(kaiju.nome)}">
+                ${imagem ? `<img src="${escaparAtributoFicha(imagem)}" alt="${escaparAtributoFicha(kaiju.nome)}">` : '<div class="n-kaiju-sem-imagem" aria-hidden="true">◈</div>'}
                 <span><strong>${escaparTextoFicha(kaiju.nome)}</strong><small>${derrotado ? "✓ PEÇAS LIBERADAS" : "MARCAR COMO DERROTADO"}</small></span>
             </label>
         `;
@@ -802,4 +803,3 @@ function abrirDetalhesItemFicha(itemId){
     modal.querySelector('[data-fechar-item-modal]')?.addEventListener('click',()=>modal.hidden=true);
     modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true},{once:true});
 }
-

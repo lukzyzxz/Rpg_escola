@@ -83,6 +83,7 @@ async function inicializarAutenticacao() {
 
                 window.usuarioAtual = null;
                 window.profileAtual = null;
+                document.dispatchEvent(new CustomEvent("usuarioDesconectado"));
 
                 ocultarSistema();
 
@@ -1252,7 +1253,7 @@ async function logout() {
 
         window.profileAtual =
             null;
-
+        document.dispatchEvent(new CustomEvent("usuarioDesconectado"));
 
         ocultarSistema();
 
