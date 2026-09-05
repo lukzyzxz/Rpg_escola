@@ -131,7 +131,8 @@ function configurarNavegacao() {
         "arena",
         "torre",
         "ficha",
-        "mechas"
+        "mechas",
+        "aprimoramentos"
     ];
 
     rotas.forEach(pagina => {
@@ -324,6 +325,24 @@ function abrirPagina(pagina) {
 
             if (typeof inicializarPaginaFicha === "function") {
                 requestAnimationFrame(inicializarPaginaFicha);
+            }
+
+            break;
+
+        case "aprimoramentos":
+
+            titulo.textContent = "Aprimoramento de Itens";
+
+            conteudo.innerHTML =
+                typeof telaAprimoramentos === "function"
+                    ? telaAprimoramentos()
+                    : telaEmDesenvolvimento(
+                        "Aprimoramento de Itens",
+                        "Não foi possível carregar a oficina de engenharia."
+                    );
+
+            if (typeof inicializarPaginaAprimoramentos === "function") {
+                requestAnimationFrame(inicializarPaginaAprimoramentos);
             }
 
             break;

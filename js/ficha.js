@@ -90,6 +90,20 @@ function telaFicha() {
                             placeholder="Descreva os itens, cartas e passivas que você possui..."></textarea>
                     </div>
 
+                    <div class="ficha-inventario-bloco">
+                        <div class="ficha-inventario-topo">
+                            <div><span class="ficha-inventario-kicker">🎒 INVENTÁRIO PESSOAL</span><h4>Seus Itens</h4></div>
+                            <small id="ficha-itens-contador">0 ITENS</small>
+                        </div>
+                        <div id="ficha-seus-itens" class="ficha-itens-grid"></div>
+                    </div>
+                    <div class="ficha-inventario-bloco ficha-catalogo-bloco">
+                        <div class="ficha-inventario-topo">
+                            <div><span class="ficha-inventario-kicker">▦ BANCO DE ESPÓLIOS</span><h4>Todos os Itens</h4></div>
+                            <small>ADICIONE OU REMOVA DA SUA FICHA</small>
+                        </div>
+                        <div id="ficha-todos-itens" class="ficha-itens-grid catalogo"></div>
+                    </div>
                     <button id="btn-salvar-ficha" class="btn-salvar-ficha" type="button" disabled>
                         <span>💾</span>
                         <strong>SALVAR ITENS E SALVA-VIDAS</strong>
@@ -210,7 +224,7 @@ async function carregarMinhaFicha(silencioso = false) {
     try {
         const { data, error } = await supabaseClient
             .from("fichas_tripulantes")
-            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
+            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, itens_catalogo, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
             .eq("id", window.usuarioAtual.id)
             .maybeSingle();
 
@@ -254,6 +268,11 @@ function renderizarMinhaFicha() {
     const itens = document.getElementById("ficha-itens-texto");
     if (salvaVidas) salvaVidas.value = minhaFicha.salva_vidas ?? 0;
     if (itens) itens.value = minhaFicha.itens_texto ?? "";
+    const ids = Array.isArray(minhaFicha.itens_catalogo)
+        ? minhaFicha.itens_catalogo
+        : obterItensDoTripulante(window.usuarioAtual.id);
+    definirItensDoTripulante(window.usuarioAtual.id, ids);
+    renderizarInventarioFicha();
 }
 
 function renderizarAvatarFicha() {
@@ -348,6 +367,7 @@ async function salvarMinhaFicha() {
     const valorSalvaVidas = Number(document.getElementById("ficha-campo-salva_vidas")?.value);
     const atualizacao = {
         salva_vidas: Number.isFinite(valorSalvaVidas) && valorSalvaVidas >= 0 ? valorSalvaVidas : 0,
+        itens_catalogo: obterItensDoTripulante(window.usuarioAtual.id),
         itens_texto: document.getElementById("ficha-itens-texto")?.value?.trim() || "",
         atualizado_em: new Date().toISOString()
     };
@@ -735,3 +755,48 @@ document.addEventListener("usuarioAutenticado", () => {
         carregarFichasEquipe();
     }
 });
+
+function renderizarInventarioFicha() {
+    const userId=window.usuarioAtual?.id || "local";
+    const possui=typeof obterItensDoTripulante==="function" ? obterItensDoTripulante(userId) : [];
+    const catalogo=typeof CATALOGO_ITENS_APRIMORAMENTO!=="undefined" ? CATALOGO_ITENS_APRIMORAMENTO : [];
+    definirTextoFicha("ficha-itens-contador", `${possui.length} ${possui.length===1?"ITEM":"ITENS"}`);
+    const seus=document.getElementById("ficha-seus-itens");
+    const todos=document.getElementById("ficha-todos-itens");
+    if(seus) seus.innerHTML=possui.length ? catalogo.filter(i=>possui.includes(i.id)).map(i=>cardItemFicha(i,true)).join("") : `<div class="ficha-inventario-vazio"><span>◇</span><strong>NENHUM ITEM ADICIONADO</strong><p>Escolha equipamentos em “Todos os Itens” abaixo.</p></div>`;
+    if(todos) todos.innerHTML=catalogo.map(i=>cardItemFicha(i,possui.includes(i.id))).join("");
+    document.querySelectorAll("[data-ficha-toggle-item]").forEach(btn=>btn.addEventListener("click",()=>alternarItemFicha(btn.dataset.fichaToggleItem)));
+    document.querySelectorAll("[data-ficha-ver-item]").forEach(btn=>btn.addEventListener("click",()=>abrirDetalhesItemFicha(btn.dataset.fichaVerItem)));
+}
+
+function cardItemFicha(item,possui){
+    const reg=typeof obterAprimoramentosItem==="function" ? obterAprimoramentosItem(window.usuarioAtual?.id||"local",item.id) : {};
+    const qtd=Object.keys(reg).length;
+    return `<article class="ficha-item-card ${possui?'possuido':''}">
+        <div class="ficha-item-card-topo"><span class="ficha-item-icone">${typeof iconeTipo==='function'?iconeTipo(item.tipo):'⚔️'}</span><div><small>${escaparTextoFicha(item.origem)}</small><h5>${escaparTextoFicha(item.nome)}</h5></div><span class="ficha-item-apr-badge">⚙ ${qtd}/3</span></div>
+        <p>${escaparTextoFicha(item.descricao)}</p>
+        <div class="ficha-item-meta"><span>Cartas: ${item.cartas?.join(', ')||'—'}</span><span>Dano: ${typeof formatarDanoItemApr==='function'?formatarDanoItemApr(item):item.dano}</span></div>
+        <div class="ficha-item-acoes"><button type="button" data-ficha-ver-item="${item.id}">⚙ VER APRIMORAMENTOS</button><button type="button" class="${possui?'remover':'adicionar'}" data-ficha-toggle-item="${item.id}">${possui?'− REMOVER':'+ ADICIONAR'}</button></div>
+    </article>`;
+}
+
+function alternarItemFicha(itemId){
+    const userId=window.usuarioAtual?.id || "local";
+    const possui=obterItensDoTripulante(userId).includes(itemId);
+    if(possui) removerItemDoTripulante(userId,itemId); else adicionarItemAoTripulante(userId,itemId);
+    marcarFichaComoAlterada();
+    renderizarInventarioFicha();
+}
+
+function abrirDetalhesItemFicha(itemId){
+    const item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===itemId); if(!item)return;
+    const reg=obterAprimoramentosItem(window.usuarioAtual?.id||"local",itemId);
+    const nomes=typeof CATEGORIAS_APRIMORAMENTO!=="undefined"?CATEGORIAS_APRIMORAMENTO:{};
+    let modal=document.getElementById("ficha-item-detalhes-overlay");
+    if(!modal){ modal=document.createElement("div"); modal.id="ficha-item-detalhes-overlay"; modal.className="ficha-modal-overlay"; document.body.appendChild(modal); }
+    modal.hidden=false;
+    modal.innerHTML=`<div class="ficha-modal ficha-item-modal"><div class="ficha-modal-cabecalho"><div><span>${escaparTextoFicha(item.origem)}</span><h3>${escaparTextoFicha(item.nome)}</h3></div><button type="button" class="ficha-modal-fechar" data-fechar-item-modal>×</button></div><p class="ficha-ajuda">${escaparTextoFicha(item.descricao)}</p><div class="ficha-item-aprimoramentos-modal">${Object.entries(nomes).map(([k,c])=>{const a=reg[k];return `<div class="ficha-item-apr-linha ${a?'ativo':''}"><span>${c.icone}</span><div><strong>${escaparTextoFicha(c.nome)}</strong><small>${a?`${rotuloRaridade(a.raridade)} • ${escaparTextoFicha(a.texto)}`:'Ainda não adquirido'}</small></div></div>`}).join('')}</div></div>`;
+    modal.querySelector('[data-fechar-item-modal]')?.addEventListener('click',()=>modal.hidden=true);
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true},{once:true});
+}
+
