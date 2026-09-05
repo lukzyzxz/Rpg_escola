@@ -6,6 +6,7 @@ let catalogoMissoes = [];
 let missoesConcluidasUsuario = new Set();
 let filtroClasseMissao = "Todas";
 let filtroStatusMissao = "Todas";
+let filtroPlanetaMissao = "";
 let carregandoMissoes = false;
 let alterandoMissao = false;
 let canalMissoes = null;
@@ -50,6 +51,7 @@ function telaMissoes() {
                         <option>Pendentes</option>
                     </select>
                 </label>
+                <label><span>PLANETA</span><select id="filtro-planeta-missao"><option value="">Todos</option>${(banco.planetas||[]).filter(p=>p.desbloqueado).map(p=>`<option value="${p.id}" ${String(p.id)===filtroPlanetaMissao?'selected':''}>${escaparTextoMissao(p.nome)}</option>`).join('')}</select></label>
                 <div class="missoes-filtro-aviso">
                     Missões pessoais são criadas exclusivamente na sua ficha.
                 </div>
@@ -63,6 +65,8 @@ function telaMissoes() {
 }
 
 function inicializarPaginaMissoes() {
+    const classe=document.getElementById("filtro-classe-missao"),status=document.getElementById("filtro-status-missao");if(classe)classe.value=filtroClasseMissao;if(status)status.value=filtroStatusMissao;
+    document.getElementById("filtro-planeta-missao")?.addEventListener("change",e=>{filtroPlanetaMissao=e.target.value;renderizarCatalogoMissoes();});
     document.getElementById("filtro-classe-missao")?.addEventListener("change", evento => {
         filtroClasseMissao = evento.currentTarget.value;
         renderizarCatalogoMissoes();
@@ -90,7 +94,7 @@ async function carregarRegistroMissoes(silencioso = false) {
         const [catalogo, progresso] = await Promise.all([
             supabaseClient
                 .from("missoes_catalogo")
-                .select("id, titulo, classe, periodo, planeta, resumo, etapas, requisitos, entrega, fonte, oficial, criado_por, data_missao, ordem")
+                .select("*")
                 .order("ordem", { ascending: true })
                 .order("criado_em", { ascending: true }),
             supabaseClient
@@ -151,7 +155,7 @@ function renderizarCatalogoMissoes() {
         const statusOk = filtroStatusMissao === "Todas"
             || (filtroStatusMissao === "Concluídas" && concluida)
             || (filtroStatusMissao === "Pendentes" && !concluida);
-        return classeOk && statusOk;
+        return classeOk && statusOk && (!filtroPlanetaMissao || String(missao.planeta_id??localizarPlanetaMissao(missao.planeta))===filtroPlanetaMissao);
     });
 
     if (!filtradas.length) {
@@ -287,10 +291,10 @@ async function excluirMissaoPessoal(missaoId) {
 function sincronizarBancoLocalComMissoes() {
     if (typeof banco !== "object" || !banco) return;
     banco.missoes = catalogoMissoes.map((missao, indice) => ({
-        id: indice + 1,
+        id: missao.id,
         nome: missao.titulo,
         descricao: missao.resumo,
-        planetaId: localizarPlanetaMissao(missao.planeta),
+        planetaId: missao.planeta_id??localizarPlanetaMissao(missao.planeta),
         responsavelTipo: "todos",
         frotaId: null,
         dificuldade: missao.classe === "Combatente" ? "Difícil" : "Média",
@@ -304,10 +308,8 @@ function sincronizarBancoLocalComMissoes() {
 function localizarPlanetaMissao(nomePlaneta) {
     if (typeof banco !== "object" || !Array.isArray(banco.planetas)) return 1;
     const alvo = String(nomePlaneta || "").toLowerCase();
-    const encontrado = banco.planetas.find(planeta =>
-        alvo.includes(String(planeta.nome || "").toLowerCase())
-    );
-    return encontrado?.id || 1;
+    const candidatos = banco.planetas.filter(planeta => planeta.nome && alvo.includes(String(planeta.nome).toLowerCase()));
+    return candidatos.length===1?candidatos[0].id:!alvo?1:null;
 }
 
 function contarMissoesPorClasse(lista) {
@@ -408,3 +410,5 @@ document.addEventListener("usuarioAutenticado", async () => {
         if (areaConteudo) areaConteudo.innerHTML = telaDashboard();
     }
 });
+
+document.addEventListener("naveDadosAtualizados",e=>{if(e.detail.module==="planetas"){sincronizarBancoLocalComMissoes();if(typeof atualizarMapaV7==="function")atualizarMapaV7();}});

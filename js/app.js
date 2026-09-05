@@ -135,6 +135,9 @@ function configurarNavegacao() {
         "aprimoramentos"
     ];
 
+    const mobile=document.getElementById('n-mobile-route');
+    if(mobile){mobile.innerHTML=rotas.map(p=>`<option value="${p}">${document.getElementById('btn-'+p)?.textContent.trim()||p}</option>`).join('');mobile.addEventListener('change',()=>abrirPagina(mobile.value));}
+
     rotas.forEach(pagina => {
 
         const botao =
@@ -162,6 +165,7 @@ function abrirPagina(pagina) {
         encerrarAcessoTorreArmas();
     }
 
+    if(modalOverlay?.style.display==="flex")fecharModal();
     paginaAtual = pagina;
 
     marcarBotaoAtivo(pagina);
@@ -191,6 +195,7 @@ function abrirPagina(pagina) {
                         "O sistema estelar será implementado em breve."
                     );
 
+            if(typeof inicializarPaginaMapa==="function")requestAnimationFrame(inicializarPaginaMapa);
             break;
 
         case "missoes":
@@ -255,6 +260,7 @@ function abrirPagina(pagina) {
                         "O módulo de inventário será implementado em breve."
                     );
 
+            if(typeof inicializarPaginaInventario==="function")requestAnimationFrame(inicializarPaginaInventario);
             break;
 
         case "integridade":
@@ -384,6 +390,7 @@ function abrirPagina(pagina) {
     }
 
     atualizarIndicadoresMenu();
+    atualizarStatusConexao();
 
 }
 
@@ -419,12 +426,14 @@ function telaEmDesenvolvimento(tituloTela, mensagem) {
 }
 
 function marcarBotaoAtivo(pagina) {
+    const mobile=document.getElementById('n-mobile-route');if(mobile)mobile.value=pagina;
 
     document
         .querySelectorAll("nav button")
         .forEach(botao => {
 
             botao.classList.remove("ativo");
+            botao.removeAttribute("aria-current");
 
         });
 
@@ -433,6 +442,7 @@ function marcarBotaoAtivo(pagina) {
 
     if (botaoAtual) {
         botaoAtual.classList.add("ativo");
+        botaoAtual.setAttribute("aria-current","page");
     }
 
 }
@@ -469,7 +479,8 @@ function atualizarPaginaAtual() {
         return;
     }
 
-    abrirPagina(paginaAtual);
+    if(modalAberto)return;
+    if(["dashboard","mapa","inventario"].includes(paginaAtual))abrirPagina(paginaAtual);
 
 }
 
@@ -528,3 +539,9 @@ function atualizarIndicador(id, valor) {
     elemento.textContent = numeroFormatado;
 
 }
+
+// Dados consolidados atualizam o painel sem interromper formulários ou a arena.
+document.addEventListener("naveDadosAtualizados",()=>{atualizarIndicadoresMenu();if(paginaAtual==="dashboard"&&!document.getElementById("modal-overlay")?.querySelector("form"))conteudo.innerHTML=telaDashboard();});
+
+function atualizarStatusConexao(){const el=document.getElementById('statusSistema');if(!el)return;el.textContent=!navigator.onLine?'Sem conexão':window.usuarioAtual?'Sessão conectada':'Aguardando login';el.setAttribute('role','status');}
+window.addEventListener('online',atualizarStatusConexao);window.addEventListener('offline',atualizarStatusConexao);document.addEventListener('usuarioAutenticado',atualizarStatusConexao);document.addEventListener('usuarioDesconectado',atualizarStatusConexao);

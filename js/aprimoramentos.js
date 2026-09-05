@@ -7,9 +7,9 @@ const CHAVE_APRIMORAMENTOS = "nave3b_aprimoramentos_v1";
 const CHAVE_INVENTARIO_ITENS = "nave3b_inventario_itens_v2";
 
 function carregarInventariosItens(){
-    try { return JSON.parse(localStorage.getItem(CHAVE_INVENTARIO_ITENS) || "{}"); } catch { return {}; }
+    if(cacheInventarios===null){try { cacheInventarios=JSON.parse(localStorage.getItem(CHAVE_INVENTARIO_ITENS) || "{}"); } catch { cacheInventarios={}; }}return structuredClone(cacheInventarios);
 }
-function salvarInventariosItens(dados){ localStorage.setItem(CHAVE_INVENTARIO_ITENS, JSON.stringify(dados || {})); }
+function salvarInventariosItens(dados){ cacheInventarios=structuredClone(dados||{});try{localStorage.setItem(CHAVE_INVENTARIO_ITENS, JSON.stringify(cacheInventarios));}catch{} }
 function obterItensDoTripulante(tripulanteId){
     const id=String(tripulanteId || window.usuarioAtual?.id || "local");
     const dados=carregarInventariosItens();
@@ -92,298 +92,127 @@ const EFEITOS_ADICIONAIS = {
     ]
 };
 
-let estadoOficina = { tripulanteId:"", itemId:"", girando:false, salvaVidas:null, carregandoSaldo:false, rotacaoRoleta:0 };
+let estadoOficina = {tripulanteId:'',itemId:'',girando:false,salvaVidas:0,carregandoSaldo:false,erro:'',rotacaoRoleta:0,ultimo:null};
+const fichasOficina=new Map();
+let cacheAprimoramentos=null, cacheInventarios=null;
 
-function telaAprimoramentos(){
-    return `
-    <section class="aprimoramento-pagina">
-        <div class="apr-hero">
-            <div><span class="apr-kicker">SETOR DE ENGENHARIA • MÓDULO EXPERIMENTAL</span><h2>Oficina de Aprimoramento</h2><p>Use um Salva-Vidas para recalibrar um item. Cada item aceita apenas um aprimoramento em cada categoria.</p></div>
-            <div class="apr-status"><span class="apr-status-ponto"></span><div><strong>SISTEMA OPERACIONAL</strong><small>Probabilidade calibrada: 70 / 20 / 10</small></div></div>
-        </div>
+function telaAprimoramentos(){return `
+<section class="aprimoramento-pagina n-workspace" id="pagina-oficina">
+ <div class="n-heading"><div><span class="n-kicker">Engenharia</span><h2>Oficina de aprimoramento</h2><p>Um equipamento. Três possibilidades de evolução.</p></div><button type="button" id="btn-apr-regras">Como funciona</button></div>
+ <div id="apr-erro" role="alert" hidden></div>
+ <div class="apr-layout">
+  <aside class="apr-painel apr-controles"><label for="apr-tripulante">Tripulante</label><select id="apr-tripulante" class="apr-select"></select><h3>Equipamentos</h3><p class="n-note">Itens adicionados à ficha</p><div id="apr-lista-itens" class="apr-lista-itens"></div><button type="button" id="apr-atualizar">Atualizar ficha</button></aside>
+  <div class="apr-conteudo">
+   <section class="apr-painel"><div id="apr-item-detalhe" class="apr-item-detalhe"></div><div class="apr-progress-heading"><h3>Melhorias do item</h3><span id="apr-progresso" class="n-badge"></span></div><div id="apr-slots"></div></section>
+   <section class="apr-painel apr-acao"><div class="apr-roleta-wrap" aria-hidden="true"><div class="apr-ponteiro">▼</div><div id="apr-roleta" class="apr-roleta"><div class="apr-roleta-miolo">✦</div></div></div><div><span class="n-kicker">Próxima melhoria</span><h3>Recalibrar equipamento</h3><p>Uma categoria disponível é sorteada. Cada tentativa custa <strong>1 Salva-Vidas</strong>.</p><div class="apr-legenda-raridade"><span><i class="comum"></i>Comum 70%</span><span><i class="incomum"></i>Incomum 20%</span><span><i class="raro"></i>Raro 10%</span></div><button id="btn-aprimorar-item" class="apr-botao-principal" type="button">Aprimorar item</button><p id="apr-custo-info" role="status"></p></div></section>
+   <div id="apr-ultimo" aria-live="polite"></div>
+  </div>
+ </div>
+</section>`;}
 
-        <div class="apr-layout">
-            <aside class="apr-painel apr-controles">
-                <div class="apr-passo"><span>01</span><div><strong>TRIPULANTE</strong><small>Selecione quem receberá o aprimoramento</small></div></div>
-                <select id="apr-tripulante" class="apr-select"></select>
-
-                <div class="apr-passo"><span>02</span><div><strong>ITEM</strong><small>Escolha um item que este tripulante possui</small></div></div>
-                <div id="apr-lista-itens" class="apr-lista-itens"></div>
-            </aside>
-
-            <main class="apr-painel apr-oficina">
-                <div id="apr-item-detalhe" class="apr-item-detalhe"></div>
-                <div class="apr-roleta-area">
-                    <div class="apr-roleta-wrap">
-                        <div class="apr-ponteiro">▼</div>
-                        <div id="apr-roleta" class="apr-roleta">
-                            <div class="apr-roleta-miolo">N3B</div>
-                        </div>
-                    </div>
-                    <div class="apr-legenda-raridade">
-                        <span><i class="comum"></i> Comum 70%</span><span><i class="incomum"></i> Incomum 20%</span><span><i class="raro"></i> Raro 10%</span>
-                    </div>
-                    <button id="btn-aprimorar-item" class="apr-botao-principal" type="button">⚙ APRIMORAR ITEM</button>
-                    <small id="apr-custo-info">Consome 1 Salva-Vidas do tripulante selecionado.</small>
-                </div>
-            </main>
-
-            <aside class="apr-painel apr-registro">
-                <div class="apr-passo"><span>03</span><div><strong>APRIMORAMENTOS</strong><small>Progresso do item selecionado</small></div></div>
-                <div id="apr-slots"></div>
-                <button id="btn-apr-regras" class="apr-botao-secundario" type="button">ⓘ VER TODAS AS REGRAS</button>
-            </aside>
-        </div>
-        <div id="apr-modal" class="apr-modal-overlay" hidden></div>
-    </section>`;
+async function inicializarPaginaAprimoramentos(){
+ const select=document.getElementById('apr-tripulante');if(!select)return;
+ select.innerHTML=obterTripulantesAprimoramento().map(t=>`<option value="${escApr(t.id)}">${escApr(t.nome)}</option>`).join('');
+ select.value=window.usuarioAtual?.id||'';estadoOficina.tripulanteId=select.value;
+ select.addEventListener('change',()=>{estadoOficina.tripulanteId=select.value;estadoOficina.itemId='';estadoOficina.ultimo=null;atualizarSaldoSalvaVidas();});
+ document.getElementById('btn-aprimorar-item').addEventListener('click',iniciarAprimoramento);
+ document.getElementById('btn-apr-regras').addEventListener('click',abrirRegrasAprimoramento);
+ document.getElementById('apr-atualizar').addEventListener('click',atualizarSaldoSalvaVidas);
+ await atualizarSaldoSalvaVidas();
 }
-
-function inicializarPaginaAprimoramentos(){
-    const tripulantes = obterTripulantesAprimoramento();
-    const select = document.getElementById("apr-tripulante");
-    if (!select) return;
-    select.innerHTML = tripulantes.map(t=>`<option value="${escApr(t.id)}">${escApr(t.nome)}</option>`).join("") || '<option value="local">Tripulante Atual</option>';
-    if (window.usuarioAtual?.id) select.value = window.usuarioAtual.id;
-    estadoOficina.tripulanteId = select.value || "local";
-    const iniciais=obterItensDoTripulante(estadoOficina.tripulanteId);
-    estadoOficina.itemId = iniciais[0] || "";
-    select.addEventListener("change",async()=>{
-        estadoOficina.tripulanteId=select.value;
-        estadoOficina.salvaVidas=null;
-        const ids=obterItensDoTripulante(estadoOficina.tripulanteId);
-        estadoOficina.itemId=ids[0]||"";
-        renderizarOficinaAprimoramento();
-        await atualizarSaldoSalvaVidas();
-    });
-    document.getElementById("btn-aprimorar-item")?.addEventListener("click", iniciarAprimoramento);
-    document.getElementById("btn-apr-regras")?.addEventListener("click", abrirRegrasAprimoramento);
-    renderizarOficinaAprimoramento();
-    atualizarSaldoSalvaVidas();
-}
-
 function obterTripulantesAprimoramento(){
-    const mapa = new Map();
-    if (window.profileAtual || window.usuarioAtual) {
-        const id=window.usuarioAtual?.id || "local";
-        const nome=window.profileAtual?.nome || window.profileAtual?.username || "Meu Tripulante";
-        mapa.set(String(id), {id:String(id),nome});
-    }
-    if (typeof banco!=="undefined" && Array.isArray(banco.frotas)) {
-        banco.frotas.forEach(f=> (f.integrantes||[]).forEach(i=> mapa.set(String(i.id),{id:String(i.id),nome:i.nome||i.username||"Tripulante"})));
-    }
-    return [...mapa.values()].sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+ const mapa=new Map(),id=window.usuarioAtual?.id;
+ if(id)mapa.set(id,{id,nome:window.profileAtual?.nome||window.profileAtual?.username||'Meu tripulante'});
+ for(const f of banco.frotas||[])for(const i of f.integrantes||[])mapa.set(String(i.id),{id:String(i.id),nome:i.nome||i.username||'Tripulante'});
+ return [...mapa.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
 }
-
-function carregarAprimoramentos(){ try{return JSON.parse(localStorage.getItem(CHAVE_APRIMORAMENTOS)||"{}")}catch{return {}} }
-function salvarAprimoramentos(d){ localStorage.setItem(CHAVE_APRIMORAMENTOS,JSON.stringify(d)); }
-function chaveRegistro(){ return `${estadoOficina.tripulanteId}::${estadoOficina.itemId}`; }
-function registroAtual(){ return carregarAprimoramentos()[chaveRegistro()] || {}; }
-
+function carregarAprimoramentos(){if(cacheAprimoramentos===null){try{cacheAprimoramentos=JSON.parse(localStorage.getItem(CHAVE_APRIMORAMENTOS)||'{}');}catch{cacheAprimoramentos={};}}return structuredClone(cacheAprimoramentos);}
+function salvarAprimoramentos(d){cacheAprimoramentos=structuredClone(d||{});try{localStorage.setItem(CHAVE_APRIMORAMENTOS,JSON.stringify(cacheAprimoramentos));}catch{}}
+function chaveRegistro(){return `${estadoOficina.tripulanteId}::${estadoOficina.itemId}`;}
+function registroAtual(){return fichasOficina.get(estadoOficina.tripulanteId)?.aprimoramentos_itens?.[estadoOficina.itemId]||{};}
+function pendenciaOficina(alvo=estadoOficina,criar=false){
+ const key='nave7-sorteio:'+alvo.tripulanteId+':'+alvo.itemId;
+ let id;try{id=localStorage.getItem(key);}catch{}id=id||operacoesOficina.get(key);
+ if(!id&&criar){id=NaveDados.uuid();operacoesOficina.set(key,id);try{localStorage.setItem(key,id);}catch{}}
+ return {key,id};
+}
+const operacoesOficina=new Map();
+function limparPendenciaOficina(p){operacoesOficina.delete(p.key);try{localStorage.removeItem(p.key);}catch{}}
 function renderizarOficinaAprimoramento(){
-    const idsPossuidos=obterItensDoTripulante(estadoOficina.tripulanteId);
-    const itensPossuidos=CATALOGO_ITENS_APRIMORAMENTO.filter(i=>idsPossuidos.includes(i.id));
-    if(!itensPossuidos.some(i=>i.id===estadoOficina.itemId)) estadoOficina.itemId=itensPossuidos[0]?.id || "";
-    const item=itensPossuidos.find(i=>i.id===estadoOficina.itemId) || null;
-    const lista=document.getElementById("apr-lista-itens");
-    if(lista){
-        lista.innerHTML=itensPossuidos.length ? itensPossuidos.map(i=>`<button class="apr-item-mini ${i.id===estadoOficina.itemId?'ativo':''}" data-item-id="${i.id}" type="button"><span>${iconeTipo(i.tipo)}</span><div><strong>${escApr(i.nome)}</strong><small>${escApr(i.origem)} • ${escApr(i.tipo)}</small></div></button>`).join("") : `<div class="apr-sem-itens"><span>🎒</span><strong>NENHUM ITEM EQUIPADO</strong><p>Adicione itens primeiro em <b>Ficha do Tripulante → Todos os Itens</b>.</p></div>`;
-    }
-    document.querySelectorAll(".apr-item-mini").forEach(b=>b.addEventListener("click",()=>{estadoOficina.itemId=b.dataset.itemId;renderizarOficinaAprimoramento();}));
-
-    const detalhe=document.getElementById("apr-item-detalhe");
-    if(detalhe) detalhe.innerHTML=item ? `<div class="apr-item-icone">${iconeTipo(item.tipo)}</div><div class="apr-item-copy"><span>${escApr(item.origem)}</span><h3>${escApr(item.nome)}</h3><p>${escApr(item.descricao)}</p><div class="apr-chips"><b>Cartas: ${item.cartas.length?item.cartas.join(", "):"não informadas"}</b><b>Dano: ${formatarDanoItemApr(item)}</b><b>${escApr(item.tipo)}</b></div></div>` : `<div class="apr-item-vazio"><span>◇</span><div><h3>Selecione um item do inventário</h3><p>A oficina só aceita equipamentos adicionados à ficha do tripulante.</p></div></div>`;
-    renderizarSlotsAprimoramento();
-    atualizarBotaoAprimorar();
+ if(!document.getElementById('pagina-oficina'))return;
+ const ficha=fichasOficina.get(estadoOficina.tripulanteId),ids=ficha?.itens_catalogo||[];
+ const items=CATALOGO_ITENS_APRIMORAMENTO.filter(i=>ids.includes(i.id));
+ if(!items.some(i=>i.id===estadoOficina.itemId))estadoOficina.itemId=items[0]?.id||'';
+ const item=items.find(i=>i.id===estadoOficina.itemId),reg=registroAtual();
+ document.getElementById('apr-lista-itens').innerHTML=items.map(i=>`<button type="button" class="apr-item-mini ${i.id===estadoOficina.itemId?'ativo':''}" data-item-id="${escApr(i.id)}" aria-pressed="${i.id===estadoOficina.itemId}"><span>${iconeTipo(i.tipo)}</span><div><strong>${escApr(i.nome)}</strong><small>${escApr(i.origem)}</small></div></button>`).join('')||`<div class="n-empty"><h3>${estadoOficina.carregandoSaldo?'Carregando…':'Sem equipamentos'}</h3><p>Adicione os equipamentos na Ficha do Tripulante para aprimorá-los.</p><button type="button" onclick="abrirPagina('ficha')">Abrir minha ficha</button></div>`;
+ document.querySelectorAll('.apr-item-mini').forEach(b=>b.addEventListener('click',()=>{estadoOficina.itemId=b.dataset.itemId;renderizarOficinaAprimoramento();}));
+ document.getElementById('apr-item-detalhe').innerHTML=item?`<div class="apr-item-icone">${iconeTipo(item.tipo)}</div><div class="apr-item-copy"><span>${escApr(item.origem)}</span><h3>${escApr(item.nome)}</h3><p>${escApr(item.descricao)}</p><div class="apr-chips"><b>Cartas ${escApr(item.cartas.map(c=>String(c)==='1'?'A':c).join(' · '))}</b><b>Dano ${escApr(formatarDanoItemApr(item))}</b><b>${escApr(item.tipo)}</b></div></div>`:'<div class="n-empty"><h3>Escolha um equipamento</h3><p>As melhorias aparecerão aqui.</p></div>';
+ document.getElementById('apr-progresso').textContent=`${Object.keys(CATEGORIAS_APRIMORAMENTO).filter(k=>reg[k]).length} de 3 concluídas`;
+ renderizarSlotsAprimoramento();atualizarBotaoAprimorar();
+ const ultimo=estadoOficina.ultimo;
+ document.getElementById('apr-ultimo').innerHTML=ultimo&&ultimo.itemId===estadoOficina.itemId?`<section class="apr-painel apr-resultado ${ultimo.raridade}"><span class="n-kicker">Última melhoria salva</span><h3>${escApr(CATEGORIAS_APRIMORAMENTO[ultimo.categoria].nome)} · ${rotuloRaridade(ultimo.raridade)}</h3><p>${escApr(ultimo.texto)}</p></section>`:'';
 }
-
-function formatarDanoItemApr(item){
-    if(item.danoSecundario!=null) return `${item.dano} / ${item.danoSecundario}`;
-    if(item.danoParcial!=null) return `${item.danoParcial} parcial / ${item.dano} total`;
-    return String(item.dano ?? 0);
-}
-
+function formatarDanoItemApr(item){return item.danoSecundario!=null?`${item.dano} / ${item.danoSecundario} em área`:item.danoParcial!=null?`${item.danoParcial} parcial / ${item.dano} completo`:String(item.dano??0);}
 function renderizarSlotsAprimoramento(){
-    const reg=registroAtual();
-    const box=document.getElementById("apr-slots"); if(!box)return;
-    if(!estadoOficina.itemId){ box.innerHTML='<div class="apr-slots-vazio">Selecione um item possuído para consultar os aprimoramentos.</div>'; return; }
-    box.innerHTML=Object.entries(CATEGORIAS_APRIMORAMENTO).map(([ch,c])=>{
-        const a=reg[ch];
-        return `<div class="apr-slot ${a?'concluido':''}"><div class="apr-slot-top"><span>${c.icone}</span><div><strong>${c.nome}</strong><small>${a?`${rotuloRaridade(a.raridade)} • concluído`:"Disponível para sorteio"}</small></div>${a?'<b>✓</b>':'<b>—</b>'}</div>${a?`<p>${escApr(a.texto)}</p>`:""}</div>`;
-    }).join("");
+ const box=document.getElementById('apr-slots');if(!box)return;const reg=registroAtual();
+ box.innerHTML=Object.entries(CATEGORIAS_APRIMORAMENTO).map(([key,c])=>{const a=reg[key];return `<article class="apr-slot ${a?'concluido':''}"><div class="apr-slot-top"><span>${c.icone}</span><div><strong>${c.nome}</strong><small>${a?rotuloRaridade(a.raridade):'Disponível'}</small></div><b>${a?'✓':'—'}</b></div><p>${escApr(a?.texto||{cartas:'Amplie a quantidade de cartas que ativam este item.',atributo:'Aumente o dano do equipamento.',adicional:'Acrescente um efeito automático ao ataque.'}[key])}</p></article>`;}).join('');
 }
-
 async function atualizarSaldoSalvaVidas(){
-    const info=document.getElementById("apr-custo-info");
-    if(!estadoOficina.tripulanteId){ estadoOficina.salvaVidas=0; atualizarBotaoAprimorar(); return; }
-    const usuarioConsultado=estadoOficina.tripulanteId;
-    estadoOficina.carregandoSaldo=true; atualizarBotaoAprimorar();
-    if(info) info.textContent="Consultando Salva-Vidas na ficha do tripulante...";
-    try{
-        const {data,error}=await supabaseClient.from("fichas_tripulantes")
-            .select("id, salva_vidas, itens_catalogo, aprimoramentos_itens")
-            .eq("id",usuarioConsultado)
-            .maybeSingle();
-        if(error) throw error;
-        if(usuarioConsultado!==estadoOficina.tripulanteId) return;
-        if(Array.isArray(data?.itens_catalogo)) definirItensDoTripulante(usuarioConsultado,data.itens_catalogo);
-        let aprimoramentosServidor=data?.aprimoramentos_itens||{};
-        const dadosLocais=carregarAprimoramentos();
-        if(usuarioConsultado===window.usuarioAtual?.id){
-            const importar={};
-            for(const [chave,valor]of Object.entries(dadosLocais)){
-                const [uid,item]=chave.split("::");
-                if(uid===usuarioConsultado) importar[item]=valor;
-            }
-            if(Object.keys(importar).length){
-                const migracao=await supabaseClient.rpc("combate_importar_aprimoramentos",{p_registros:importar});
-                if(migracao.error)throw migracao.error;
-                aprimoramentosServidor=migracao.data;
-            }
-        }
-        if(usuarioConsultado!==estadoOficina.tripulanteId)return;
-        for(const [item,valor]of Object.entries(aprimoramentosServidor))dadosLocais[`${usuarioConsultado}::${item}`]=valor;
-        try{salvarAprimoramentos(dadosLocais);}catch(erroCache){console.warn("Aprimoramentos disponíveis no servidor, cache local indisponível.");}
-        estadoOficina.salvaVidas=Math.max(0,Number(data?.salva_vidas||0));
-        renderizarOficinaAprimoramento();
-    }catch(erro){
-        console.error("Erro ao consultar Salva-Vidas:",erro);
-        if(usuarioConsultado!==estadoOficina.tripulanteId) return;
-        estadoOficina.salvaVidas=0;
-        if(typeof mostrarNotificacao==="function") mostrarNotificacao("Não foi possível consultar os Salva-Vidas da ficha.","error");
-    }finally{
-        if(usuarioConsultado===estadoOficina.tripulanteId){
-            estadoOficina.carregandoSaldo=false;
-            atualizarBotaoAprimorar();
-        }
-    }
+ const id=estadoOficina.tripulanteId;if(!id)return;
+ estadoOficina.carregandoSaldo=true;estadoOficina.erro='';renderizarOficinaAprimoramento();
+ try{
+  await NaveDados.list('catalogo');
+  const r=await supabaseClient.from('fichas_tripulantes').select('id,salva_vidas,itens_catalogo,aprimoramentos_itens').eq('id',id).maybeSingle();
+  if(r.error)throw r.error;if(id!==estadoOficina.tripulanteId)return;
+  const ficha=r.data||{id,salva_vidas:0,itens_catalogo:[],aprimoramentos_itens:{}};
+  // Importação V6 só acrescenta categorias antigas ausentes; o servidor prevalece.
+  const locais=carregarAprimoramentos(),importar={};
+  if(id===window.usuarioAtual?.id&&r.data)for(const [key,valor]of Object.entries(locais)){const [uid,item]=key.split('::');if(uid===id&&Object.keys(valor||{}).some(c=>!ficha.aprimoramentos_itens?.[item]?.[c]))importar[item]=valor;}
+  if(Object.keys(importar).length)ficha.aprimoramentos_itens=await NaveDados.request('combate_importar_aprimoramentos',{p_registros:importar});
+  if(id!==estadoOficina.tripulanteId)return;
+  fichasOficina.set(id,ficha);estadoOficina.salvaVidas=Math.max(0,Number(ficha.salva_vidas||0));
+  definirItensDoTripulante(id,ficha.itens_catalogo||[]);
+  for(const key of Object.keys(locais))if(key.startsWith(id+'::'))delete locais[key];
+  for(const [item,valor]of Object.entries(ficha.aprimoramentos_itens||{}))locais[id+'::'+item]=valor;
+  salvarAprimoramentos(locais);
+ }catch(e){if(id===estadoOficina.tripulanteId)estadoOficina.erro=NaveDados.message(e);}
+ finally{if(id===estadoOficina.tripulanteId){estadoOficina.carregandoSaldo=false;renderizarOficinaAprimoramento();}}
 }
-
 function atualizarBotaoAprimorar(){
-    const btn=document.getElementById("btn-aprimorar-item"); if(!btn)return;
-    const info=document.getElementById("apr-custo-info");
-    const reg=registroAtual(); const completos=Object.keys(CATEGORIAS_APRIMORAMENTO).every(k=>reg[k]);
-    const semItem=!estadoOficina.itemId;
-    const semSalvaVidas=Number(estadoOficina.salvaVidas||0)<1;
-    const outroTripulante=estadoOficina.tripulanteId!==window.usuarioAtual?.id;
-    btn.disabled=semItem || completos || estadoOficina.girando || estadoOficina.carregandoSaldo || semSalvaVidas || outroTripulante;
-    const seletor=document.getElementById("apr-tripulante");
-    if(seletor) seletor.disabled=estadoOficina.girando;
-    document.querySelectorAll(".apr-item-mini").forEach(b=>b.disabled=estadoOficina.girando);
-    if(outroTripulante) btn.textContent="CONSULTA DE OUTRO TRIPULANTE";
-    else if(estadoOficina.carregandoSaldo) btn.textContent="CONSULTANDO FICHA...";
-    else if(semItem) btn.textContent="ADICIONE UM ITEM NA FICHA";
-    else if(completos) btn.textContent="✓ ITEM TOTALMENTE APRIMORADO";
-    else if(estadoOficina.girando) btn.textContent="CALIBRANDO...";
-    else if(semSalvaVidas) btn.textContent="SEM SALVA-VIDAS";
-    else btn.textContent="⚙ APRIMORAR ITEM";
-
-    if(info){
-        if(estadoOficina.carregandoSaldo) info.textContent="Consultando Salva-Vidas na ficha do tripulante...";
-        else if(semSalvaVidas) info.textContent="Este tripulante não possui Salva-Vidas. Não é possível aprimorar.";
-        else info.textContent=`Saldo: ${estadoOficina.salvaVidas} Salva-Vidas • este aprimoramento consumirá 1.`;
-    }
+ const btn=document.getElementById('btn-aprimorar-item');if(!btn)return;
+ const s=estadoOficina,completo=Object.keys(CATEGORIAS_APRIMORAMENTO).every(k=>registroAtual()[k]),outro=s.tripulanteId!==window.usuarioAtual?.id,pendente=!!pendenciaOficina().id;
+ btn.disabled=!s.itemId||s.girando||s.carregandoSaldo||outro||!!s.erro||(!pendente&&(completo||s.salvaVidas<1));
+ btn.textContent=s.girando?'Salvando melhoria…':s.carregandoSaldo?'Consultando ficha…':outro?'Consulta de outro tripulante':pendente?'Conferir último sorteio':completo?'Item totalmente aprimorado':!s.itemId?'Selecione um item':s.salvaVidas<1?'Sem Salva-Vidas':'Aprimorar por 1 Salva-Vidas';
+ document.getElementById('apr-custo-info').textContent=s.carregandoSaldo?'Consultando saldo…':`Saldo disponível: ${s.salvaVidas} Salva-Vidas${pendente?' · Há um sorteio aguardando confirmação.':''}`;
+ document.querySelectorAll('#apr-tripulante,.apr-item-mini,#apr-atualizar').forEach(b=>b.disabled=s.girando||s.carregandoSaldo);
+ const erro=document.getElementById('apr-erro');erro.hidden=!s.erro;erro.className='n-error';erro.textContent=s.erro;
 }
-
-function anguloAlvoDaRaridade(raridade){
-    // O conic-gradient começa no topo e avança no sentido horário:
-    // comum 0..252°, incomum 252..324°, raro 324..360°.
-    // Sorteamos um ponto seguro dentro do setor, longe das divisórias.
-    const faixas={comum:[12,240],incomum:[260,316],raro:[330,354]};
-    const [min,max]=faixas[raridade]||faixas.comum;
-    return min+Math.random()*(max-min);
-}
-
-function girarRoletaParaRaridade(raridade){
-    const roleta=document.getElementById("apr-roleta");
-    if(!roleta) return;
-    const alvo=anguloAlvoDaRaridade(raridade);
-    // Para que o ponto 'alvo' termine exatamente sob a seta fixa do topo,
-    // a roleta precisa terminar com rotação modular 360 - alvo.
-    const moduloDesejado=(360-alvo)%360;
-    const atual=Number(estadoOficina.rotacaoRoleta||0);
-    const moduloAtual=((atual%360)+360)%360;
-    const ajuste=(moduloDesejado-moduloAtual+360)%360;
-    const voltasCompletas=(4+Math.floor(Math.random()*3))*360;
-    estadoOficina.rotacaoRoleta=atual+voltasCompletas+ajuste;
-    roleta.style.transform=`rotate(${estadoOficina.rotacaoRoleta}deg)`;
-}
-
+function anguloAlvoDaRaridade(r){return {comum:126,incomum:288,raro:342}[r]||126;}
+function girarRoletaParaRaridade(r){const roleta=document.getElementById('apr-roleta');if(!roleta)return;const atual=estadoOficina.rotacaoRoleta;estadoOficina.rotacaoRoleta=atual+720+((360-anguloAlvoDaRaridade(r)-atual%360+360)%360);roleta.style.transform=`rotate(${estadoOficina.rotacaoRoleta}deg)`;}
 async function iniciarAprimoramento(){
-    if(estadoOficina.girando || estadoOficina.carregandoSaldo || !estadoOficina.itemId || estadoOficina.tripulanteId!==window.usuarioAtual?.id)return;
-    if(!obterItensDoTripulante(estadoOficina.tripulanteId).includes(estadoOficina.itemId)) return;
-    const reg=registroAtual();
-    const disponiveis=Object.keys(CATEGORIAS_APRIMORAMENTO).filter(k=>!reg[k]);
-    if(!disponiveis.length)return;
-
-    const alvo={tripulanteId:estadoOficina.tripulanteId,itemId:estadoOficina.itemId};
-    estadoOficina.girando=true; atualizarBotaoAprimorar();
-    try{
-        const categoria=disponiveis[Math.floor(Math.random()*disponiveis.length)];
-        const roll=Math.random()*100; const raridade=roll<70?"comum":roll<90?"incomum":"raro";
-        atualizarBotaoAprimorar();
-        const ponteiro=document.querySelector(".apr-ponteiro");
-        if(ponteiro) ponteiro.className="apr-ponteiro girando";
-        girarRoletaParaRaridade(raridade);
-        // Salva antes da animação: navegar não pode perder ou redirecionar o resultado.
-        const texto=await concluirAprimoramento(categoria,raridade,alvo);
-        setTimeout(()=>{
-            estadoOficina.girando=false;
-            renderizarOficinaAprimoramento();
-            const ponteiro=document.querySelector(".apr-ponteiro");
-            if(ponteiro) ponteiro.className="apr-ponteiro resultado";
-            if(estadoOficina.tripulanteId===alvo.tripulanteId && estadoOficina.itemId===alvo.itemId)
-                abrirResultadoAprimoramento(categoria,raridade,texto);
-        },2700);
-    }catch(erro){
-        console.error("Erro ao consumir Salva-Vidas:",erro);
-        estadoOficina.girando=false;
-        await atualizarSaldoSalvaVidas();
-        if(typeof mostrarNotificacao==="function") mostrarNotificacao("Não foi possível consumir o Salva-Vidas da ficha. Reabra a oficina para conferir o resultado no servidor antes de tentar novamente.","error");
-    }
+ const s=estadoOficina;if(s.girando||s.carregandoSaldo||!s.itemId||s.tripulanteId!==window.usuarioAtual?.id)return;
+ const alvo={tripulanteId:s.tripulanteId,itemId:s.itemId},pendente=pendenciaOficina(alvo,true);
+ s.girando=true;s.erro='';atualizarBotaoAprimorar();
+ try{
+  const gravado=await NaveDados.request('nave_sortear_aprimoramento',{p_item:alvo.itemId,p_operacao:pendente.id});
+  limparPendenciaOficina(pendente);
+  if(window.usuarioAtual?.id!==alvo.tripulanteId)return;
+  s.ultimo={...gravado,itemId:alvo.itemId};s.salvaVidas=gravado.saldo;
+  const ficha=fichasOficina.get(alvo.tripulanteId);if(ficha){ficha.salva_vidas=gravado.saldo;ficha.aprimoramentos_itens=gravado.aprimoramentos;}
+  if(typeof minhaFicha!=='undefined'&&minhaFicha?.id===alvo.tripulanteId){minhaFicha.salva_vidas=gravado.saldo;minhaFicha.aprimoramentos_itens=gravado.aprimoramentos;}
+  const cache=carregarAprimoramentos();for(const [item,valor]of Object.entries(gravado.aprimoramentos||{}))cache[alvo.tripulanteId+'::'+item]=valor;salvarAprimoramentos(cache);
+  girarRoletaParaRaridade(gravado.raridade);
+  await new Promise(resolve=>setTimeout(resolve,window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:1100));
+  if(document.getElementById('pagina-oficina')&&s.tripulanteId===alvo.tripulanteId&&s.itemId===alvo.itemId)abrirResultadoAprimoramento(gravado.categoria,gravado.raridade,gravado.texto);
+  await atualizarSaldoSalvaVidas();
+ }catch(e){
+  if(e.code)limparPendenciaOficina(pendente);
+  mostrarNotificacao(NaveDados.message(e),'error');
+ }finally{s.girando=false;renderizarOficinaAprimoramento();}
 }
-
-async function concluirAprimoramento(categoria,raridade,alvo=estadoOficina){
-    const item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===alvo.itemId);
-    const dados=carregarAprimoramentos(); const chave=`${alvo.tripulanteId}::${alvo.itemId}`; const reg=dados[chave]||{};
-    let texto=CATEGORIAS_APRIMORAMENTO[categoria].raridades[raridade]; let extra=null;
-    if(categoria==="atributo" && item?.dano>0){
-        const p={comum:.2,incomum:.4,raro:.6}[raridade];
-        texto += ` Dano base ${item.dano} → ${(item.dano*(1+p)).toFixed(1).replace('.0','')}.`;
-    }
-    if(categoria==="adicional"){
-        const efeitos=EFEITOS_ADICIONAIS[raridade]; extra=efeitos[Math.floor(Math.random()*efeitos.length)];
-        let chance=100;
-        if(raridade!=="comum" && item?.cartas?.length) chance=Math.round((100/item.cartas.length)*100)/100;
-        texto=`${extra.nome}: ${extra.texto}` + (raridade!=="comum" ? ` Chance de ativação: ${chance}% por carta do item.` : "");
-    }
-    const resultado={raridade,texto,efeito:extra?.nome||null,data:new Date().toISOString()};
-    const {data:gravado,error}=await supabaseClient.rpc("combate_aprimorar",{
-        p_item:alvo.itemId,p_categoria:categoria,p_resultado:resultado
-    });
-    if(error) throw error;
-    estadoOficina.salvaVidas=gravado.saldo;
-    // O servidor já confirmou custo e resultado atomicamente. Cache local é secundário.
-    if(typeof minhaFicha!=="undefined" && minhaFicha?.id===alvo.tripulanteId){
-        minhaFicha.salva_vidas=gravado.saldo;minhaFicha.aprimoramentos_itens=gravado.aprimoramentos;
-    }
-    for(const [id,valor] of Object.entries(gravado.aprimoramentos||{})) dados[`${alvo.tripulanteId}::${id}`]=valor;
-    try { salvarAprimoramentos(dados); } catch(erroCache) { console.warn("Cache local indisponível; resultado salvo no servidor."); }
-    return texto;
-}
-
-function abrirResultadoAprimoramento(categoria,raridade,texto){
-    const modal=document.getElementById("apr-modal"); if(!modal)return;
-    modal.hidden=false; modal.innerHTML=`<div class="apr-modal-card resultado ${raridade}"><button class="apr-fechar" type="button">×</button><span class="apr-modal-selo">APRIMORAMENTO CONCLUÍDO</span><div class="apr-raridade-grande">${rotuloRaridade(raridade)}</div><h3>${CATEGORIAS_APRIMORAMENTO[categoria].icone} ${CATEGORIAS_APRIMORAMENTO[categoria].nome}</h3><p>${escApr(texto)}</p><button class="apr-botao-principal apr-ok" type="button">CONFIRMAR</button></div>`;
-    modal.querySelectorAll(".apr-fechar,.apr-ok").forEach(b=>b.addEventListener("click",()=>modal.hidden=true));
-    modal.addEventListener("click",e=>{if(e.target===modal)modal.hidden=true},{once:true});
-}
-
-function abrirRegrasAprimoramento(){
-    const modal=document.getElementById("apr-modal"); if(!modal)return;
-    modal.hidden=false; modal.innerHTML=`<div class="apr-modal-card regras"><button class="apr-fechar" type="button">×</button><span class="apr-modal-selo">BANCO DE DADOS • ENGENHARIA</span><h3>Regras de Aprimoramento</h3><p>Cada item pode receber no máximo 1 melhoria de cada categoria. Uma categoria já concluída é removida dos próximos sorteios.</p><div class="apr-regras-grid">${Object.entries(CATEGORIAS_APRIMORAMENTO).map(([k,c])=>`<div><h4>${c.icone} ${c.nome}</h4><p><b>Comum 70%</b> — ${c.raridades.comum}</p><p><b>Incomum 20%</b> — ${c.raridades.incomum}</p><p><b>Raro 10%</b> — ${c.raridades.raro}</p></div>`).join("")}</div><p class="apr-nota">Atributos adicionais incomuns e raros usam a regra de probabilidade 100% ÷ quantidade de cartas do item quando essa quantidade é conhecida.</p></div>`;
-    modal.querySelector(".apr-fechar")?.addEventListener("click",()=>modal.hidden=true);
-}
-
-function rotuloRaridade(r){ return ({comum:"COMUM",incomum:"INCOMUM",raro:"RARO"})[r]||r; }
-function iconeTipo(t){ if(/drone/i.test(t))return"🛸"; if(/defens/i.test(t))return"🛡️"; if(/suporte|artefato|condicional/i.test(t))return"◈"; return"⚔️"; }
-function escApr(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));}
+function abrirResultadoAprimoramento(categoria,raridade,texto){abrirModal(`<div class="n-form apr-resultado ${escApr(raridade)}"><span class="n-kicker">Melhoria salva</span><h2>${rotuloRaridade(raridade)}</h2><h3>${CATEGORIAS_APRIMORAMENTO[categoria].nome}</h3><p>${escApr(texto)}</p><div class="n-actions"><button type="button" onclick="fecharModal()">Continuar na oficina</button></div></div>`);}
+function abrirRegrasAprimoramento(){abrirModal(`<div class="n-form"><h2>Como funciona a oficina</h2><p>Cada sorteio consome 1 Salva-Vidas e escolhe uma das categorias ainda livres, com chances iguais entre elas. A categoria concluída não volta a ser sorteada.</p><div class="apr-regras-grid">${Object.values(CATEGORIAS_APRIMORAMENTO).map(c=>`<section><h3>${c.icone} ${c.nome}</h3><p><b>Comum · 70%</b><br>${c.raridades.comum}</p><p><b>Incomum · 20%</b><br>${c.raridades.incomum}</p><p><b>Raro · 10%</b><br>${c.raridades.raro}</p></section>`).join('')}</div><p>Efeitos adicionais incomuns e raros têm chance de ativação de 100% divididos pela quantidade de cartas do item. Cartas extras são escolhidas na preparação do combate.</p><button type="button" onclick="fecharModal()">Entendi</button></div>`);}
+function rotuloRaridade(r){return ({comum:'Comum',incomum:'Incomum',raro:'Raro'})[r]||r;}
+function iconeTipo(t){return /drone/i.test(t)?'🛸':/defens/i.test(t)?'🛡️':/suporte|artefato|condicional/i.test(t)?'◈':'⚔️';}
+function escApr(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+document.addEventListener('usuarioDesconectado',()=>{fichasOficina.clear();estadoOficina.tripulanteId='';estadoOficina.itemId='';estadoOficina.ultimo=null;});

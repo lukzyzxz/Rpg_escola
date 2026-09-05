@@ -704,7 +704,7 @@ async function adicionarIntegrante(idFrota, idIntegrante) {
         abrirGerenciamentoFrota(idFrota);
 
         mostrarNotificacao(
-            `${integrante.nome} foi adicionado �  frota.`,
+            `${integrante.nome} foi adicionado à frota.`,
             "success"
         );
     } catch (erro) {

@@ -3,7 +3,7 @@ const CombateDados=(()=>{
  const M=CombateMotor;
  const photoCache=new Map();
  async function photoUrl(source){
-  if(!source?.path||source.bucket!=='mechas-designs')return '';
+  if(!source?.path||!['mechas-designs','kaijus-imagens'].includes(source.bucket))return '';
   const key=source.bucket+'/'+source.path,cached=photoCache.get(key);
   if(cached&&cached.until>Date.now())return cached.url;
   try{const result=await supabaseClient.storage.from(source.bucket).createSignedUrl(source.path,3600);if(result.error)return '';const url=result.data?.signedUrl||'';if(url)photoCache.set(key,{url,until:Date.now()+3000000});return url;}catch{return '';}
@@ -58,15 +58,27 @@ const CombateDados=(()=>{
   p.equipmentDefense=Object.values(p.cards).some(r=>r.itemId==='lamina-vorpal')?-2:0;}
  function makeBoss(raw={}){
   const codex=typeof CODEX_KAIJUS!=='undefined'?CODEX_KAIJUS[raw.id]:null;
-  const b={id:'boss',name:raw.nome||'Kaiju',photo:raw.imagem_path||'',maxHp:Number(raw.vida||codex?.vida||100),speed:Number(raw.agilidade||codex?.agilidade||5),extra:0,defense:Number(raw.defesa||0),cards:{},notes:raw.passivas||'',reviewNotes:[]};
-  if(codex?.ataques)for(const [c,a] of Object.entries(codex.ataques)){b.cards[c]={...M.parse(a.descricao,{boss:true}),name:a.nome,damage:a.dano,text:a.descricao};}
+  const fromDatabase=raw.personalizado||Object.keys(raw.ataques||{}).length>0;
+  const b={id:'boss',name:raw.nome||'Kaiju',photo:raw.imagem_url||raw.imagem_path||'',maxHp:Number(raw.vida||codex?.vida||100),speed:Number(fromDatabase?raw.agilidade??5:raw.agilidade||codex?.agilidade||5),extra:0,defense:Number(raw.defesa??codex?.defesa??0),cards:{},notes:raw.passivas||'',reviewNotes:[]};
+  if(raw.imagem_storage?.path){b.photoSource=M.clone(raw.imagem_storage);b.photoFallback=raw.imagem_path||'';}
+  const attacks=fromDatabase?raw.ataques:codex?.ataques;
+  for(const [key,a] of Object.entries(attacks||{})){
+   const c=M.card(key);if(!M.CARDS.includes(c))continue;
+   const parsed=M.parse(a.descricao||'',{boss:true}),stored=raw.regras_combate?.[c];
+   const r=stored?{...M.rule(),...M.clone(stored)}:{...parsed,name:a.nome||'Ataque',damage:Number.isFinite(Number(a.dano))?Number(a.dano):0,text:a.descricao||''};
+   r.warnings=[...(r.warnings||[])];
+   if(!stored&&(!Number.isFinite(Number(a.dano))||(parsed.damage!=null&&parsed.damage!==Number(a.dano)))){r.warnings.push('O dano informado no Codex precisa de conferência: valor e descrição não definem o mesmo dano.');r.reviewed=false;}
+   b.cards[c]=r;
+  }
   for(const c of M.CARDS)if(!b.cards[c])b.cards[c]={...M.rule(),damage:0,name:'Sem ataque'};
   if(b.notes)b.reviewNotes.push('Passivas do Kaiju: confira a aplicação nas cartas e nos atributos.');return b;
  }
  async function load(){
+  if(typeof NaveDados!=='undefined')await NaveDados.list('catalogo');
   const requests=[['profiles','*'],['fichas_tripulantes','*'],['frotas','id,nome,cor,fixa'],['frota_integrantes','frota_id,usuario_id'],['mecha_kaijus_catalogo','*'],['mechas_20m','*'],['mecha_pecas_equipadas','*'],['mecha_pecas_catalogo','*']];
   const result=await Promise.all(requests.map(async([table,cols])=>{const r=await supabaseClient.from(table).select(cols);if(r.error)throw Error(`${table}: ${r.error.message}`);return r.data||[];}));
   const [profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas]=result;
+  if(typeof NaveDados!=='undefined')await NaveDados.hydrateKaijus(kaijus);
   await Promise.all(mechas.map(async m=>{if(m.imagem_path&&!/^(https?:|assets\/)/.test(m.imagem_path))m.photoUrl=await photoUrl({bucket:'mechas-designs',path:m.imagem_path});}));
   return {profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas};
  }
@@ -75,7 +87,7 @@ const CombateDados=(()=>{
   const local=typeof carregarAprimoramentos==='function'?carregarAprimoramentos():{};
   const upgrades=M.clone(ficha.aprimoramentos_itens||{});
   // Dados locais só são importados para a própria conta. Nunca substituem o servidor.
-  if(id===window.usuarioAtual?.id)for(const [key,value]of Object.entries(local)){const [uid,item]=key.split('::');if(uid===id)upgrades[item]={...value,...upgrades[item]};}
+  if(id===window.usuarioAtual?.id&&ficha.aprimoramentos_itens==null)for(const [key,value]of Object.entries(local)){const [uid,item]=key.split('::');if(uid===id)upgrades[item]={...value,...upgrades[item]};}
   const p=makePlayer(profile,ficha,typeof CATALOGO_ITENS_APRIMORAMENTO!=='undefined'?CATALOGO_ITENS_APRIMORAMENTO:[],upgrades);
   if(!ficha.id)p.reviewNotes.push('Ficha não encontrada no banco: confira os atributos antes de começar.');
   if(mode==='mecha'){
