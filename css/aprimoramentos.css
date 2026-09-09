@@ -24,3 +24,4 @@
 @media(max-width:480px){.apr-painel{padding:16px}.apr-item-detalhe{flex-direction:column;gap:12px}.apr-item-icone{width:48px;height:48px;font-size:25px}.apr-acao{grid-template-columns:1fr}.apr-roleta-wrap{margin:6px auto}.apr-progress-heading{align-items:flex-start;flex-direction:column;gap:6px}.apr-slot-top>div{display:block}.apr-slot small{margin-top:5px}.apr-botao-principal{width:100%}}
 @media(prefers-reduced-motion:reduce){.apr-roleta{transition:none}}
 @media(min-width:1101px) and (max-width:1500px){#apr-slots{grid-template-columns:1fr}.apr-slot-top{align-items:center}.apr-slot-top>div{display:flex;align-items:center;justify-content:space-between;gap:12px}.apr-slot small{margin-top:0}.apr-slot p{margin-top:8px}}
+.apr-item-codex-aviso{margin-top:12px;padding:10px 12px;border:1px solid rgba(139,92,246,.25);border-radius:10px;background:rgba(139,92,246,.07);color:#c9bbff;font-size:13px}

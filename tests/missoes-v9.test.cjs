@@ -1,0 +1,41 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {PGlite}=require('@electric-sql/pglite');
+test('edição retira e devolve bônus sem apagar conclusão, saldo ou equipamento; protege autoria e versão',async()=>{
+ const db=new PGlite();
+ const a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222';
+ try {
+ await db.exec(`create role anon; create role authenticated; create schema auth;
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth to authenticated;
+ create table profiles(id uuid primary key);
+ create table fichas_tripulantes(id uuid primary key,vida int,dano_extra int,agilidade int,defesa int,salva_vidas int,itens_texto text,nivel_embaixador int,nivel_combatente int,nivel_tripulante int,atualizado_em timestamptz);
+ create table missoes_catalogo(id text primary key,titulo text,classe text,oficial boolean,criado_por uuid,resumo text,entrega text,periodo text,planeta text,planeta_id bigint,data_missao date,etapas text[],requisitos text[]);
+ create table tripulante_missoes(usuario_id uuid,missao_id text,concluida boolean);
+ create table auditoria(dados jsonb);
+ create function nave_registrar_evento(text,text,text,text,jsonb) returns void language sql as $$insert into auditoria values($5)$$;
+ insert into profiles values('${a}'),('${b}');
+ insert into missoes_catalogo(id,titulo,classe,oficial,criado_por) values('oficial','Missão','Combatente',true,null),('pessoal','Pessoal','Tripulante',false,'${a}');
+ insert into tripulante_missoes values('${a}','oficial',true),('${b}','oficial',true);`);
+ const original=fs.readFileSync('EXECUTAR-NO-SUPABASE-MISSOES-KAIJUS-V3.sql','utf8');
+ await db.exec(original.slice(original.indexOf('create or replace function public.recalcular_ficha_por_missoes'),original.indexOf('create or replace function public.atualizar_ficha_apos_missao')));
+ await db.exec(`select recalcular_ficha_por_missoes('${a}');select recalcular_ficha_por_missoes('${b}');update fichas_tripulantes set salva_vidas=7,itens_texto='Equipamento preservado';`);
+ const sql=fs.readFileSync('ATUALIZAR-MISSOES-V9.sql','utf8');await db.exec(sql);await db.exec(sql);
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[a]);await db.exec('set role authenticated');
+ const data={titulo:'Editada',classe:'Combatente',ganha_nivel:false,resumo:'Resumo',etapas:['Etapa'],requisitos:[]};
+ const save=(id,version,d=data)=>db.query('select nave_editar_missao($1,$2,$3)',[id,version,JSON.stringify(d)]);
+ await save('oficial',0);
+ await assert.rejects(()=>save('oficial',0),/mudou/);
+ await db.exec('reset role');
+ let rows=(await db.query('select * from fichas_tripulantes')).rows;
+ assert(rows.every(r=>r.vida===20&&r.dano_extra===0&&r.nivel_combatente===0&&r.salva_vidas===7&&r.itens_texto==='Equipamento preservado'));
+ assert.equal((await db.query('select count(*)::int n from tripulante_missoes where concluida')).rows[0].n,2);
+ await db.exec('set role authenticated');await save('oficial',1,{...data,ganha_nivel:true,classe:'Embaixador'});
+ await db.exec('reset role');rows=(await db.query('select * from fichas_tripulantes')).rows;assert(rows.every(r=>r.vida===25&&r.defesa===1&&r.dano_extra===0));
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[b]);await db.exec('set role authenticated');
+ await assert.rejects(()=>save('pessoal',0),/próprias/);
+ await assert.rejects(()=>db.query('select recalcular_ficha_por_missoes($1)',[a]),/permission denied/);
+ await db.exec('reset role;set role anon');await assert.rejects(()=>save('oficial',2),/permission denied/);
+ } finally { await db.close(); }
+});

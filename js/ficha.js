@@ -6,6 +6,69 @@
 const FICHA_AVATAR_BUCKET = "avatares-perfil";
 
 let minhaFicha = null;
+
+// Persistência imediata das escolhas de Codex. A cópia local evita perder a
+// seleção se o usuário trocar de página antes da resposta do Supabase.
+const CHAVE_CODEX_SELECOES_FICHA = "nave3b_codex_selecoes_v1";
+
+function carregarSelecoesCodexLocaisFicha() {
+    try {
+        const bruto = JSON.parse(localStorage.getItem(CHAVE_CODEX_SELECOES_FICHA) || "{}");
+        return bruto && typeof bruto === "object" ? bruto : {};
+    } catch {
+        return {};
+    }
+}
+
+function obterSelecoesCodexLocaisFicha(userId = window.usuarioAtual?.id) {
+    if (!userId) return {};
+    const todas = carregarSelecoesCodexLocaisFicha();
+    const atual = todas[String(userId)];
+    return atual && typeof atual === "object" && !Array.isArray(atual) ? { ...atual } : {};
+}
+
+function salvarSelecoesCodexLocaisFicha(selecoes, userId = window.usuarioAtual?.id) {
+    if (!userId) return;
+    try {
+        const todas = carregarSelecoesCodexLocaisFicha();
+        todas[String(userId)] = { ...(selecoes || {}) };
+        localStorage.setItem(CHAVE_CODEX_SELECOES_FICHA, JSON.stringify(todas));
+    } catch (erro) {
+        console.warn("Não foi possível salvar o cache local dos Codex.", erro);
+    }
+}
+
+function obterSelecoesCodexFicha() {
+    const remotas = minhaFicha?.codex_selecoes && typeof minhaFicha.codex_selecoes === "object"
+        ? minhaFicha.codex_selecoes
+        : {};
+    // O cache local vem por último porque pode conter a escolha feita instantes
+    // antes de uma troca de página, ainda não refletida na leitura do servidor.
+    return { ...remotas, ...obterSelecoesCodexLocaisFicha() };
+}
+
+async function persistirSelecoesCodexFicha(selecoes) {
+    if (!window.usuarioAtual?.id) return false;
+    const copia = { ...(selecoes || {}) };
+    salvarSelecoesCodexLocaisFicha(copia);
+    if (minhaFicha) minhaFicha.codex_selecoes = copia;
+
+    try {
+        const atualizadoEm = new Date().toISOString();
+        const { error } = await supabaseClient
+            .from("fichas_tripulantes")
+            .update({ codex_selecoes: copia, atualizado_em: atualizadoEm })
+            .eq("id", window.usuarioAtual.id);
+        if (error) throw error;
+        if (minhaFicha) minhaFicha.atualizado_em = atualizadoEm;
+        return true;
+    } catch (erro) {
+        console.error("Erro ao persistir escolha do Codex:", erro);
+        // A escolha continua preservada no navegador e será reenviada quando a
+        // ficha for salva novamente.
+        return false;
+    }
+}
 let fichasEquipe = [];
 let missoesFicha = [];
 let missoesConcluidasFicha = new Set();
@@ -200,6 +263,13 @@ function cartaoNivelFicha(classe, icone, valor) {
 }
 
 function inicializarPaginaFicha() {
+    // Renderiza o catálogo imediatamente. Antes, os cards só apareciam depois
+    // que a consulta da ficha no Supabase terminava; qualquer erro de coluna,
+    // conexão ou atraso deixava “Todos os Itens” completamente vazio.
+    if (typeof renderizarInventarioFicha === "function") {
+        renderizarInventarioFicha();
+    }
+
     document.getElementById("btn-salvar-ficha")?.addEventListener("click", salvarMinhaFicha);
     document.getElementById("ficha-avatar-arquivo")?.addEventListener("change", salvarAvatarFicha);
     document.getElementById("ficha-campo-salva_vidas")?.addEventListener("input", marcarFichaComoAlterada);
@@ -224,7 +294,7 @@ async function carregarMinhaFicha(silencioso = false) {
     try {
         const { data, error } = await supabaseClient
             .from("fichas_tripulantes")
-            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, itens_catalogo, aprimoramentos_itens, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
+            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, itens_texto, itens_catalogo, aprimoramentos_itens, codex_selecoes, nivel_embaixador, nivel_combatente, nivel_tripulante, atualizado_em")
             .eq("id", window.usuarioAtual.id)
             .maybeSingle();
 
@@ -232,6 +302,13 @@ async function carregarMinhaFicha(silencioso = false) {
         if (!data) throw new Error("Ficha não encontrada para este usuário.");
 
         minhaFicha = data;
+        const selecoesRemotas = minhaFicha.codex_selecoes && typeof minhaFicha.codex_selecoes === "object"
+            ? minhaFicha.codex_selecoes
+            : {};
+        const selecoesLocais = obterSelecoesCodexLocaisFicha(window.usuarioAtual.id);
+        minhaFicha.codex_selecoes = { ...selecoesRemotas, ...selecoesLocais };
+        // Mantém o cache local alinhado também quando a escolha veio de outro dispositivo.
+        salvarSelecoesCodexLocaisFicha(minhaFicha.codex_selecoes, window.usuarioAtual.id);
         renderizarMinhaFicha();
         atualizarStatusFicha(
             "disponivel",
@@ -244,7 +321,11 @@ async function carregarMinhaFicha(silencioso = false) {
         if (botao) botao.disabled = false;
     } catch (erro) {
         console.error("Erro ao carregar ficha:", erro);
-        atualizarStatusFicha("erro", "Comunicação indisponível", "Execute o SQL desta atualização e tente novamente.", "⚠");
+        // O banco de espólios é local ao código e deve continuar visível mesmo
+        // quando a sincronização da ficha falhar. Assim o usuário não vê dois
+        // blocos vazios e consegue identificar se o problema é apenas o banco.
+        try { renderizarInventarioFicha(); } catch (erroCatalogo) { console.warn("Falha ao renderizar catálogo de itens.", erroCatalogo); }
+        atualizarStatusFicha("erro", "Comunicação indisponível", "O catálogo foi carregado, mas a ficha não sincronizou. Verifique a atualização do Supabase.", "⚠");
     } finally {
         carregandoFicha = false;
     }
@@ -371,6 +452,7 @@ async function salvarMinhaFicha() {
     const atualizacao = {
         salva_vidas: Number.isFinite(valorSalvaVidas) && valorSalvaVidas >= 0 ? valorSalvaVidas : 0,
         itens_catalogo: obterItensDoTripulante(window.usuarioAtual.id),
+        codex_selecoes: obterSelecoesCodexFicha(),
         itens_texto: document.getElementById("ficha-itens-texto")?.value?.trim() || "",
         atualizado_em: new Date().toISOString()
     };
@@ -407,7 +489,7 @@ async function carregarDadosProgressaoFicha() {
         const [catalogo, concluidas, kaijus, derrotados] = await Promise.all([
             supabaseClient
                 .from("missoes_catalogo")
-                .select("id, titulo, classe, oficial, criado_por, resumo, data_missao, ordem")
+                .select("id, titulo, classe, oficial, criado_por, resumo, data_missao, ordem, ganha_nivel")
                 .order("ordem", { ascending: true })
                 .order("criado_em", { ascending: true }),
             supabaseClient
@@ -474,7 +556,7 @@ function renderizarMissoesFicha() {
                                 <span class="ficha-check-visual">${concluida ? "✓" : ""}</span>
                                 <span class="ficha-missao-texto">
                                     <strong>${escaparTextoFicha(missao.titulo)}</strong>
-                                    <small>${pessoal ? "MISSÃO PESSOAL" : "+5 Vida · " + bonusCurtoClasseFicha(classe)}</small>
+                                    <small>${missao.ganha_nivel === false ? "SEM NÍVEL GANHO" : "+5 Vida · " + bonusCurtoClasseFicha(classe)}</small>
                                 </span>
                                 ${pessoal ? `
                                     <button type="button" title="Excluir missão pessoal" onclick="event.preventDefault(); excluirMissaoPessoalFicha('${escaparAtributoFicha(missao.id)}')">×</button>
@@ -768,26 +850,83 @@ function renderizarInventarioFicha() {
     const seus=document.getElementById("ficha-seus-itens");
     const todos=document.getElementById("ficha-todos-itens");
     if(seus) seus.innerHTML=possui.length ? catalogo.filter(i=>possui.includes(i.id)).map(i=>cardItemFicha(i,true)).join("") : `<div class="ficha-inventario-vazio"><span>◇</span><strong>NENHUM ITEM ADICIONADO</strong><p>Escolha equipamentos em “Todos os Itens” abaixo.</p></div>`;
-    if(todos) todos.innerHTML=catalogo.map(i=>cardItemFicha(i,possui.includes(i.id))).join("");
+    if(todos){
+        const itensNormais=catalogo.filter(i=>!i.codexKaijuId);
+        const itensCodex=catalogo.filter(i=>!!i.codexKaijuId);
+        todos.innerHTML=`
+            <div class="ficha-catalogo-grupo ficha-catalogo-codex">
+                <div class="ficha-catalogo-grupo-titulo"><div><span>📖</span><div><small>ARQUIVO DE COMBATE</small><strong>Codex dos Kaijus</strong></div></div><b>${itensCodex.length} CODEX</b></div>
+                <p class="ficha-catalogo-codex-ajuda">Adicione um Codex à sua ficha e então escolha qual ataque de Ás a 10 daquele Kaiju ele irá reproduzir.</p>
+                <div class="ficha-itens-subgrid">${itensCodex.map(i=>cardItemFicha(i,possui.includes(i.id))).join("")}</div>
+            </div>
+            <div class="ficha-catalogo-grupo ficha-catalogo-equipamentos">
+                <div class="ficha-catalogo-grupo-titulo"><div><span>⚔</span><div><small>EQUIPAMENTOS</small><strong>Itens de Espólio</strong></div></div><b>${itensNormais.length}</b></div>
+                <div class="ficha-itens-subgrid">${itensNormais.map(i=>cardItemFicha(i,possui.includes(i.id))).join("")}</div>
+            </div>`;
+    }
     document.querySelectorAll("[data-ficha-toggle-item]").forEach(btn=>btn.addEventListener("click",()=>alternarItemFicha(btn.dataset.fichaToggleItem)));
     document.querySelectorAll("[data-ficha-ver-item]").forEach(btn=>btn.addEventListener("click",()=>abrirDetalhesItemFicha(btn.dataset.fichaVerItem)));
+    document.querySelectorAll("[data-ficha-codex-select]").forEach(sel=>sel.addEventListener("change",()=>selecionarAtaqueCodexFicha(sel.dataset.fichaCodexSelect,sel.value)));
 }
 
 function cardItemFicha(item,possui){
     const reg=typeof obterAprimoramentosItem==="function" ? obterAprimoramentosItem(window.usuarioAtual?.id||"local",item.id) : {};
-    const qtd=Object.keys(reg).length;
-    return `<article class="ficha-item-card ${possui?'possuido':''}">
-        <div class="ficha-item-card-topo"><span class="ficha-item-icone">${typeof iconeTipo==='function'?iconeTipo(item.tipo):'⚔️'}</span><div><small>${escaparTextoFicha(item.origem)}</small><h5>${escaparTextoFicha(item.nome)}</h5></div><span class="ficha-item-apr-badge">⚙ ${qtd}/3</span></div>
-        <p>${escaparTextoFicha(item.descricao)}</p>
-        <div class="ficha-item-meta"><span>Cartas: ${item.cartas?.join(', ')||'—'}</span><span>Dano: ${typeof formatarDanoItemApr==='function'?formatarDanoItemApr(item):item.dano}</span></div>
+    const qtd=Object.keys(reg).filter(k=>["cartas","atributo","adicional"].includes(k)).length;
+    const selecao=item.codexKaijuId ? (obterSelecoesCodexFicha()[item.id]||"") : "";
+    const ataqueCodex=item.codexKaijuId&&selecao&&typeof obterCodexKaiju==='function' ? obterCodexKaiju(item.codexKaijuId)?.ataques?.[selecao] : null;
+    const descricao=ataqueCodex ? `${ataqueCodex.nome}: ${ataqueCodex.descricao}` : item.descricao;
+    const cartas=ataqueCodex ? selecao : (item.cartas?.join(', ')||'—');
+    const dano=ataqueCodex ? ataqueCodex.dano : (typeof formatarDanoItemApr==='function'?formatarDanoItemApr(item):item.dano);
+    const seletorCodex=item.codexKaijuId&&possui ? `<label class="ficha-codex-seletor"><span>📖 ATAQUE DO CODEX</span><select data-ficha-codex-select="${escaparAtributoFicha(item.id)}"><option value="">Selecione um ataque de A a 10</option>${opcoesAtaquesCodexFicha(item,selecao)}</select>${ataqueCodex?`<small><b>${escaparTextoFicha(ataqueCodex.nome)}</b> · Dano ${escaparTextoFicha(ataqueCodex.dano)}</small>`:`<small>Escolha um ataque no Registro de Kaijus para definir este item.</small>`}</label>` : '';
+    return `<article class="ficha-item-card ${possui?'possuido':''} ${item.codexKaijuId?'item-codex':''}">
+        <div class="ficha-item-card-topo"><span class="ficha-item-icone">${typeof iconeTipo==='function'?iconeTipo(item.tipo):'⚔️'}</span><div><small>${escaparTextoFicha(item.origem)}</small><h5>${escaparTextoFicha(item.nome)}${item.codexKaijuId?' <em class="ficha-codex-badge">CODEX</em>':''}</h5></div><span class="ficha-item-apr-badge">⚙ ${qtd}/3</span></div>
+        <p>${escaparTextoFicha(descricao)}</p>
+        <div class="ficha-item-meta"><span>Cartas: ${escaparTextoFicha(cartas)}</span><span>Dano: ${escaparTextoFicha(dano)}</span></div>
+        ${seletorCodex}
         <div class="ficha-item-acoes"><button type="button" data-ficha-ver-item="${item.id}">⚙ VER APRIMORAMENTOS</button><button type="button" class="${possui?'remover':'adicionar'}" data-ficha-toggle-item="${item.id}">${possui?'− REMOVER':'+ ADICIONAR'}</button></div>
     </article>`;
+}
+
+function opcoesAtaquesCodexFicha(item,selecao){
+    const codex=typeof obterCodexKaiju==='function'?obterCodexKaiju(item.codexKaijuId):null;
+    if(!codex?.ataques)return '';
+    const cartas=typeof CARTAS_CODEX_SELECIONAVEIS!=='undefined'?CARTAS_CODEX_SELECIONAVEIS:["A","2","3","4","5","6","7","8","9","10"];
+    return cartas.filter(c=>codex.ataques[c]).map(c=>{const a=codex.ataques[c];return `<option value="${escaparAtributoFicha(c)}" ${c===selecao?'selected':''}>${escaparTextoFicha(c)} — ${escaparTextoFicha(a.nome)} (${escaparTextoFicha(a.dano)} dano)</option>`}).join('');
+}
+
+async function selecionarAtaqueCodexFicha(itemId,carta){
+    if(!minhaFicha || !window.usuarioAtual?.id)return;
+    const item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===itemId&&i.codexKaijuId);if(!item)return;
+    const codex=typeof obterCodexKaiju==='function'?obterCodexKaiju(item.codexKaijuId):null;
+    const validas=typeof CARTAS_CODEX_SELECIONAVEIS!=='undefined'?CARTAS_CODEX_SELECIONAVEIS:["A","2","3","4","5","6","7","8","9","10"];
+    const selecoes=obterSelecoesCodexFicha();
+    if(carta&&validas.includes(carta)&&codex?.ataques?.[carta])selecoes[itemId]=carta;else delete selecoes[itemId];
+
+    // Atualiza a tela e o cache local antes da requisição, então a escolha não
+    // some ao trocar de página, adicionar/remover outro item ou recarregar.
+    minhaFicha.codex_selecoes={...selecoes};
+    salvarSelecoesCodexLocaisFicha(selecoes, window.usuarioAtual.id);
+    renderizarInventarioFicha();
+    atualizarStatusFicha("carregando", "Salvando Codex...", "Registrando o ataque selecionado.", "◌");
+
+    const salvo=await persistirSelecoesCodexFicha(selecoes);
+    if(salvo){
+        atualizarStatusFicha("disponivel", "Codex salvo", "A escolha permanecerá vinculada ao tripulante.", "✓");
+    }else{
+        atualizarStatusFicha("alterada", "Codex salvo localmente", "A escolha foi preservada neste navegador; salve a ficha para tentar sincronizar novamente.", "⚠");
+    }
 }
 
 function alternarItemFicha(itemId){
     const userId=window.usuarioAtual?.id || "local";
     const possui=obterItensDoTripulante(userId).includes(itemId);
-    if(possui) removerItemDoTripulante(userId,itemId); else adicionarItemAoTripulante(userId,itemId);
+    if(possui){
+        removerItemDoTripulante(userId,itemId);
+        if(minhaFicha?.codex_selecoes){
+            delete minhaFicha.codex_selecoes[itemId];
+            salvarSelecoesCodexLocaisFicha(minhaFicha.codex_selecoes,userId);
+        }
+    } else adicionarItemAoTripulante(userId,itemId);
     marcarFichaComoAlterada();
     renderizarInventarioFicha();
 }
@@ -799,7 +938,8 @@ function abrirDetalhesItemFicha(itemId){
     let modal=document.getElementById("ficha-item-detalhes-overlay");
     if(!modal){ modal=document.createElement("div"); modal.id="ficha-item-detalhes-overlay"; modal.className="ficha-modal-overlay"; document.body.appendChild(modal); }
     modal.hidden=false;
-    modal.innerHTML=`<div class="ficha-modal ficha-item-modal"><div class="ficha-modal-cabecalho"><div><span>${escaparTextoFicha(item.origem)}</span><h3>${escaparTextoFicha(item.nome)}</h3></div><button type="button" class="ficha-modal-fechar" data-fechar-item-modal>×</button></div><p class="ficha-ajuda">${escaparTextoFicha(item.descricao)}</p><div class="ficha-item-aprimoramentos-modal">${Object.entries(nomes).map(([k,c])=>{const a=reg[k];return `<div class="ficha-item-apr-linha ${a?'ativo':''}"><span>${c.icone}</span><div><strong>${escaparTextoFicha(c.nome)}</strong><small>${a?`${rotuloRaridade(a.raridade)} • ${escaparTextoFicha(a.texto)}`:'Ainda não adquirido'}</small></div></div>`}).join('')}</div></div>`;
+    const cartaCodex=item.codexKaijuId?obterSelecoesCodexFicha()[item.id]:null; const ataqueCodex=cartaCodex&&typeof obterCodexKaiju==='function'?obterCodexKaiju(item.codexKaijuId)?.ataques?.[cartaCodex]:null;
+    modal.innerHTML=`<div class="ficha-modal ficha-item-modal"><div class="ficha-modal-cabecalho"><div><span>${escaparTextoFicha(item.origem)}</span><h3>${escaparTextoFicha(item.nome)}</h3></div><button type="button" class="ficha-modal-fechar" data-fechar-item-modal>×</button></div><p class="ficha-ajuda">${escaparTextoFicha(ataqueCodex?`${cartaCodex} — ${ataqueCodex.nome}: ${ataqueCodex.descricao}`:item.descricao)}</p><div class="ficha-item-aprimoramentos-modal">${Object.entries(nomes).map(([k,c])=>{const a=reg[k];return `<div class="ficha-item-apr-linha ${a?'ativo':''}"><span>${c.icone}</span><div><strong>${escaparTextoFicha(c.nome)}</strong><small>${a?`${rotuloRaridade(a.raridade)} • ${escaparTextoFicha(a.texto)}`:'Ainda não adquirido'}</small></div></div>`}).join('')}</div></div>`;
     modal.querySelector('[data-fechar-item-modal]')?.addEventListener('click',()=>modal.hidden=true);
     modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true},{once:true});
 }

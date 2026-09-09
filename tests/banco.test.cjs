@@ -8,6 +8,24 @@ const scalar=async(sql,params=[])=>Object.values((await db.query(sql,params)).ro
 async function login(id=A,role='authenticated'){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role '+role);}
 async function rpc(name,...args){return scalar(`select public.${name}(${args.map((_,i)=>'$'+(i+1)).join(',')})`,args.map(a=>typeof a==='object'&&a!==null?JSON.stringify(a):a));}
 const op=()=>require('node:crypto').randomUUID();
+test('V8 instala 27 equipamentos e permite salvar Codex somente na própria ficha',async()=>{
+ await db.exec('reset role');
+ const v8=fs.readFileSync('EXECUTAR-ATUALIZACAO-ITENS-CODEX-V8.sql','utf8');
+ await db.exec(v8);await db.exec(v8);
+ assert.equal(await scalar('select count(*)::int from nave_itens_catalogo'),27);
+ await db.exec(`alter table fichas_tripulantes enable row level security;
+ grant select on fichas_tripulantes to authenticated;
+ create policy ler_fichas_v8 on fichas_tripulantes for select to authenticated using(true);
+ create policy editar_fichas_v8 on fichas_tripulantes for update to authenticated using(id=auth.uid()) with check(id=auth.uid());`);
+ await login();
+ await db.query('update fichas_tripulantes set codex_selecoes=$1 where id=$2',[JSON.stringify({'codex-porco':'A'}),A]);
+ assert.deepEqual(await scalar('select codex_selecoes from fichas_tripulantes where id=$1',[A]),{'codex-porco':'A'});
+ await login(B);await db.query("update fichas_tripulantes set codex_selecoes='{}' where id=$1",[A]);
+ assert.deepEqual(await scalar('select codex_selecoes from fichas_tripulantes where id=$1',[A]),{'codex-porco':'A'});
+ await db.exec('reset role;drop policy ler_fichas_v8 on fichas_tripulantes;drop policy editar_fichas_v8 on fichas_tripulantes;alter table fichas_tripulantes disable row level security;');
+ // Restaura a versão do catálogo usada pelos testes V7 abaixo.
+ await db.exec('delete from nave_itens_catalogo');await db.exec(fs.readFileSync('EXECUTAR-REVISAO-GERAL-V7.sql','utf8'));await login();
+});
 async function criarBancoTeste(){
  const banco=new PGlite();
  await banco.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE SCHEMA auth;CREATE SCHEMA storage;

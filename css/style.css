@@ -7985,3 +7985,23 @@ img { object-fit:contain !important; object-position:center center !important; }
 #ficha-item-detalhes-overlay .ficha-modal-cabecalho {display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;}
 #ficha-item-detalhes-overlay .ficha-modal-fechar {background:transparent;color:white;font-size:28px;}
 .ficha-itens-grid {grid-template-columns:repeat(auto-fit,minmax(min(245px,100%),1fr));}
+
+/* V8 — seleção de ataques dos itens Codex */
+.ficha-item-card.item-codex{border-color:rgba(139,92,246,.25);background:linear-gradient(145deg,rgba(15,22,42,.92),rgba(15,13,35,.9))}
+.ficha-codex-seletor{display:block;margin-top:10px;padding:10px;border:1px solid rgba(139,92,246,.2);border-radius:10px;background:rgba(139,92,246,.055)}
+.ficha-codex-seletor>span{display:block;margin-bottom:6px;color:#b5a3ff;font:700 8px Arial,sans-serif;letter-spacing:.8px}
+.ficha-codex-seletor select{width:100%;min-height:34px;padding:7px 9px;border:1px solid rgba(126,208,255,.2);border-radius:8px;background:#091426;color:#eaf3ff;font:10px Arial,sans-serif}
+.ficha-codex-seletor small{display:block;margin-top:7px;color:#829bb8;font:9px/1.45 Arial,sans-serif}
+.ficha-codex-seletor small b{color:#d9d0ff}
+
+/* V8.2 - Catálogo dividido para deixar os Codex sempre visíveis */
+.ficha-itens-grid.catalogo{display:block}
+.ficha-catalogo-grupo{margin-top:12px}
+.ficha-catalogo-grupo:first-child{margin-top:0}
+.ficha-catalogo-grupo-titulo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:9px 11px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.018)}
+.ficha-catalogo-grupo-titulo>div{display:flex;align-items:center;gap:9px}.ficha-catalogo-grupo-titulo>div>span{font-size:17px}.ficha-catalogo-grupo-titulo small,.ficha-catalogo-grupo-titulo strong{display:block}.ficha-catalogo-grupo-titulo small{font:7px Arial,sans-serif;letter-spacing:1.3px;color:#607791}.ficha-catalogo-grupo-titulo strong{margin-top:2px;font-size:10px;color:#edf5ff}.ficha-catalogo-grupo-titulo>b{font:8px Arial,sans-serif;color:#66809e}
+.ficha-itens-subgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:10px}
+.ficha-catalogo-codex{margin-top:18px;padding-top:2px}.ficha-catalogo-codex .ficha-catalogo-grupo-titulo{border-color:rgba(139,92,246,.22);background:rgba(139,92,246,.045)}
+.ficha-catalogo-codex-ajuda{margin:-2px 0 10px;padding:0 3px;color:#8e83c7;font:9px/1.45 Arial,sans-serif}
+.ficha-codex-badge{display:inline-block;margin-left:5px;padding:2px 5px;border:1px solid rgba(236,72,153,.35);border-radius:6px;background:rgba(236,72,153,.08);color:#f59bd1;font:6px Arial,sans-serif;letter-spacing:.8px;vertical-align:1px}
+@media(max-width:760px){.ficha-itens-subgrid{grid-template-columns:1fr}}

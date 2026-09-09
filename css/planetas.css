@@ -1,0 +1,53 @@
+/* Observatório orbital — estilos limitados ao mapa estelar. */
+#pagina-mapa { --orbital-accent: #85e5ce; }
+#pagina-mapa .n-heading h2 { letter-spacing: -.04em; font-size: clamp(1.7rem, 3vw, 2.6rem); }
+#pagina-mapa > .n-heading p { color: #9caec8; }
+#pagina-mapa .n-planets {
+    position: relative; isolation: isolate; padding: clamp(16px, 3vw, 32px);
+    border: 1px solid #293d57; border-radius: 24px;
+    background: radial-gradient(ellipse at 5% 0%, #24425188, transparent 55%),
+        radial-gradient(ellipse at 90% 80%, #3a295666, transparent 60%), #080f1d;
+    box-shadow: 0 24px 70px #0005; overflow: hidden;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px;
+}
+#pagina-mapa .n-planets::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background-image: radial-gradient(circle, #c3deff80 1px, transparent 1.5px), radial-gradient(circle, #ffffff40 .7px, transparent 1.2px);
+    background-size: 83px 101px, 127px 67px; background-position: 12px 27px, 45px 9px;
+}
+#pagina-mapa .n-planet-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; align-content: start; }
+#pagina-mapa .n-planet-list button {
+    min-width: 0; min-height: 185px; display: flex; flex-direction: column; align-items: flex-start;
+    gap: 18px; padding: 22px; text-align: left; border: 1px solid #40516a70;
+    background: linear-gradient(145deg,#1b2b3d99,#111c2cdd); border-radius: 18px;
+    transition: transform .2s, border-color .2s, background .2s; color: #e8f3ff;
+}
+#pagina-mapa .n-planet-list button:hover { transform: translateY(-3px); border-color: #8daec9; }
+#pagina-mapa .n-planet-list button.active { border-color: var(--orbital-accent); background: linear-gradient(145deg,#24514999,#152936cc); box-shadow: inset 0 0 0 1px #85e5ce30,0 8px 28px #0003; }
+#pagina-mapa .n-planet-list button:focus-visible { outline: 3px solid #e9c889; outline-offset: 3px; }
+#pagina-mapa .n-planet-list strong { display: block; font-size: 1rem; overflow-wrap: anywhere; }
+#pagina-mapa .n-planet-list small { display: block; margin-top: 7px; color: #abc0d3; line-height: 1.5; }
+#pagina-mapa .n-planet-symbol {
+    --planet: #53c5a6; position: relative; display: block; width: 66px; height: 66px; flex: 0 0 66px;
+    border-radius: 50%; font-size: 0; color: transparent;
+    background: radial-gradient(circle at 30% 25%,#e5ffeaa0,transparent 35%),
+        repeating-linear-gradient(155deg,transparent 0 10px,#071f3725 12px 17px),
+        radial-gradient(circle at 30% 30%,var(--planet) 12%,#0b243f 88%);
+    box-shadow: inset -14px -9px 16px #020914a0, 0 0 26px #6bdbc126;
+}
+#pagina-mapa .n-planet-symbol::after { content:''; position:absolute; inset:-8px; border:1px solid #b4daf332; border-radius:50%; transform:rotate(-25deg) scaleY(.48); }
+#pagina-mapa .n-planet-list button:nth-child(4n+2) .n-planet-symbol { --planet:#ac89f4; }
+#pagina-mapa .n-planet-list button:nth-child(4n+3) .n-planet-symbol { --planet:#ebaa69; }
+#pagina-mapa .n-planet-list button:nth-child(4n) .n-planet-symbol { --planet:#71c9ef; }
+#pagina-mapa .n-planet-detail { align-self: start; min-width: 0; padding: clamp(18px,2.5vw,28px); background: #0d1828e8; border:1px solid #3b5166; border-radius:18px; backdrop-filter:blur(10px); }
+#pagina-mapa .n-planet-detail h3 { font-size:clamp(1.4rem,2vw,2rem); margin-top:14px; overflow-wrap:anywhere; }
+#pagina-mapa .n-planet-detail > p { line-height:1.8; color:#b9c9da; }
+#pagina-mapa .n-stats { margin:24px 0; gap:10px; }
+#pagina-mapa .n-stats > div { border:1px solid #32465b; border-radius:12px; padding:15px; background:#17283b; }
+#pagina-mapa .n-stats strong { color:#91e6d1; }
+#pagina-mapa .n-actions { gap:10px; }
+#pagina-mapa .n-actions button { border-radius:10px; min-height:42px; }
+#pagina-mapa .n-actions .primary { background:#85e5ce; color:#082b29; border-color:#85e5ce; font-weight:700; }
+@media(max-width:1000px) { #pagina-mapa .n-planets { grid-template-columns:1fr; } }
+@media(max-width:420px) { #pagina-mapa .n-planets { padding:12px; gap:16px; } #pagina-mapa .n-planet-list { gap:8px; } #pagina-mapa .n-planet-list button { padding:14px; min-height:175px; } #pagina-mapa .n-planet-list strong { font-size:.85rem; } }
+@media(prefers-reduced-motion:reduce) { #pagina-mapa .n-planet-list button { transition:none; } #pagina-mapa .n-planet-list button:hover { transform:none; } }
