@@ -36,9 +36,29 @@ const NaveDados = (() => {
                 if (r.error) throw r.error;
                 if (generation !== epoch || user !== uid()) return [];
                 const rows = r.data || [];
-                if (module === 'catalogo') CATALOGO_ITENS_APRIMORAMENTO.splice(0, CATALOGO_ITENS_APRIMORAMENTO.length, ...rows.map(r => ({...r.definicao, id:r.id, nome:r.nome})));
-                else banco[module] = rows;
-                states[module] = 'ready'; emit(module); return rows;
+                if (module === 'catalogo') {
+                    // O catálogo embutido no front-end é a fonte mínima obrigatória.
+                    // Bancos antigos podem ter somente parte dos equipamentos e, se
+                    // substituíssemos o array inteiro pelos registros remotos, Codex e
+                    // itens recém-adicionados desapareceriam da ficha.
+                    const locais = CATALOGO_ITENS_APRIMORAMENTO.map(item => ({...item}));
+                    const porId = new Map(locais.map(item => [item.id, item]));
+                    rows.forEach(row => {
+                        const remoto = {...(row.definicao || {}), id: row.id, nome: row.nome};
+                        const local = porId.get(row.id) || {};
+                        // O registro remoto pode atualizar dados do item, mas campos
+                        // estruturais locais (como codexKaijuId) não são apagados se
+                        // ainda não existirem no banco.
+                        porId.set(row.id, {...local, ...remoto});
+                    });
+                    CATALOGO_ITENS_APRIMORAMENTO.splice(
+                        0,
+                        CATALOGO_ITENS_APRIMORAMENTO.length,
+                        ...Array.from(porId.values())
+                    );
+                } else banco[module] = rows;
+                states[module] = 'ready'; emit(module);
+                return module === 'catalogo' ? CATALOGO_ITENS_APRIMORAMENTO : rows;
             } catch (error) {
                 if (generation === epoch) { states[module] = message(error); emit(module); }
                 throw Error(message(error));

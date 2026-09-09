@@ -25,7 +25,7 @@ function telaMissoes() {
                 </div>
                 <div class="missoes-regra">
                     <strong>RECOMPENSA POR MISSÃO</strong>
-                    <span>+5 Vida e +1 no atributo da classe</span>
+                    <span>Com nível: +5 Vida e +1 no atributo da classe. Sem nível: somente conclusão.</span>
                 </div>
             </div>
 
@@ -139,11 +139,12 @@ function renderizarCatalogoMissoes() {
     const concluidas = catalogoMissoes.filter(missao =>
         missoesConcluidasUsuario.has(missao.id)
     );
-    const porClasse = contarMissoesPorClasse(concluidas);
+    const premiadas = concluidas.filter(m => m.ganha_nivel !== false);
+    const porClasse = contarMissoesPorClasse(premiadas);
 
     resumo.innerHTML = `
         ${criarResumoMissao("📜", "Total disponível", catalogoMissoes.length, "operações")}
-        ${criarResumoMissao("✅", "Concluídas", concluidas.length, `+${concluidas.length * 5} de vida`)}
+        ${criarResumoMissao("✅", "Concluídas", concluidas.length, `+${premiadas.length * 5} de vida · ${concluidas.length-premiadas.length} sem nível`)}
         ${criarResumoMissao("🛡️", "Embaixador", porClasse.Embaixador, `+${porClasse.Embaixador} defesa`)}
         ${criarResumoMissao("⚔️", "Combatente", porClasse.Combatente, `+${porClasse.Combatente} dano`)}
         ${criarResumoMissao("💨", "Tripulante", porClasse.Tripulante, `+${porClasse.Tripulante} agilidade`)}
@@ -185,6 +186,7 @@ function criarCardCatalogoMissao(missao) {
                     <span class="missao-classe-badge">${iconeClasseMissao(missao.classe)} ${escaparTextoMissao(missao.classe)}</span>
                     <span class="missao-tipo-badge">${pessoal ? "MISSÃO PESSOAL" : "MISSÃO OFICIAL"}</span>
                     <h3>${escaparTextoMissao(missao.titulo)}</h3>
+                    ${missao.ganha_nivel === false ? '<span class="missao-tipo-badge">SEM NÍVEL GANHO</span>' : ''}
                     <p>${escaparTextoMissao(missao.resumo)}</p>
                 </div>
 
@@ -214,7 +216,8 @@ function criarCardCatalogoMissao(missao) {
                         <p>${escaparTextoMissao(missao.entrega || "Apresente a conclusão ao professor para validação.")}</p>
                     </div>
                     <div class="missao-detalhe-rodape">
-                        <span><strong>Bônus:</strong> ${escaparTextoMissao(recompensaClasseMissao(missao.classe))}</span>
+                        <span><strong>Bônus:</strong> ${missao.ganha_nivel === false ? 'Sem nível ganho' : escaparTextoMissao(recompensaClasseMissao(missao.classe))}</span>
+                        <button type="button" onclick="editarMissaoCatalogo('${escaparAtributoMissao(missao.id)}')">Editar missão</button>
                         <span><strong>Fonte:</strong> ${escaparTextoMissao(missao.fonte || "Registro pessoal")}</span>
                         ${pessoal ? `
                             <button type="button" onclick="excluirMissaoPessoal('${escaparAtributoMissao(missao.id)}')">
