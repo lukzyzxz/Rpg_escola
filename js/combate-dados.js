@@ -36,17 +36,32 @@ const CombateDados=(()=>{
   const rawText=ficha.itens_texto||'';const ids=new Set(Array.isArray(ficha.itens_catalogo)?ficha.itens_catalogo:[]);
   const text=M.norm(rawText);
   for(const [id,keys] of Object.entries(aliases))if(keys.some(k=>text.includes(k)))ids.add(id);
-  const owned=items.filter(i=>ids.has(i.id)).map(i=>{if(!i.codexKaijuId)return i;const carta=ficha.codex_selecoes?.[i.id];const ataque=(typeof obterCodexKaiju==='function'&&carta)?obterCodexKaiju(i.codexKaijuId)?.ataques?.[carta]:null;return ataque?{...i,cartas:[carta],dano:Number(ataque.dano)||0,descricao:`${ataque.nome}: ${ataque.descricao}`}:{...i,cartas:[]};});const p={id:profile.id||'convidado-'+Array.from(crypto.getRandomValues(new Uint32Array(4)),x=>x.toString(16).padStart(8,'0')).join(''),profileId:profile.id||null,name:profile.nome||profile.username||'Convidado',photo:profile.avatar||ficha.personagem_frente_path||'',maxHp:Number(ficha.vida??20),extra:Number(ficha.dano_extra||0),speed:Number(ficha.agilidade??5),defense:Number(ficha.defesa||0),cards:{},options:{},notes:rawText,upgrades,owned:owned.map(i=>i.id),reviewNotes:[]};
+  const owned=items.filter(i=>ids.has(i.id)).map(i=>{if(!i.codexKaijuId)return {...i,cartas:[...i.cartas]};const carta=ficha.codex_selecoes?.[i.id];const ataque=(typeof obterCodexKaiju==='function'&&carta)?obterCodexKaiju(i.codexKaijuId)?.ataques?.[carta]:null;return ataque?{...i,cartas:[carta],dano:Number(ataque.dano)||0,descricao:`${ataque.nome}: ${ataque.descricao}`}:{...i,cartas:[]};});const p={id:profile.id||'convidado-'+Array.from(crypto.getRandomValues(new Uint32Array(4)),x=>x.toString(16).padStart(8,'0')).join(''),profileId:profile.id||null,name:profile.nome||profile.username||'Convidado',photo:profile.avatar||ficha.personagem_frente_path||'',maxHp:Number(ficha.vida??20),extra:Number(ficha.dano_extra||0),speed:Number(ficha.agilidade??5),defense:Number(ficha.defesa||0),cards:{},options:{},notes:rawText,upgrades,owned:owned.map(i=>i.id),reviewNotes:[]};
   for(const i of owned)if(i.codexKaijuId&&!ficha.codex_selecoes?.[i.id])p.reviewNotes.push(`${i.nome}: selecione um ataque de A a 10 na Ficha do Tripulante antes do combate.`);
+  // A distribuição escrita na ficha substitui as cartas padrão do mesmo item.
+  const assignments=rawText.split('\n').map(line=>{
+   const match=line.match(/^\s*((?:A|10|[1-9]|[JQK])(?:\s*[,/]\s*(?:A|10|[1-9]|[JQK]))*)\s*[):—–-]\s*(.*)$/i);
+   if(!match)return null;
+   const description=match[2],described=M.norm(description);
+   const known=owned.find(i=>described.includes(M.norm(i.nome))||aliases[i.id]?.some(k=>described.includes(k)));
+   return {cards:[...new Set(match[1].split(/[,/]/).map(M.card))],description,known};
+  }).filter(Boolean);
+  for(const i of owned){const explicit=assignments.filter(a=>a.known?.id===i.id);if(explicit.length)i.cartas=[...new Set(explicit.flatMap(a=>a.cards))];}
   for(const c of M.CARDS){const matches=owned.filter(i=>i.cartas.map(M.card).includes(c));p.options[c]=matches.map(i=>itemRule(i,upgrades[i.id]));if(matches[0])p.cards[c]=M.clone(p.options[c][0]);if(matches.length>1)p.reviewNotes.push(`Carta ${c}: escolha entre ${matches.map(i=>i.nome).join(' / ')}.`);}
-  // Linhas com carta explícita prevalecem sobre o catálogo, mantendo a descrição para revisão.
-  for(const line of rawText.split('\n').filter(Boolean)){
-   const match=line.match(/^\s*((?:A|1[0]?|[2-9]|[JQK])(?:\s*[,/]\s*(?:A|1[0]?|[2-9]|[JQK]))*)\s*[):—-]\s*(.*)$/i);
-   if(match){for(const c of match[1].split(/[,/]/).map(M.card)){
-    const described=M.norm(match[2]);const known=owned.find(i=>aliases[i.id]?.some(k=>described.includes(k)));
-    p.cards[c]=known?itemRule(known,upgrades[known.id]):M.parse(match[2]);
-    if(known){const custom=M.parse(match[2]);const extras=custom.effects.filter(e=>['stun','poison','burn','bleed','blind','skip','shield','regen'].includes(e.kind));p.cards[c].effects.push(...extras);p.cards[c].text=match[2];}
-   }}
+  for(const {cards,description,known} of assignments){
+   // Notações como "Terremoto da selva -3 em todos" indicam dano, não cura.
+   const expanded=description.replace(/\s*[-–—]\s*(\d+(?:[.,]\d+)?)\s*(?=em todos\s*$|$)/i,' causa $1 de dano ');
+   const custom=M.parse(expanded);
+   for(const c of cards){
+    const r=known?itemRule(known,upgrades[known.id]):M.clone(custom);
+    if(known){const extras=custom.effects.filter(e=>['stun','poison','burn','bleed','blind','skip','shield','regen'].includes(e.kind));r.effects.push(...extras);}
+    r.text=description;
+    r.warnings=[...(r.warnings||[]),'Distribuição sugerida pelo texto da ficha. Confira ataque, dano e alvo e confirme esta interpretação.'];
+    if(/\bou\b|caso opte/i.test(description))r.warnings.push('O texto oferece alternativas: escolha o dano e o alvo desejados no editor.');
+    r.reviewed=false;
+    p.cards[c]=r;
+    p.options[c].unshift(M.clone(r));
+   }
   }
   if(rawText)p.reviewNotes.push('Confira todas as linhas do texto original: regras personalizadas, passivas e ataques de Codex precisam estar representados nas cartas.');
   for(const [id,u] of Object.entries(upgrades))if(u.cartas)p.reviewNotes.push(`${items.find(i=>i.id===id)?.nome||id}: escolha ${ {comum:1,incomum:2,raro:3}[u.cartas.raridade]||1} carta(s) adicional(is) no editor.`);

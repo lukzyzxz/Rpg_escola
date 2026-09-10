@@ -30,3 +30,15 @@ test('Arena carrega colegas e equipamentos pelo acesso de combate, sem depender 
  assert.equal(players.length,2);assert.equal(players[1].name,'Colega');assert.equal(players[1].maxHp,85);assert.equal(players[1].cards.A.damage,5);
  assert.equal(value(`CombateDados.importPlayer('u2',combatFixture,'mecha').maxHp`),40);
 });
+
+test('texto da ficha distribui Lança, Lâminas e Terremoto nas cartas indicadas, exigindo confirmação',()=>{
+ const p=value(`CombateDados.makePlayer({id:'u1',nome:'Piloto'},{itens_texto:'4,5,6 - Lança - Dá 20 de dano ou 15 de dano caso opte por acertar 2 oponentes\\nA,2,3,7 - Lâminas Gêmeas -9\\n10 - Terremoto da selva -3 em todos'},CATALOGO_ITENS_APRIMORAMENTO)`);
+ for(const c of ['4','5','6']){assert.equal(p.cards[c].damage,20);assert.match(p.cards[c].text,/Lança/);assert(p.cards[c].warnings.some(w=>w.includes('alternativas')));}
+ for(const c of ['A','2','3','7']){assert.equal(p.cards[c].itemId,'laminas-gemeas');assert.equal(p.cards[c].damage,9);}
+ assert.equal(p.cards['10'].damage,3);assert.equal(p.cards['10'].target,'all');
+ for(const r of Object.values(p.cards)){assert.equal(r.reviewed,false);assert(r.warnings.length);}
+ assert.equal(Object.values(p.cards).filter(r=>r.itemId==='laminas-gemeas').length,4);
+ // Edição confirmada permanece possível sem alterar a ficha de origem.
+ p.cards['10'].damage=4;p.cards['10'].reviewed=true;
+ assert.equal(p.cards['10'].damage,4);assert.equal(p.cards['10'].reviewed,true);
+});
