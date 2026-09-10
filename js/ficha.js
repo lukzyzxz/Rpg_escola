@@ -83,6 +83,7 @@ let canalFichas = null;
 function telaFicha() {
     return `
         <section class="ficha-pagina ficha-pagina-expandida">
+            ${TiaoAcesso.ehTiao()?`<div class="n-actions"><button type="button" class="n-button primary" onclick="TiaoAcesso.perfis()">TIÃO · Acessar todos os perfis</button></div>`:""}
             <div class="ficha-coluna-principal">
                 <article class="ficha-card ficha-propria">
                     <div class="ficha-identidade-perfil">

@@ -208,10 +208,7 @@ async function carregarRegistroKaijus() {
 
     try {
         const [kaijus, pecas, derrotados] = await Promise.all([
-            supabaseClient
-                .from("mecha_kaijus_catalogo")
-                .select("*")
-                .order("ordem"),
+            supabaseClient.rpc("nave_listar_kaijus"),
             supabaseClient
                 .from("mecha_pecas_catalogo")
                 .select("id, kaiju_id, slot, nome, efeito_resumo, descricao")
@@ -259,6 +256,7 @@ function renderizarRegistroKaijus() {
     }
 
     lista.innerHTML = catalogoKaijusRegistro.map((kaiju, indice) => {
+        if(kaiju.bloqueado)return `<article class="kaiju-registro-card"><div class="kaiju-imagem-wrap"><div class="kaiju-imagem-vazia" aria-hidden="true">🔒</div></div><div class="kaiju-registro-corpo"><span class="kaiju-classificacao">REGISTRO SIGILOSO</span><h3>Kaiju secreto · K-${String(indice+1).padStart(2,'0')}</h3><p>Insira a senha para revelar a criatura, seus atributos e ataques.</p><button class="n-button primary" type="button" onclick="TiaoAcesso.desbloquear('${escaparAtributoKaiju(kaiju.id)}',carregarRegistroKaijus)">Desbloquear com senha</button></div></article>`;
         const derrotado = kaijusDerrotadosRegistro.has(kaiju.id);
         const pecas = pecasKaijusRegistro.filter(peca => peca.kaiju_id === kaiju.id);
         const codex = obterCodexKaiju(kaiju.id);

@@ -32,9 +32,7 @@ async function carregarFrotasSupabase(atualizarInterface = true) {
                 .order("fixa", { ascending: false })
                 .order("created_at", { ascending: true }),
 
-            supabaseClient
-                .from("profiles")
-                .select("id, nome, username, cargo, avatar"),
+            supabaseClient.rpc("nave_diretorio"),
 
             supabaseClient
                 .from("frota_integrantes")

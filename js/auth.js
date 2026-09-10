@@ -1115,6 +1115,8 @@ async function autenticarUsuarioNoSistema(
             profile;
 
 
+        await TiaoAcesso.carregar();
+
         removerTelaAuth();
 
         mostrarSistema();

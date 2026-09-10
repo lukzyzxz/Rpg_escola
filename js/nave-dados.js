@@ -114,7 +114,7 @@ const NaveDados = (() => {
         await Promise.all(rows.map(async k=>{if(k.imagem_storage?.path)k.imagem_url=await imageUrl(k.imagem_storage); else k.imagem_url=k.imagem_path;})); return rows;
     }
     async function kaijus() {
-        const r=await supabaseClient.from('mecha_kaijus_catalogo').select('*').order('ordem'); if(r.error)throw Error(message(r.error)); return hydrateKaijus(r.data||[]);
+        const r=await supabaseClient.rpc('nave_listar_kaijus'); if(r.error)throw Error(message(r.error)); return hydrateKaijus(r.data||[]);
     }
     async function uploadKaiju(file) {
         if(!uid())throw Error('Entre na sua conta.');

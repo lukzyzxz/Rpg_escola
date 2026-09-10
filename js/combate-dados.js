@@ -58,6 +58,7 @@ const CombateDados=(()=>{
   for(const r of Object.values(p.cards))if(r.itemId==='laminas-gemeas')r.damage=counts[r.itemId]>=4?9:5;
   p.equipmentDefense=Object.values(p.cards).some(r=>r.itemId==='lamina-vorpal')?-2:0;}
  function makeBoss(raw={}){
+  if(raw.bloqueado)throw Error('Desbloqueie o Kaiju com a senha antes de iniciar o combate.');
   const codex=typeof CODEX_KAIJUS!=='undefined'?CODEX_KAIJUS[raw.id]:null;
   const fromDatabase=raw.personalizado||Object.keys(raw.ataques||{}).length>0;
   const b={id:'boss',name:raw.nome||'Kaiju',photo:raw.imagem_url||raw.imagem_path||'',maxHp:Number(raw.vida||codex?.vida||100),speed:Number(fromDatabase?raw.agilidade??5:raw.agilidade||codex?.agilidade||5),extra:0,defense:Number(raw.defesa??codex?.defesa??0),cards:{},notes:raw.passivas||'',reviewNotes:[]};
@@ -77,7 +78,7 @@ const CombateDados=(()=>{
  async function load(){
   if(typeof NaveDados!=='undefined')await NaveDados.list('catalogo');
   const requests=[['profiles','*'],['fichas_tripulantes','*'],['frotas','id,nome,cor,fixa'],['frota_integrantes','frota_id,usuario_id'],['mecha_kaijus_catalogo','*'],['mechas_20m','*'],['mecha_pecas_equipadas','*'],['mecha_pecas_catalogo','*']];
-  const result=await Promise.all(requests.map(async([table,cols])=>{const r=await supabaseClient.from(table).select(cols);if(r.error)throw Error(`${table}: ${r.error.message}`);return r.data||[];}));
+  const result=await Promise.all(requests.map(async([table,cols])=>{const r=table==='mecha_kaijus_catalogo'?await supabaseClient.rpc('nave_listar_kaijus'):await supabaseClient.from(table).select(cols);if(r.error)throw Error(`${table}: ${r.error.message}`);return r.data||[];}));
   const [profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas]=result;
   if(typeof NaveDados!=='undefined')await NaveDados.hydrateKaijus(kaijus);
   await Promise.all(mechas.map(async m=>{if(m.imagem_path&&!/^(https?:|assets\/)/.test(m.imagem_path))m.photoUrl=await photoUrl({bucket:'mechas-designs',path:m.imagem_path});}));
