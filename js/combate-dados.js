@@ -77,9 +77,11 @@ const CombateDados=(()=>{
  }
  async function load(){
   if(typeof NaveDados!=='undefined')await NaveDados.list('catalogo');
-  const requests=[['profiles','*'],['fichas_tripulantes','*'],['frotas','id,nome,cor,fixa'],['frota_integrantes','frota_id,usuario_id'],['mecha_kaijus_catalogo','*'],['mechas_20m','*'],['mecha_pecas_equipadas','*'],['mecha_pecas_catalogo','*']];
-  const result=await Promise.all(requests.map(async([table,cols])=>{const r=table==='mecha_kaijus_catalogo'?await supabaseClient.rpc('nave_listar_kaijus'):await supabaseClient.from(table).select(cols);if(r.error)throw Error(`${table}: ${r.error.message}`);return r.data||[];}));
-  const [profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas]=result;
+  const requests=[['nave_dados_combate',null],['frotas','id,nome,cor,fixa'],['frota_integrantes','frota_id,usuario_id'],['mecha_kaijus_catalogo','*'],['mechas_20m','*'],['mecha_pecas_equipadas','*'],['mecha_pecas_catalogo','*']];
+  const result=await Promise.all(requests.map(async([table,cols])=>{const r=table==='nave_dados_combate'?await supabaseClient.rpc('nave_dados_combate'):table==='mecha_kaijus_catalogo'?await supabaseClient.rpc('nave_listar_kaijus'):await supabaseClient.from(table).select(cols);if(r.error)throw Error(`${table}: ${r.error.message}`);return r.data||[];}));
+  const [combat,frotas,members,kaijus,mechas,equipadas,pecas]=result;
+  if(!Array.isArray(combat.profiles)||!Array.isArray(combat.fichas))throw Error('Dados da tripulação indisponíveis para o combate.');
+  const {profiles,fichas}=combat;
   if(typeof NaveDados!=='undefined')await NaveDados.hydrateKaijus(kaijus);
   await Promise.all(mechas.map(async m=>{if(m.imagem_path&&!/^(https?:|assets\/)/.test(m.imagem_path))m.photoUrl=await photoUrl({bucket:'mechas-designs',path:m.imagem_path});}));
   return {profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas};

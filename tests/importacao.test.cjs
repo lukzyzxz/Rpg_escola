@@ -17,3 +17,16 @@ test('retomar batalha renova URL temporária sem perder a referência da imagem'
 test('Kaiju novo importa cartas estruturadas, agilidade zero e imagem privada',()=>{const b=value(`CombateDados.makeBoss({id:'novo',nome:'Chefe',personalizado:true,vida:130,agilidade:0,imagem_storage:{bucket:'kaijus-imagens',path:'u1/chefe.png'},imagem_url:'https://imagens.example/chefe',ataques:{A:{nome:'Impacto',dano:5,descricao:'Texto'}},regras_combate:{A:{name:'Impacto',damage:5,target:'left',reviewed:true,effects:[{kind:'stun',duration:1,chance:100,target:'target'}]}}})`);assert.equal(b.maxHp,130);assert.equal(b.speed,0);assert.equal(b.cards.A.effects[0].kind,'stun');assert.equal(b.cards.A.target,'left');assert.equal(b.photoSource.bucket,'kaijus-imagens');});
 test('dano composto ou divergente no Codex exige revisão antes da batalha',()=>{const b=value(`CombateDados.makeBoss({personalizado:true,ataques:{A:{dano:'4X de -4',descricao:'Ataques sucessivos'},'2':{dano:60,descricao:'Causa 3 de dano em todos'}}})`);assert.equal(b.cards.A.damage,0);assert(b.cards.A.warnings.length);assert(b.cards['2'].warnings.length);assert.equal(b.cards['2'].reviewed,false);});
 test('atributos confirmados pelo servidor prevalecem sobre cache antigo da mesma conta',()=>{value(`salvarAprimoramentos({'u1::manoplas-porco':{atributo:{raridade:'raro'}}})`);const p=value(`CombateDados.importPlayer('u1',{profiles:[{id:'u1',nome:'Piloto'}],fichas:[{id:'u1',itens_catalogo:['manoplas-porco'],aprimoramentos_itens:{}}]})`);assert.equal(p.cards.A.multiplier,undefined);});
+
+test('Kaiju bloqueado não vira chefe; desbloqueado importa vida e ataques',()=>{assert.throws(()=>value(`CombateDados.makeBoss({bloqueado:true,nome:'Kaiju secreto'})`),/Desbloqueie/);const boss=value(`CombateDados.makeBoss({bloqueado:false,secreto:true,personalizado:true,nome:'Secreto',vida:321,ataques:{A:{dano:9}},regras_combate:{A:{damage:9,effects:[],reviewed:true}}})`);assert.equal(boss.maxHp,321);assert.equal(boss.cards.A.damage,9);});
+
+test('Arena carrega colegas e equipamentos pelo acesso de combate, sem depender da ficha privada',async()=>{
+ const data=await value(`(async()=>{
+  globalThis.supabaseClient={rpc:async name=>({data:name==='nave_dados_combate'?{profiles:[{id:'u1',nome:'Piloto'},{id:'u2',nome:'Colega'}],fichas:[{id:'u1',vida:60},{id:'u2',vida:85,agilidade:9,nivel_combatente:3,itens_catalogo:['manoplas-porco'],aprimoramentos_itens:{}}]}:[]}),from:table=>{if(['profiles','fichas_tripulantes'].includes(table))throw Error('Consulta privada indevida');return {select:async()=>({data:({frotas:[{id:'f1',nome:'Frota'}],frota_integrantes:[{frota_id:'f1',usuario_id:'u1'},{frota_id:'f1',usuario_id:'u2'}],mechas_20m:[{usuario_id:'u2'}],mecha_pecas_equipadas:[{usuario_id:'u2',peca_id:'tronco'}],mecha_pecas_catalogo:[{id:'tronco',efeito:{vida_por_nivel_combatente:10}}]})[table]||[]})}}};
+  return CombateDados.load();
+ })()`);
+ ctx.combatFixture=data;
+ const players=value(`combatFixture.members.map(m=>CombateDados.importPlayer(m.usuario_id,combatFixture))`);
+ assert.equal(players.length,2);assert.equal(players[1].name,'Colega');assert.equal(players[1].maxHp,85);assert.equal(players[1].cards.A.damage,5);
+ assert.equal(value(`CombateDados.importPlayer('u2',combatFixture,'mecha').maxHp`),40);
+});
