@@ -6,6 +6,53 @@
 const FICHA_AVATAR_BUCKET = "avatares-perfil";
 
 let minhaFicha = null;
+let perfilFichaConsultada = null;
+let consultaFichaVersao = 0;
+function fichaEmConsulta(){ return !!perfilFichaConsultada; }
+function perfilExibidoFicha(){ return perfilFichaConsultada || window.profileAtual; }
+async function selecionarFichaTripulante(id){
+    if(id !== window.usuarioAtual?.id && !TiaoAcesso.ehTiao())return;
+    if(carregandoFicha || salvandoFicha || alterandoProgressaoFicha || enviandoAvatarFicha)return;
+    const versao=++consultaFichaVersao;
+    const uid=window.usuarioAtual?.id;
+    try{
+        if(id===uid){
+            perfilFichaConsultada=null;
+            minhaFicha=null;
+            configurarConsultaFicha();
+            renderizarFichasEquipe();
+            await carregarMinhaFicha();
+            await carregarDadosProgressaoFicha();
+            return;
+        }
+        const {data,error}=await supabaseClient.rpc('nave_consultar_ficha',{p_usuario:id});
+        if(versao!==consultaFichaVersao || uid!==window.usuarioAtual?.id)return;
+        if(error)throw error;
+        if(!data?.ficha || !data?.profile)throw Error('Ficha não encontrada.');
+        const kaijus=await NaveDados.hydrateKaijus(data.kaijus||[]);
+        if(versao!==consultaFichaVersao || uid!==window.usuarioAtual?.id)return;
+        perfilFichaConsultada=data.profile;
+        minhaFicha=data.ficha;
+        missoesFicha=data.missoes||[];
+        missoesConcluidasFicha=new Set(data.concluidas||[]);
+        kaijusFicha=kaijus;
+        kaijusDerrotadosFicha=new Set(data.derrotados||[]);
+        renderizarMinhaFicha();renderizarMissoesFicha();renderizarKaijusFicha();renderizarFichasEquipe();
+        configurarConsultaFicha();
+        atualizarStatusFicha('disponivel','Visualizando ficha de '+(data.profile.nome||data.profile.username),'Consulta completa da ficha do tripulante.','●');
+    }catch(e){mostrarAvisoFicha(e.message||'Não foi possível abrir a ficha.','error');}
+}
+function configurarConsultaFicha(){
+    const consulta=fichaEmConsulta();
+    document.querySelectorAll('.ficha-coluna-principal input,.ficha-coluna-principal textarea,.ficha-coluna-principal select').forEach(el=>el.disabled=consulta);
+    document.querySelectorAll('[data-ficha-toggle-item]').forEach(el=>el.hidden=consulta);
+    document.querySelectorAll('.ficha-missao-opcao button').forEach(el=>el.hidden=consulta);
+    const form=document.getElementById('form-missao-pessoal');if(form)form.closest('article').hidden=consulta;
+    const avatar=document.querySelector('.ficha-avatar-botao');if(avatar)avatar.hidden=consulta;
+    const save=document.getElementById('btn-salvar-ficha');if(save){save.hidden=consulta;save.disabled=consulta||!minhaFicha;}
+    const voltar=document.getElementById('ficha-voltar-propria');if(voltar)voltar.hidden=!consulta;
+}
+
 
 // Persistência imediata das escolhas de Codex. A cópia local evita perder a
 // seleção se o usuário trocar de página antes da resposta do Supabase.
@@ -44,10 +91,11 @@ function obterSelecoesCodexFicha() {
         : {};
     // O cache local vem por último porque pode conter a escolha feita instantes
     // antes de uma troca de página, ainda não refletida na leitura do servidor.
-    return { ...remotas, ...obterSelecoesCodexLocaisFicha() };
+    return fichaEmConsulta() ? { ...remotas } : { ...remotas, ...obterSelecoesCodexLocaisFicha() };
 }
 
 async function persistirSelecoesCodexFicha(selecoes) {
+    if(fichaEmConsulta())return;
     if (!window.usuarioAtual?.id) return false;
     const copia = { ...(selecoes || {}) };
     salvarSelecoesCodexLocaisFicha(copia);
@@ -83,8 +131,8 @@ let canalFichas = null;
 function telaFicha() {
     return `
         <section class="ficha-pagina ficha-pagina-expandida">
-            ${TiaoAcesso.ehTiao()?`<div class="n-actions"><button type="button" class="n-button primary" onclick="TiaoAcesso.perfis()">TIÃO · Acessar todos os perfis</button></div>`:""}
             <div class="ficha-coluna-principal">
+                <button id="ficha-voltar-propria" type="button" class="n-button" hidden onclick="selecionarFichaTripulante(window.usuarioAtual.id)">← Voltar à minha ficha</button>
                 <article class="ficha-card ficha-propria">
                     <div class="ficha-identidade-perfil">
                         <div class="ficha-avatar-painel">
@@ -236,7 +284,7 @@ function telaFicha() {
 
             <aside class="ficha-equipe">
                 <h3>Tripulação</h3>
-                <p class="ficha-equipe-subtitulo">Atributos calculados pelo banco de dados</p>
+                <p class="ficha-equipe-subtitulo">${TiaoAcesso.ehTiao()?"Clique em um tripulante para visualizar a ficha completa.":"Atributos calculados pelo banco de dados"}</p>
                 <div id="ficha-lista-equipe" class="ficha-lista-equipe">
                     <p class="ficha-equipe-vazio">Carregando dados da tripulação...</p>
                 </div>
@@ -264,6 +312,7 @@ function cartaoNivelFicha(classe, icone, valor) {
 }
 
 function inicializarPaginaFicha() {
+    perfilFichaConsultada=null;consultaFichaVersao++;
     // Renderiza o catálogo imediatamente. Antes, os cards só apareciam depois
     // que a consulta da ficha no Supabase terminava; qualquer erro de coluna,
     // conexão ou atraso deixava “Todos os Itens” completamente vazio.
@@ -285,6 +334,8 @@ function inicializarPaginaFicha() {
 }
 
 async function carregarMinhaFicha(silencioso = false) {
+    if(fichaEmConsulta())return selecionarFichaTripulante(perfilFichaConsultada.id);
+    const versao=consultaFichaVersao;
     if (carregandoFicha || !window.usuarioAtual) return;
     carregandoFicha = true;
 
@@ -302,6 +353,7 @@ async function carregarMinhaFicha(silencioso = false) {
         if (error) throw error;
         if (!data) throw new Error("Ficha não encontrada para este usuário.");
 
+        if(versao!==consultaFichaVersao || fichaEmConsulta())return;
         minhaFicha = data;
         const selecoesRemotas = minhaFicha.codex_selecoes && typeof minhaFicha.codex_selecoes === "object"
             ? minhaFicha.codex_selecoes
@@ -336,7 +388,7 @@ function renderizarMinhaFicha() {
     if (!minhaFicha) return;
 
     definirTextoFicha("ficha-nome-tripulante",
-        window.profileAtual?.nome || window.profileAtual?.username || "Tripulante");
+        perfilExibidoFicha()?.nome || perfilExibidoFicha()?.username || "Tripulante");
     renderizarAvatarFicha();
     definirTextoFicha("ficha-valor-vida", minhaFicha.vida ?? 20);
     definirTextoFicha("ficha-valor-dano_extra", minhaFicha.dano_extra ?? 0);
@@ -353,19 +405,22 @@ function renderizarMinhaFicha() {
     const ids = Array.isArray(minhaFicha.itens_catalogo)
         ? minhaFicha.itens_catalogo
         : obterItensDoTripulante(window.usuarioAtual.id);
+    if(!fichaEmConsulta()){
     definirItensDoTripulante(window.usuarioAtual.id, ids);
     const cache=carregarAprimoramentos();
     for(const [item,registro]of Object.entries(minhaFicha.aprimoramentos_itens||{}))cache[`${window.usuarioAtual.id}::${item}`]=registro;
     try{salvarAprimoramentos(cache);}catch(erroCache){console.warn("Cache de aprimoramentos indisponível.");}
+    }
     renderizarInventarioFicha();
+    configurarConsultaFicha();
 }
 
 function renderizarAvatarFicha() {
     const preview = document.getElementById("ficha-avatar-preview");
     if (!preview) return;
 
-    const nome = window.profileAtual?.nome || window.profileAtual?.username || "Tripulante";
-    const avatar = String(window.profileAtual?.avatar || "").trim();
+    const nome = perfilExibidoFicha()?.nome || perfilExibidoFicha()?.username || "Tripulante";
+    const avatar = String(perfilExibidoFicha()?.avatar || "").trim();
 
     preview.innerHTML = avatar
         ? `<img src="${escaparAtributoFicha(avatar)}" alt="Imagem de perfil de ${escaparAtributoFicha(nome)}">`
@@ -378,6 +433,7 @@ function obterIniciaisAvatarFicha(nome) {
 }
 
 async function salvarAvatarFicha(evento) {
+    if(fichaEmConsulta())return;
     const campo = evento.currentTarget;
     const arquivo = campo.files?.[0];
     if (!arquivo || enviandoAvatarFicha || !window.usuarioAtual) return;
@@ -436,10 +492,12 @@ async function salvarAvatarFicha(evento) {
 }
 
 function marcarFichaComoAlterada() {
+    if(fichaEmConsulta())return;
     atualizarStatusFicha("alterada", "Alterações não salvas", "Salve seus itens e salva-vidas para confirmar.", "●");
 }
 
 async function salvarMinhaFicha() {
+    if(fichaEmConsulta())return;
     if (salvandoFicha || !window.usuarioAtual) return;
     salvandoFicha = true;
 
@@ -484,6 +542,8 @@ async function salvarMinhaFicha() {
 }
 
 async function carregarDadosProgressaoFicha() {
+    if(fichaEmConsulta())return selecionarFichaTripulante(perfilFichaConsultada.id);
+    const versao=consultaFichaVersao;
     if (!window.usuarioAtual) return;
 
     try {
@@ -512,9 +572,11 @@ async function carregarDadosProgressaoFicha() {
             if (resultado.error) throw resultado.error;
         });
 
+        const imagensKaijus = await NaveDados.hydrateKaijus(kaijus.data || []);
+        if(versao!==consultaFichaVersao || fichaEmConsulta())return;
         missoesFicha = catalogo.data || [];
         missoesConcluidasFicha = new Set((concluidas.data || []).map(item => item.missao_id));
-        kaijusFicha = await NaveDados.hydrateKaijus(kaijus.data || []);
+        kaijusFicha = imagensKaijus;
         kaijusDerrotadosFicha = new Set((derrotados.data || []).map(item => item.kaiju_id));
 
         renderizarMissoesFicha();
@@ -572,6 +634,7 @@ function renderizarMissoesFicha() {
 }
 
 async function definirMissaoFicha(missaoId, concluida) {
+    if(fichaEmConsulta())return;
     if (alterandoProgressaoFicha) return;
     alterandoProgressaoFicha = true;
 
@@ -602,6 +665,7 @@ async function definirMissaoFicha(missaoId, concluida) {
 }
 
 async function criarMissaoPessoalFicha(evento) {
+    if(fichaEmConsulta())return;
     evento.preventDefault();
     if (alterandoProgressaoFicha || !window.usuarioAtual) return;
 
@@ -648,6 +712,7 @@ async function criarMissaoPessoalFicha(evento) {
 }
 
 async function excluirMissaoPessoalFicha(missaoId) {
+    if(fichaEmConsulta())return;
     const missao = missoesFicha.find(item => item.id === missaoId);
     if (!missao || missao.oficial) return;
     if (!window.confirm(`Excluir a missão pessoal "${missao.titulo}"?`)) return;
@@ -688,6 +753,7 @@ function renderizarKaijusFicha() {
 }
 
 async function definirKaijuFicha(kaijuId, derrotado) {
+    if(fichaEmConsulta())return;
     if (alterandoProgressaoFicha) return;
     alterandoProgressaoFicha = true;
 
@@ -715,10 +781,7 @@ async function carregarFichasEquipe() {
     const lista = document.getElementById("ficha-lista-equipe");
 
     try {
-        const { data, error } = await supabaseClient
-            .from("fichas_tripulantes")
-            .select("id, vida, dano_extra, agilidade, defesa, salva_vidas, nivel_embaixador, nivel_combatente, nivel_tripulante, profiles(nome, username, cargo)")
-            .order("id");
+        const { data, error } = await supabaseClient.rpc("nave_resumo_tripulacao");
         if (error) throw error;
 
         fichasEquipe = data || [];
@@ -740,9 +803,9 @@ function renderizarFichasEquipe() {
 
     lista.innerHTML = fichasEquipe.map(ficha => {
         const nome = ficha.profiles?.nome || ficha.profiles?.username || "Tripulante";
-        const destaque = ficha.id === window.usuarioAtual?.id ? " ficha-equipe-item-eu" : "";
+        const destaque = (ficha.id === (perfilFichaConsultada?.id || window.usuarioAtual?.id)) ? " ficha-equipe-item-eu" : "";
         return `
-            <div class="ficha-equipe-item${destaque}">
+            <div class="ficha-equipe-item${destaque}" ${TiaoAcesso.ehTiao()?`role="button" tabindex="0" style="cursor:pointer" aria-label="Visualizar ficha de ${escaparAtributoFicha(nome)}" onclick="selecionarFichaTripulante('${escaparAtributoFicha(ficha.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"`:""}>
                 <strong>${escaparTextoFicha(nome)}</strong>
                 <div class="ficha-equipe-atributos">
                     <span>❤️ ${ficha.vida}</span><span>⚔️ ${ficha.dano_extra}</span>
@@ -825,6 +888,7 @@ function escaparAtributoFicha(valor) {
 
 document.addEventListener("usuarioAutenticado", () => {
     minhaFicha = null;
+    perfilFichaConsultada=null;consultaFichaVersao++;
     fichasEquipe = [];
     missoesFicha = [];
     missoesConcluidasFicha = new Set();
@@ -845,7 +909,7 @@ document.addEventListener("usuarioAutenticado", () => {
 
 function renderizarInventarioFicha() {
     const userId=window.usuarioAtual?.id || "local";
-    const possui=typeof obterItensDoTripulante==="function" ? obterItensDoTripulante(userId) : [];
+    const possui=fichaEmConsulta() ? (minhaFicha?.itens_catalogo||[]) : typeof obterItensDoTripulante==="function" ? obterItensDoTripulante(userId) : [];
     const catalogo=typeof CATALOGO_ITENS_APRIMORAMENTO!=="undefined" ? CATALOGO_ITENS_APRIMORAMENTO : [];
     definirTextoFicha("ficha-itens-contador", `${possui.length} ${possui.length===1?"ITEM":"ITENS"}`);
     const seus=document.getElementById("ficha-seus-itens");
@@ -871,7 +935,7 @@ function renderizarInventarioFicha() {
 }
 
 function cardItemFicha(item,possui){
-    const reg=typeof obterAprimoramentosItem==="function" ? obterAprimoramentosItem(window.usuarioAtual?.id||"local",item.id) : {};
+    const reg=fichaEmConsulta() ? (minhaFicha?.aprimoramentos_itens?.[item.id]||{}) : typeof obterAprimoramentosItem==="function" ? obterAprimoramentosItem(window.usuarioAtual?.id||"local",item.id) : {};
     const qtd=Object.keys(reg).filter(k=>["cartas","atributo","adicional"].includes(k)).length;
     const selecao=item.codexKaijuId ? (obterSelecoesCodexFicha()[item.id]||"") : "";
     const ataqueCodex=item.codexKaijuId&&selecao&&typeof obterCodexKaiju==='function' ? obterCodexKaiju(item.codexKaijuId)?.ataques?.[selecao] : null;
@@ -896,6 +960,7 @@ function opcoesAtaquesCodexFicha(item,selecao){
 }
 
 async function selecionarAtaqueCodexFicha(itemId,carta){
+    if(fichaEmConsulta())return;
     if(!minhaFicha || !window.usuarioAtual?.id)return;
     const item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===itemId&&i.codexKaijuId);if(!item)return;
     const codex=typeof obterCodexKaiju==='function'?obterCodexKaiju(item.codexKaijuId):null;
@@ -919,6 +984,7 @@ async function selecionarAtaqueCodexFicha(itemId,carta){
 }
 
 function alternarItemFicha(itemId){
+    if(fichaEmConsulta())return;
     const userId=window.usuarioAtual?.id || "local";
     const possui=obterItensDoTripulante(userId).includes(itemId);
     if(possui){
@@ -934,7 +1000,7 @@ function alternarItemFicha(itemId){
 
 function abrirDetalhesItemFicha(itemId){
     const item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===itemId); if(!item)return;
-    const reg=obterAprimoramentosItem(window.usuarioAtual?.id||"local",itemId);
+    const reg=fichaEmConsulta() ? (minhaFicha?.aprimoramentos_itens?.[itemId]||{}) : obterAprimoramentosItem(window.usuarioAtual?.id||"local",itemId);
     const nomes=typeof CATEGORIAS_APRIMORAMENTO!=="undefined"?CATEGORIAS_APRIMORAMENTO:{};
     let modal=document.getElementById("ficha-item-detalhes-overlay");
     if(!modal){ modal=document.createElement("div"); modal.id="ficha-item-detalhes-overlay"; modal.className="ficha-modal-overlay"; document.body.appendChild(modal); }
@@ -944,3 +1010,5 @@ function abrirDetalhesItemFicha(itemId){
     modal.querySelector('[data-fechar-item-modal]')?.addEventListener('click',()=>modal.hidden=true);
     modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true},{once:true});
 }
+
+document.addEventListener("usuarioDesconectado",()=>{perfilFichaConsultada=null;minhaFicha=null;consultaFichaVersao++;});
