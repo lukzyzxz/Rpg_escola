@@ -5,6 +5,44 @@
 
 window.usuarioAtual = null;
 window.profileAtual = null;
+let autenticacaoIniciada = false;
+let versaoAutenticacao = 0;
+let autenticacaoPendente = null;
+let timerAutenticacao = null;
+
+function limparSessaoLocal() {
+    versaoAutenticacao++;
+    clearTimeout(timerAutenticacao);
+    timerAutenticacao = null;
+    autenticacaoPendente = null;
+    window.usuarioAtual = null;
+    window.profileAtual = null;
+    document.dispatchEvent(new CustomEvent("usuarioDesconectado"));
+}
+
+// O callback não pode aguardar outra chamada Supabase: a biblioteca pode manter
+// o lock da sessão até ele retornar. Consultas ficam fora desse callback.
+function tratarEventoAutenticacao(evento, sessao) {
+    if (evento === "SIGNED_OUT" || !sessao?.user) {
+        limparSessaoLocal();
+        ocultarSistema();
+        mostrarTelaLogin();
+        return;
+    }
+    if (!["INITIAL_SESSION", "SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(evento)) return;
+    const mesmoUsuario = window.usuarioAtual?.id === sessao.user.id;
+    if (mesmoUsuario && window.profileAtual && evento !== "USER_UPDATED") {
+        window.usuarioAtual = sessao.user;
+        return;
+    }
+    clearTimeout(timerAutenticacao);
+    const versao = versaoAutenticacao;
+    timerAutenticacao = setTimeout(() => {
+        timerAutenticacao = null;
+        if (versao !== versaoAutenticacao) return;
+        autenticarUsuarioNoSistema(sessao.user, evento === "USER_UPDATED");
+    }, 0);
+}
 
 
 // ======================================
@@ -26,6 +64,8 @@ window.addEventListener(
 
 
 async function inicializarAutenticacao() {
+    if (autenticacaoIniciada) return;
+    autenticacaoIniciada = true;
 
     ocultarSistema();
 
@@ -72,42 +112,7 @@ async function inicializarAutenticacao() {
     }
 
 
-    // Detecta alterações de autenticação
-    supabaseClient.auth.onAuthStateChange(
-        async (evento, sessao) => {
-
-            if (
-                evento === "SIGNED_OUT"
-                || !sessao?.user
-            ) {
-
-                window.usuarioAtual = null;
-                window.profileAtual = null;
-                document.dispatchEvent(new CustomEvent("usuarioDesconectado"));
-
-                ocultarSistema();
-
-                mostrarTelaLogin();
-
-                return;
-
-            }
-
-
-            if (
-                evento === "SIGNED_IN"
-                || evento === "TOKEN_REFRESHED"
-                || evento === "USER_UPDATED"
-            ) {
-
-                await autenticarUsuarioNoSistema(
-                    sessao.user
-                );
-
-            }
-
-        }
-    );
+    supabaseClient.auth.onAuthStateChange(tratarEventoAutenticacao);
 
 }
 
@@ -1095,104 +1100,41 @@ function mostrarFormularioLogin() {
 // AUTENTICAR NO SISTEMA
 // ======================================
 
-async function autenticarUsuarioNoSistema(
-    usuario
-) {
-
-    try {
-
-        window.usuarioAtual =
-            usuario;
-
-
-        const profile =
-            await carregarProfileUsuario(
-                usuario.id
-            );
-
-
-        window.profileAtual =
-            profile;
-
-
-        await TiaoAcesso.carregar();
-
-        removerTelaAuth();
-
-        mostrarSistema();
-
-        atualizarUsuarioInterface();
-
-
-        console.log(
-            "✅ Usuário autenticado:",
-            profile?.username
-            || profile?.nome
-            || usuario.email
-        );
-
-
-        document.dispatchEvent(
-
-            new CustomEvent(
-                "usuarioAutenticado",
-                {
-
-                    detail: {
-
-                        usuario:
-                            usuario,
-
-                        profile:
-                            profile
-
-                    }
-
-                }
-            )
-
-        );
-
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao carregar usuário:",
-            erro
-        );
-
-
-        window.usuarioAtual =
-            null;
-
-        window.profileAtual =
-            null;
-
-
-        try {
-
-            await supabaseClient.auth
-                .signOut();
-
-        } catch (erroLogout) {
-
-            console.error(
-                "Erro ao limpar sessão:",
-                erroLogout
-            );
-
-        }
-
-
-        ocultarSistema();
-
-
-        mostrarTelaLogin(
-            "Não foi possível carregar o perfil do usuário."
-        );
-
+function autenticarUsuarioNoSistema(usuario, atualizarPerfil = false) {
+    if (!usuario?.id) return Promise.resolve();
+    if (autenticacaoPendente?.usuarioId === usuario.id) return autenticacaoPendente.promise;
+    const mesmoUsuario = window.usuarioAtual?.id === usuario.id && !!window.profileAtual;
+    if (mesmoUsuario && !atualizarPerfil) {
+        window.usuarioAtual = usuario;
+        return Promise.resolve(window.profileAtual);
     }
-
+    if (window.usuarioAtual && window.usuarioAtual.id !== usuario.id) limparSessaoLocal();
+    window.usuarioAtual = usuario;
+    const versao = ++versaoAutenticacao;
+    const pendente = { usuarioId: usuario.id, promise: null };
+    autenticacaoPendente = pendente;
+    pendente.promise = (async () => {
+        try {
+            const [profile] = await Promise.all([carregarProfileUsuario(usuario.id), TiaoAcesso.carregar()]);
+            if (versao !== versaoAutenticacao || window.usuarioAtual?.id !== usuario.id) return;
+            window.profileAtual = profile;
+            removerTelaAuth();
+            mostrarSistema();
+            atualizarUsuarioInterface();
+            // Refresh de token e notificações repetidas não reiniciam os módulos.
+            if (!mesmoUsuario) document.dispatchEvent(new CustomEvent("usuarioAutenticado", { detail: { usuario, profile } }));
+            return profile;
+        } catch (erro) {
+            if (versao !== versaoAutenticacao) return;
+            console.error("Erro ao carregar usuário:", erro);
+            limparSessaoLocal();
+            ocultarSistema();
+            mostrarTelaLogin("Não foi possível carregar o perfil. Confira sua conexão e tente entrar novamente.");
+        } finally {
+            if (autenticacaoPendente === pendente) autenticacaoPendente = null;
+        }
+    })();
+    return pendente.promise;
 }
 
 
@@ -1250,12 +1192,7 @@ async function logout() {
         }
 
 
-        window.usuarioAtual =
-            null;
-
-        window.profileAtual =
-            null;
-        document.dispatchEvent(new CustomEvent("usuarioDesconectado"));
+        limparSessaoLocal();
 
         ocultarSistema();
 

@@ -1,0 +1,29 @@
+.mecha-novo-abas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.mecha-novo-abas button[aria-current="page"]{border-color:#55d8ff;background:#123c50;color:#b9efff}
+.mecha-novo-pagina fieldset{border:0;padding:0;margin:0;min-width:0}
+.mecha-novo-pagina fieldset:disabled{opacity:.55}
+.mecha-novo-pagina h3,.mecha-novo-resumo h4{margin:0 0 16px}
+.mecha-novo-pagina #novo-mecha-status{padding:14px 18px;border-left:3px solid #55d8ff;background:#122432;margin-bottom:20px}
+.mecha-novo-kaijus{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.mecha-novo-check{display:flex!important;align-items:center;gap:10px;padding:10px;background:#ffffff06;border:1px solid #ffffff16;border-radius:8px;cursor:pointer}
+.mecha-novo-check input{width:18px!important;height:18px;accent-color:#55d8ff}
+.mecha-novo-slot{padding:18px;border:1px solid #ffffff20;border-radius:12px;min-width:0;background:#ffffff04}
+.mecha-novo-slot label{display:block;font-weight:700;margin-bottom:12px;color:#c6a5fa}
+.mecha-novo-slot select,.mecha-novo-pagina select{width:100%;padding:12px;background:#0d1728;color:#eef4ff;border:1px solid #45617b;border-radius:8px}
+.mecha-novo-slot p,.mecha-novo-ajuda{font-size:13px;line-height:1.6;color:#aebed0;margin:12px 0}
+.mecha-novo-tabela{overflow-x:auto}
+.mecha-novo-tabela table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px}
+.mecha-novo-tabela th,.mecha-novo-tabela td{padding:10px 3px;text-align:left;border-bottom:1px solid #ffffff18;overflow-wrap:anywhere}
+.mecha-novo-tabela th:first-child{width:34%}
+.mecha-novo-tabela td:last-child{color:#70e7ff;font-size:16px}
+.mecha-novo-resumo .mecha-atributos>div{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.mecha-novo-resumo .mecha-atributos small{font-size:10px;line-height:1.4}
+.mecha-novo-resumo .mecha-atributos strong{font-size:24px;line-height:1.2}
+.mecha-novo-formula{padding:14px;margin:16px 0;background:#55d8ff0b;border:1px solid #55d8ff30;border-radius:10px;line-height:1.6}
+.mecha-novo-formula p{margin:8px 0}
+.mecha-novo-formula small{color:#aebed0}
+.mecha-novo-aviso{color:#ffce87!important}
+.mecha-novo-preview img{max-width:100%;max-height:280px;object-fit:contain;border-radius:12px;margin-top:16px}
+#ficha-novo-mecha{padding:20px;margin:22px 0;background:#111a2b;border:1px solid #55d8ff40;border-radius:14px;min-width:0}
+#ficha-novo-mecha .mecha-atributos{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:600px){.mecha-novo-abas button{flex:1}.mecha-novo-tabela th,.mecha-novo-tabela td{padding:9px 4px;font-size:12px}#ficha-novo-mecha{padding:12px}#ficha-novo-mecha .mecha-atributos{grid-template-columns:repeat(2,minmax(0,1fr))}}

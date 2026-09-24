@@ -92,6 +92,7 @@ function damage(s,t,source,victim,value,{direct=false,reflect=true}={}){
  const dealt=Math.min(victim.hp,round(Math.max(0,amount)));victim.hp=round(victim.hp-dealt);
  log(s,t,`${source?.name||'Efeito'} → ${victim.name}: −${dealt} PV${victim.hp<=0?' · derrotado':''}.`);
  if(!direct&&reflect&&source&&reflected&&!reflected.onEvade&&dealt>0)damage(s,t,victim,source,dealt*Math.max(0,n(reflected.value,100))/100,{direct:true,reflect:false});
+ if(reflect&&source&&source!==victim&&dealt>0&&victim.mode==='mecha-novo'&&n(victim.retaliationDamage)>0)damage(s,t,victim,source,n(victim.retaliationDamage),{reflect:false});
  return dealt;
 }
 function heal(s,t,a,v){if(a.hp<=0)return;const amount=Math.min(a.maxHp-a.hp,Math.max(0,v));a.hp=round(a.hp+amount);log(s,t,`${a.name}: +${round(amount)} PV.`);}
@@ -140,6 +141,7 @@ function turn(s,t,a,r,bossCard,repeated=false){
  for(const e of defensive)applyEffect(s,t,a,targets,e);
  let amount=0;
  if(base>0){amount=(base*n(r.multiplier,1)+stat(a,'extra')+n(a.memory.nextDamage)+(a.memory.drone>0?4:0));a.memory.nextDamage=0;
+ if(a.mode==='mecha-novo'&&a.doubleDamageCard===a.activeCard)amount*=2;
  const reduction=Math.max(0,...a.effects.filter(e=>e.kind==='weakness').map(e=>Math.min(100,n(e.value,50))));amount*=1-reduction/100;
  if(current.some(e=>e.kind==='blind')){log(s,t,`${a.name} errou por cegueira.`);amount=0;}
  for(const v of targets){const dealt=damage(s,t,a,v,amount);a.memory.lastDamage=dealt;}

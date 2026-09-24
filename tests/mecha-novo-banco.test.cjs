@@ -1,0 +1,42 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {PGlite}=require('@electric-sql/pglite');
+test('novo mecha persiste separado, valida peças e restringe escrita ao dono e consulta ao dono/TIÃO',async()=>{
+ const db=new PGlite(),a='11111111-1111-4111-8111-111111111111',b='22222222-2222-4222-8222-222222222222',t='33333333-3333-4333-8333-333333333333';
+ try{
+  await db.exec(`create role anon;create role authenticated;create schema auth;create schema nave_privado;
+   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+   create function nave_privado.eh_tiao() returns boolean language sql stable as $$select auth.uid()='${t}'::uuid$$;
+   grant usage on schema auth,nave_privado to authenticated;
+   create table profiles(id uuid primary key,nome text,username text,avatar text);
+   create table frota_integrantes(usuario_id uuid);
+   create table fichas_tripulantes(id uuid,vida int,dano_extra int,agilidade int,defesa int,nivel_embaixador int,nivel_combatente int,nivel_tripulante int,itens_texto text,itens_catalogo jsonb,aprimoramentos_itens jsonb,codex_selecoes jsonb);
+   create table mechas_20m(usuario_id uuid,nome text);insert into mechas_20m values('${a}','Mecha antigo preservado');
+   insert into profiles(id) values('${a}'),('${b}'),('${t}');insert into frota_integrantes values('${a}');
+   insert into fichas_tripulantes(id,nivel_combatente) values('${a}',5);`);
+  const sql=fs.readFileSync('ATUALIZAR-NOVO-MECHA.sql','utf8');await db.exec(sql);
+  const login=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+  await login(a);
+  await db.query("insert into mechas_novos(usuario_id,nome,kaijus_derrotados,torso,bracos) values($1,'Novo',array['verde'],'verde-torso','verde-bracos')",[a]);
+  await db.query("update mechas_novos set pernas='verde-pernas' where usuario_id=$1",[a]);
+  assert.equal((await db.query('select torso from mechas_novos')).rows[0].torso,'verde-torso');
+  await assert.rejects(()=>db.query("update mechas_novos set torso='tartaruga-tronco' where usuario_id=$1",[a]),/check constraint/);
+  await assert.rejects(()=>db.query("update mechas_novos set torso='porco-torso' where usuario_id=$1",[a]),/check constraint/);
+  await assert.rejects(()=>db.query("update mechas_novos set imagem_path=$1 where usuario_id=$2",[b+'/foto.png',a]),/check constraint/);
+  await assert.rejects(()=>db.query("update mechas_novos set usuario_id=$1 where usuario_id=$2",[b,a]),/row-level security/);
+  await login(b);
+  assert.equal((await db.query('select * from mechas_novos')).rows.length,0);
+  await db.query("update mechas_novos set nome='Ataque' where usuario_id=$1",[a]);
+  await assert.rejects(()=>db.query('insert into mechas_novos(usuario_id) values($1)',[a]),/row-level security/);
+  await login(t);assert.equal((await db.query('select nome from mechas_novos')).rows[0].nome,'Novo');
+  await db.query("update mechas_novos set nome='TIÃO não edita outros' where usuario_id=$1",[a]);
+  const combate=(await db.query('select nave_privado.dados_combate() as dados')).rows[0].dados;
+  assert.equal(combate.novos_mechas.length,1);assert.equal(combate.novos_mechas[0].nome,'Novo');assert(!('descricao' in combate.novos_mechas[0]));
+  await db.exec('reset role');await db.exec(sql);
+  assert.equal((await db.query('select nome from mechas_20m')).rows[0].nome,'Mecha antigo preservado');
+  assert.equal((await db.query('select nivel_combatente from fichas_tripulantes')).rows[0].nivel_combatente,5);
+  assert.equal((await db.query('select nome from mechas_novos')).rows[0].nome,'Novo');
+  await db.exec('set role anon');await assert.rejects(()=>db.query('select * from mechas_novos'),/permission denied/);
+ }finally{await db.close();}
+});

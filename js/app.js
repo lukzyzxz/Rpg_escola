@@ -7,6 +7,7 @@ const titulo = document.getElementById("tituloPagina");
 const conteudo = document.getElementById("conteudo");
 
 let paginaAtual = "dashboard";
+let versaoPagina = 0;
 let sistemaInicializado = false;
 
 // ======================================
@@ -132,6 +133,7 @@ function configurarNavegacao() {
         "torre",
         "ficha",
         "mechas",
+        "mecha-novo",
         "aprimoramentos"
     ];
 
@@ -156,6 +158,10 @@ function configurarNavegacao() {
 }
 
 function abrirPagina(pagina) {
+    const versao = ++versaoPagina;
+    const agendarInicializacao = inicializar => requestAnimationFrame(() => {
+        if (versao === versaoPagina && paginaAtual === pagina) inicializar();
+    });
 
     if (
         paginaAtual === "torre"
@@ -195,7 +201,7 @@ function abrirPagina(pagina) {
                         "O sistema estelar será implementado em breve."
                     );
 
-            if(typeof inicializarPaginaMapa==="function")requestAnimationFrame(inicializarPaginaMapa);
+            if(typeof inicializarPaginaMapa==="function")agendarInicializacao(inicializarPaginaMapa);
             break;
 
         case "missoes":
@@ -211,7 +217,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaMissoes === "function") {
-                requestAnimationFrame(inicializarPaginaMissoes);
+                agendarInicializacao(inicializarPaginaMissoes);
             }
 
             break;
@@ -229,7 +235,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaKaijus === "function") {
-                requestAnimationFrame(inicializarPaginaKaijus);
+                agendarInicializacao(inicializarPaginaKaijus);
             }
 
             break;
@@ -260,7 +266,7 @@ function abrirPagina(pagina) {
                         "O módulo de inventário será implementado em breve."
                     );
 
-            if(typeof inicializarPaginaInventario==="function")requestAnimationFrame(inicializarPaginaInventario);
+            if(typeof inicializarPaginaInventario==="function")agendarInicializacao(inicializarPaginaInventario);
             break;
 
         case "integridade":
@@ -276,7 +282,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaIntegridade === "function") {
-                requestAnimationFrame(inicializarPaginaIntegridade);
+                agendarInicializacao(inicializarPaginaIntegridade);
             }
 
             break;
@@ -294,7 +300,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaArena === "function") {
-                requestAnimationFrame(inicializarPaginaArena);
+                agendarInicializacao(inicializarPaginaArena);
             }
 
             break;
@@ -312,7 +318,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaTorreArmas === "function") {
-                requestAnimationFrame(inicializarPaginaTorreArmas);
+                agendarInicializacao(inicializarPaginaTorreArmas);
             }
 
             break;
@@ -330,7 +336,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaFicha === "function") {
-                requestAnimationFrame(inicializarPaginaFicha);
+                agendarInicializacao(inicializarPaginaFicha);
             }
 
             break;
@@ -348,9 +354,15 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaAprimoramentos === "function") {
-                requestAnimationFrame(inicializarPaginaAprimoramentos);
+                agendarInicializacao(inicializarPaginaAprimoramentos);
             }
 
+            break;
+
+        case "mecha-novo":
+            titulo.textContent = "Novo Mecha";
+            conteudo.innerHTML = MechaNovoUI.tela();
+            agendarInicializacao(() => MechaNovoUI.iniciar());
             break;
 
         case "mechas":
@@ -366,7 +378,7 @@ function abrirPagina(pagina) {
                     );
 
             if (typeof inicializarPaginaMechas === "function") {
-                requestAnimationFrame(inicializarPaginaMechas);
+                agendarInicializacao(inicializarPaginaMechas);
             }
 
             break;

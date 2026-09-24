@@ -29,6 +29,7 @@ let canalMecha = null;
 function telaMechas() {
     return `
         <section class="mecha-pagina">
+            ${typeof MechaNovoUI !== 'undefined' ? MechaNovoUI.abas('antigo') : ''}
             <div class="mecha-topo">
                 <div>
                     <span class="mecha-selo">PROJETO TITÃ — UNIDADE INDIVIDUAL</span>
@@ -294,7 +295,7 @@ function renderizarImagemMecha() {
     const url = imagemMechaPendenteUrl || imagemMechaUrl;
 
     preview.innerHTML = url
-        ? `<img src="${escaparAtributoMecha(url)}" alt="Design do mecha do tripulante">`
+        ? `<img loading="lazy" decoding="async" src="${escaparAtributoMecha(url)}" alt="Design do mecha do tripulante">`
         : `
             <div class="mecha-imagem-vazia">
                 <span>◇</span>

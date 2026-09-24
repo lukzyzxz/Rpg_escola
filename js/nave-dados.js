@@ -1,7 +1,7 @@
 /* Dados compartilhados da nave. O servidor confirma cada alteração antes da tela mudar. */
 const NaveDados = (() => {
     const states = { planetas: 'idle', inventario: 'idle', catalogo: 'idle' };
-    const inFlight = new Map(), photos = new Map(), operations = new Map();
+    const inFlight = new Map(), photos = new Map(), photoRequests = new Map(), operations = new Map();
     let session = null, epoch = 0, channel = null, refreshTimer = null;
     let legacy = null;
     const tables = { planetas: 'nave_planetas', inventario: 'nave_inventario', catalogo: 'nave_itens_catalogo' };
@@ -107,8 +107,22 @@ const NaveDados = (() => {
     }
     async function imageUrl(source) {
         if (!source?.path || !['mechas-designs','kaijus-imagens'].includes(source.bucket)) return '';
-        const key=source.bucket+'/'+source.path, cached=photos.get(key); if(cached?.until>Date.now())return cached.url;
-        try { const r=await supabaseClient.storage.from(source.bucket).createSignedUrl(source.path,3600); if(r.error)return ''; const url=r.data?.signedUrl||''; if(url)photos.set(key,{url,until:Date.now()+3000000}); return url; } catch {return '';}
+        const key=source.bucket+'/'+source.path, cached=photos.get(key);
+        if(cached?.until>Date.now())return cached.url;
+        if(photoRequests.has(key))return photoRequests.get(key);
+        const generation=epoch;
+        const pending=(async()=>{
+            try {
+                const r=await supabaseClient.storage.from(source.bucket).createSignedUrl(source.path,3600);
+                if(r.error||generation!==epoch)return '';
+                const url=r.data?.signedUrl||'';
+                if(url)photos.set(key,{url,until:Date.now()+3000000});
+                return url;
+            } catch {return '';}
+            finally {if(generation===epoch)photoRequests.delete(key);}
+        })();
+        photoRequests.set(key,pending);
+        return pending;
     }
     async function hydrateKaijus(rows) {
         await Promise.all(rows.map(async k=>{if(k.imagem_storage?.path)k.imagem_url=await imageUrl(k.imagem_storage); else k.imagem_url=k.imagem_path;})); return rows;
@@ -133,7 +147,7 @@ const NaveDados = (() => {
     }
     const pending=new Set();
     function schedule(module) { pending.add(module); clearTimeout(refreshTimer); refreshTimer=setTimeout(()=>{for(const m of pending)list(m,true).catch(()=>{});pending.clear();},200); }
-    function reset() {epoch++;session=null;inFlight.clear();photos.clear();operations.clear();clearTimeout(refreshTimer);pending.clear();if(channel){supabaseClient.removeChannel(channel);channel=null;}for(const key of Object.keys(states))states[key]='idle';if(typeof banco!=='undefined'){banco.planetas=[];banco.inventario=[];}}
+    function reset() {epoch++;session=null;inFlight.clear();photos.clear();photoRequests.clear();operations.clear();clearTimeout(refreshTimer);pending.clear();if(channel){supabaseClient.removeChannel(channel);channel=null;}for(const key of Object.keys(states))states[key]='idle';if(typeof banco!=='undefined'){banco.planetas=[];banco.inventario=[];}}
     document.addEventListener('usuarioAutenticado',()=>boot());
     document.addEventListener('usuarioDesconectado',reset);
     window.addEventListener('online',()=>{if(uid())for(const m of Object.keys(states))list(m,true).catch(()=>{});});

@@ -6,6 +6,11 @@
 const FICHA_AVATAR_BUCKET = "avatares-perfil";
 
 let minhaFicha = null;
+let fichaAlterada = false;
+let revisaoEdicaoFicha = 0;
+let carregamentoFichaPendente = null;
+let timerAtualizacaoFicha = null;
+const atualizacoesFichaPendentes = new Set();
 let perfilFichaConsultada = null;
 let consultaFichaVersao = 0;
 function fichaEmConsulta(){ return !!perfilFichaConsultada; }
@@ -13,6 +18,7 @@ function perfilExibidoFicha(){ return perfilFichaConsultada || window.profileAtu
 async function selecionarFichaTripulante(id){
     if(id !== window.usuarioAtual?.id && !TiaoAcesso.ehTiao())return;
     if(carregandoFicha || salvandoFicha || alterandoProgressaoFicha || enviandoAvatarFicha)return;
+    if(id !== (perfilFichaConsultada?.id || window.usuarioAtual?.id))fichaAlterada=false;
     const versao=++consultaFichaVersao;
     const uid=window.usuarioAtual?.id;
     try{
@@ -186,6 +192,8 @@ function telaFicha() {
                         ${cartaoNivelFicha("Tripulante", "💨", 0)}
                     </div>
 
+                    <section id="ficha-novo-mecha" aria-label="Ficha do novo mecha"></section>
+
                     <div class="ficha-editaveis">
                         <label class="ficha-campo-editavel" for="ficha-campo-salva_vidas">
                             <span>🩹 Salva-Vidas</span>
@@ -312,7 +320,7 @@ function cartaoNivelFicha(classe, icone, valor) {
 }
 
 function inicializarPaginaFicha() {
-    perfilFichaConsultada=null;consultaFichaVersao++;
+    perfilFichaConsultada=null;consultaFichaVersao++;fichaAlterada=false;
     // Renderiza o catálogo imediatamente. Antes, os cards só apareciam depois
     // que a consulta da ficha no Supabase terminava; qualquer erro de coluna,
     // conexão ou atraso deixava “Todos os Itens” completamente vazio.
@@ -333,10 +341,23 @@ function inicializarPaginaFicha() {
     iniciarSincronizacaoFichas();
 }
 
-async function carregarMinhaFicha(silencioso = false) {
+function carregarMinhaFicha(silencioso = false) {
+    if (fichaEmConsulta()) return selecionarFichaTripulante(perfilFichaConsultada.id);
+    if (!window.usuarioAtual) return Promise.resolve();
+    const chave = `${window.usuarioAtual.id}:${consultaFichaVersao}`;
+    if (carregamentoFichaPendente?.chave === chave) return carregamentoFichaPendente.promise;
+    const tarefa = { chave, promise: null };
+    carregamentoFichaPendente = tarefa;
+    tarefa.promise = executarCarregamentoMinhaFicha(silencioso).finally(() => {
+        if (carregamentoFichaPendente === tarefa) { carregamentoFichaPendente = null; carregandoFicha = false; }
+    });
+    return tarefa.promise;
+}
+
+async function executarCarregamentoMinhaFicha(silencioso = false) {
     if(fichaEmConsulta())return selecionarFichaTripulante(perfilFichaConsultada.id);
     const versao=consultaFichaVersao;
-    if (carregandoFicha || !window.usuarioAtual) return;
+    if (!window.usuarioAtual) return;
     carregandoFicha = true;
 
     if (!silencioso) {
@@ -363,7 +384,7 @@ async function carregarMinhaFicha(silencioso = false) {
         // Mantém o cache local alinhado também quando a escolha veio de outro dispositivo.
         salvarSelecoesCodexLocaisFicha(minhaFicha.codex_selecoes, window.usuarioAtual.id);
         renderizarMinhaFicha();
-        atualizarStatusFicha(
+        if (!fichaAlterada) atualizarStatusFicha(
             "disponivel",
             "Ficha sincronizada",
             "Vida, dano, agilidade e defesa são calculados pelas missões concluídas.",
@@ -373,14 +394,13 @@ async function carregarMinhaFicha(silencioso = false) {
         const botao = document.getElementById("btn-salvar-ficha");
         if (botao) botao.disabled = false;
     } catch (erro) {
+        if(versao!==consultaFichaVersao || fichaEmConsulta())return;
         console.error("Erro ao carregar ficha:", erro);
         // O banco de espólios é local ao código e deve continuar visível mesmo
         // quando a sincronização da ficha falhar. Assim o usuário não vê dois
         // blocos vazios e consegue identificar se o problema é apenas o banco.
         try { renderizarInventarioFicha(); } catch (erroCatalogo) { console.warn("Falha ao renderizar catálogo de itens.", erroCatalogo); }
         atualizarStatusFicha("erro", "Comunicação indisponível", "O catálogo foi carregado, mas a ficha não sincronizou. Verifique a atualização do Supabase.", "⚠");
-    } finally {
-        carregandoFicha = false;
     }
 }
 
@@ -397,12 +417,14 @@ function renderizarMinhaFicha() {
     definirTextoFicha("ficha-nivel-embaixador", minhaFicha.nivel_embaixador ?? 0);
     definirTextoFicha("ficha-nivel-combatente", minhaFicha.nivel_combatente ?? 0);
     definirTextoFicha("ficha-nivel-tripulante", minhaFicha.nivel_tripulante ?? 0);
+    if (typeof MechaNovoUI !== 'undefined') MechaNovoUI.renderizarNaFicha(minhaFicha);
 
     const salvaVidas = document.getElementById("ficha-campo-salva_vidas");
     const itens = document.getElementById("ficha-itens-texto");
-    if (salvaVidas) salvaVidas.value = minhaFicha.salva_vidas ?? 0;
-    if (itens) itens.value = minhaFicha.itens_texto ?? "";
-    const ids = Array.isArray(minhaFicha.itens_catalogo)
+    const preservarEdicao = fichaAlterada && !fichaEmConsulta();
+    if (salvaVidas && !preservarEdicao) salvaVidas.value = minhaFicha.salva_vidas ?? 0;
+    if (itens && !preservarEdicao) itens.value = minhaFicha.itens_texto ?? "";
+    const ids = preservarEdicao ? obterItensDoTripulante(window.usuarioAtual.id) : Array.isArray(minhaFicha.itens_catalogo)
         ? minhaFicha.itens_catalogo
         : obterItensDoTripulante(window.usuarioAtual.id);
     if(!fichaEmConsulta()){
@@ -423,7 +445,7 @@ function renderizarAvatarFicha() {
     const avatar = String(perfilExibidoFicha()?.avatar || "").trim();
 
     preview.innerHTML = avatar
-        ? `<img src="${escaparAtributoFicha(avatar)}" alt="Imagem de perfil de ${escaparAtributoFicha(nome)}">`
+        ? `<img loading="lazy" decoding="async" src="${escaparAtributoFicha(avatar)}" alt="Imagem de perfil de ${escaparAtributoFicha(nome)}">`
         : `<span>${escaparTextoFicha(obterIniciaisAvatarFicha(nome))}</span>`;
 }
 
@@ -493,6 +515,8 @@ async function salvarAvatarFicha(evento) {
 
 function marcarFichaComoAlterada() {
     if(fichaEmConsulta())return;
+    fichaAlterada = true;
+    revisaoEdicaoFicha++;
     atualizarStatusFicha("alterada", "Alterações não salvas", "Salve seus itens e salva-vidas para confirmar.", "●");
 }
 
@@ -500,6 +524,7 @@ async function salvarMinhaFicha() {
     if(fichaEmConsulta())return;
     if (salvandoFicha || !window.usuarioAtual) return;
     salvandoFicha = true;
+    const revisaoSalva = revisaoEdicaoFicha;
 
     const botao = document.getElementById("btn-salvar-ficha");
     if (botao) {
@@ -526,7 +551,9 @@ async function salvarMinhaFicha() {
         if (error) throw error;
 
         minhaFicha = data;
-        atualizarStatusFicha("disponivel", "Ficha salva", "Itens e salva-vidas confirmados pelo servidor.", "✓");
+        fichaAlterada = revisaoEdicaoFicha !== revisaoSalva;
+        if (fichaAlterada) atualizarStatusFicha("alterada", "Alterações não salvas", "Você fez novas alterações durante o salvamento. Salve novamente para confirmá-las.", "●");
+        else atualizarStatusFicha("disponivel", "Ficha salva", "Itens e salva-vidas confirmados pelo servidor.", "✓");
         mostrarAvisoFicha("Ficha salva com sucesso!", "success");
     } catch (erro) {
         console.error("Erro ao salvar ficha:", erro);
@@ -745,7 +772,7 @@ function renderizarKaijusFicha() {
                     ${derrotado ? "checked" : ""}
                     ${alterandoProgressaoFicha ? "disabled" : ""}
                     onchange="definirKaijuFicha('${escaparAtributoFicha(kaiju.id)}', this.checked)">
-                ${imagem ? `<img src="${escaparAtributoFicha(imagem)}" alt="${escaparAtributoFicha(kaiju.nome)}">` : '<div class="n-kaiju-sem-imagem" aria-hidden="true">◈</div>'}
+                ${imagem ? `<img loading="lazy" decoding="async" src="${escaparAtributoFicha(imagem)}" alt="${escaparAtributoFicha(kaiju.nome)}">` : '<div class="n-kaiju-sem-imagem" aria-hidden="true">◈</div>'}
                 <span><strong>${escaparTextoFicha(kaiju.nome)}</strong><small>${derrotado ? "✓ PEÇAS LIBERADAS" : "MARCAR COMO DERROTADO"}</small></span>
             </label>
         `;
@@ -817,32 +844,31 @@ function renderizarFichasEquipe() {
     }).join("");
 }
 
+function agendarAtualizacaoFicha(...partes) {
+    if (paginaAtual !== "ficha" || document.hidden) return;
+    partes.forEach(parte => atualizacoesFichaPendentes.add(parte));
+    clearTimeout(timerAtualizacaoFicha);
+    timerAtualizacaoFicha = setTimeout(() => {
+        const pendentes = new Set(atualizacoesFichaPendentes);
+        atualizacoesFichaPendentes.clear();
+        if (paginaAtual !== "ficha" || !window.usuarioAtual) return;
+        if (pendentes.has('minha') && !salvandoFicha && !alterandoProgressaoFicha) carregarMinhaFicha(true);
+        if (pendentes.has('equipe')) carregarFichasEquipe();
+        if (pendentes.has('progressao') && !alterandoProgressaoFicha) carregarDadosProgressaoFicha();
+    }, 200);
+}
+
 function iniciarSincronizacaoFichas() {
     if (canalFichas || !window.usuarioAtual) return;
     canalFichas = supabaseClient
         .channel(`ficha-completa-${window.usuarioAtual.id}`)
-        .on("postgres_changes", { event: "*", schema: "public", table: "fichas_tripulantes" }, () => {
-            if (paginaAtual === "ficha" && !salvandoFicha) {
-                carregarMinhaFicha(true);
-                carregarFichasEquipe();
-            }
+        .on("postgres_changes", { event: "*", schema: "public", table: "fichas_tripulantes" }, payload => {
+            const id = payload.new?.id || payload.old?.id;
+            const exibido = perfilFichaConsultada?.id || window.usuarioAtual?.id;
+            agendarAtualizacaoFicha('equipe', ...(id === exibido ? ['minha'] : []));
         })
-        .on("postgres_changes", {
-            event: "*",
-            schema: "public",
-            table: "tripulante_missoes",
-            filter: `usuario_id=eq.${window.usuarioAtual.id}`
-        }, () => {
-            if (paginaAtual === "ficha" && !alterandoProgressaoFicha) carregarDadosProgressaoFicha();
-        })
-        .on("postgres_changes", {
-            event: "*",
-            schema: "public",
-            table: "mecha_kaijus_derrotados",
-            filter: `usuario_id=eq.${window.usuarioAtual.id}`
-        }, () => {
-            if (paginaAtual === "ficha" && !alterandoProgressaoFicha) carregarDadosProgressaoFicha();
-        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "tripulante_missoes", filter: `usuario_id=eq.${window.usuarioAtual.id}` }, () => agendarAtualizacaoFicha('progressao'))
+        .on("postgres_changes", { event: "*", schema: "public", table: "mecha_kaijus_derrotados", filter: `usuario_id=eq.${window.usuarioAtual.id}` }, () => agendarAtualizacaoFicha('progressao'))
         .subscribe();
 }
 
@@ -888,6 +914,9 @@ function escaparAtributoFicha(valor) {
 
 document.addEventListener("usuarioAutenticado", () => {
     minhaFicha = null;
+    fichaAlterada = false;
+    carregamentoFichaPendente = null;
+    carregandoFicha = false;
     perfilFichaConsultada=null;consultaFichaVersao++;
     fichasEquipe = [];
     missoesFicha = [];
@@ -904,6 +933,7 @@ document.addEventListener("usuarioAutenticado", () => {
         carregarMinhaFicha();
         carregarDadosProgressaoFicha();
         carregarFichasEquipe();
+        iniciarSincronizacaoFichas();
     }
 });
 
@@ -1011,4 +1041,9 @@ function abrirDetalhesItemFicha(itemId){
     modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true},{once:true});
 }
 
-document.addEventListener("usuarioDesconectado",()=>{perfilFichaConsultada=null;minhaFicha=null;consultaFichaVersao++;});
+document.addEventListener("usuarioDesconectado",()=>{
+    perfilFichaConsultada=null;minhaFicha=null;consultaFichaVersao++;fichaAlterada=false;
+    carregamentoFichaPendente=null;carregandoFicha=false;
+    clearTimeout(timerAtualizacaoFicha);atualizacoesFichaPendentes.clear();
+    if(canalFichas){supabaseClient.removeChannel(canalFichas);canalFichas=null;}
+});

@@ -264,7 +264,7 @@ function renderizarRegistroKaijus() {
         return `
             <article class="kaiju-registro-card${derrotado ? " derrotado" : ""}">
                 <div class="kaiju-imagem-wrap">
-                    ${kaiju.imagem_url||kaiju.imagem_path ? `<img src="${escaparAtributoKaiju(kaiju.imagem_url||kaiju.imagem_path)}" alt="${escaparAtributoKaiju(kaiju.nome)}" loading="lazy">` : `<div class="kaiju-imagem-vazia" aria-hidden="true">◇</div>`}
+                    ${kaiju.imagem_url||kaiju.imagem_path ? `<img loading="lazy" decoding="async" src="${escaparAtributoKaiju(kaiju.imagem_url||kaiju.imagem_path)}" alt="${escaparAtributoKaiju(kaiju.nome)}" loading="lazy">` : `<div class="kaiju-imagem-vazia" aria-hidden="true">◇</div>`}
                     <span class="kaiju-numero">K-${String(indice + 1).padStart(2, "0")}</span>
                     <span class="kaiju-status">${derrotado ? "✓ DERROTADO" : escaparTextoKaiju(kaiju.status || "NÃO REGISTRADO")}</span>
                 </div>

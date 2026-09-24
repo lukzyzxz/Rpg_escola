@@ -223,6 +223,7 @@ async function atualizarSaldoSalvaVidas(){
 }
 function atualizarBotaoAprimorar(){
  const btn=document.getElementById('btn-aprimorar-item');if(!btn)return;
+ const s=estadoOficina;
  const ficha=fichasOficina.get(s.tripulanteId),item=CATALOGO_ITENS_APRIMORAMENTO.find(i=>i.id===s.itemId),semCodex=!!item?.codexKaijuId&&!obterSelecaoCodexFicha(ficha,s.itemId),completo=Object.keys(CATEGORIAS_APRIMORAMENTO).every(k=>registroAtual()[k]),outro=s.tripulanteId!==window.usuarioAtual?.id,pendente=!!pendenciaOficina().id;
  btn.disabled=!s.itemId||s.girando||s.carregandoSaldo||outro||!!s.erro||(!pendente&&(semCodex||completo||s.salvaVidas<1));
  btn.textContent=s.girando?'Salvando melhoria…':s.carregandoSaldo?'Consultando ficha…':outro?'Consulta de outro tripulante':pendente?'Conferir último sorteio':semCodex?'Selecione o ataque do Codex na ficha':completo?'Item totalmente aprimorado':!s.itemId?'Selecione um item':s.salvaVidas<1?'Sem Salva-Vidas':'Aprimorar por 1 Salva-Vidas';

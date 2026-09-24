@@ -99,7 +99,9 @@ const CombateDados=(()=>{
   const {profiles,fichas}=combat;
   if(typeof NaveDados!=='undefined')await NaveDados.hydrateKaijus(kaijus);
   await Promise.all(mechas.map(async m=>{if(m.imagem_path&&!/^(https?:|assets\/)/.test(m.imagem_path))m.photoUrl=await photoUrl({bucket:'mechas-designs',path:m.imagem_path});}));
-  return {profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas};
+  const novosMechas=combat.novos_mechas||[];
+  await Promise.all(novosMechas.map(async m=>{if(m.imagem_path)m.photoUrl=await photoUrl({bucket:'mechas-designs',path:m.imagem_path});}));
+  return {profiles,fichas,frotas,members,kaijus,mechas,equipadas,pecas,novosMechas};
  }
  function importPlayer(id,data,mode='piloto'){
   const profile=data.profiles.find(x=>x.id===id)||{};const ficha=data.fichas.find(x=>x.id===id)||{};
@@ -123,6 +125,25 @@ const CombateDados=(()=>{
     if(part.id==='hidra-bracos')p.reviewNotes.push('Braços da Hidra: no baralho físico, até 5 trocas de carta; informe a carta final.');
    }
    if(p.noDefense)p.defense=0;p.maxHp=Math.max(1,p.maxHp);updatePassives(p);
+  }
+  if(mode==='mecha-novo'){
+   const mech=data.novosMechas?.find(x=>x.usuario_id===id);
+   if(!mech)throw Error(`${p.name}: salve a configuração na aba Novo Mecha antes de importar.`);
+   const total=MechaNovoRegras.calcular(ficha,mech);
+   if(!total.completo||total.vida<=0)throw Error(`${p.name}: escolha um torso e uma configuração com vida positiva na aba Novo Mecha.`);
+   p.mode='mecha-novo';p.maxHp=total.vida;p.extra=total.dano_extra;p.speed=total.agilidade;p.defense=total.defesa;
+   p.mechaLevels={...total.niveis};
+   if(mech.imagem_path){p.photoSource={bucket:'mechas-designs',path:mech.imagem_path};p.photoFallback=p.photo;p.photo=mech.photoUrl||p.photo;}
+   p.reviewNotes.push(`Novo mecha: ${mech.nome}. Níveis finais: E ${total.niveis.embaixador}, C ${total.niveis.combatente}, T ${total.niveis.tripulante}.`);
+   for(const passiva of total.passivas)p.reviewNotes.push(`${passiva.nome}: ${passiva.texto}`);
+   if(mech.cabeca==='hidra-cabeca'){
+    const c=mech.carta_dupla||'A';
+    p.doubleDamageCard=c;
+    p.reviewNotes.push(`Cabeça da Hidra: o dano total da carta ${c} será dobrado no combate.`);
+   }
+   if(mech.pernas==='tartaruga-pernas')p.retaliationDamage=30;
+   if(total.passivas.some(x=>/Esquiva|Cabeçada|Morder|Pinça/.test(x.texto)))p.reviewNotes.push('Passivas condicionais (esquiva, redirecionamento, mordida e previsão) devem ser declaradas e aplicadas na mesa; não são ativadas automaticamente.');
+   updatePassives(p);
   }
   return p;
  }
