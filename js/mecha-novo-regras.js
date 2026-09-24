@@ -1,5 +1,5 @@
 /* PARTES KAIJUS (1).xlsx — aba VERSÃO FINAL.
- * Regras independentes do mecha antigo. Nunca grava níveis derivados na ficha base.
+ * Cada fórmula lê os níveis originais da ficha; peças não modificam níveis.
  */
 const MechaNovoRegras = (() => {
     const slots = ['cabeca', 'torso', 'bracos', 'pernas'];
@@ -20,79 +20,86 @@ const MechaNovoRegras = (() => {
         texto, ...efeito
     });
     const pecas = [
-        p('porco', 'cabeca', 'Padrão: mantém os níveis de Embaixador.'),
-        p('verde', 'cabeca', '−30% de vida; +4 níveis de Combatente.', { soma: { combatente: 4 }, percentualVida: -30 }),
+        p('porco', 'cabeca', 'Defesa padrão: 1 por nível original de Embaixador.'),
+        p('verde', 'cabeca', 'Defesa padrão; −30% de vida; +4 de dano extra.', { bonus: { dano_extra: 4 }, percentualVida: -30 }),
         p('cobra', 'cabeca', 'Padrão; esquiva de 1 ataque.', { passiva: 'Esquiva de 1 ataque: declare ao usar.' }),
         p('hidra', 'cabeca', 'Dobra o dano de uma carta.', { passiva: 'Dobra o dano da carta escolhida.' }),
         p('tartaruga', 'cabeca', 'Pode levantar e redirecionar ataques individuais para você; sua defesa, esquiva e redução não são contabilizadas.', { passiva: 'Cabeçada: ao redirecionar um ataque individual para você, ignore sua defesa, esquiva e redução.' }),
         p('urso', 'cabeca', 'Morder: ataque extra de 6 de dano com armas simples.', { passiva: 'Morder: ataque extra de 6 de dano, somente com armas simples.' }),
         p('aranha', 'cabeca', 'Pinça: se adivinhar a próxima carta do chefe, você não leva dano.', { passiva: 'Pinça: declare a previsão; ao acertar a próxima carta do chefe, não recebe dano.' }),
         p('porco', 'torso', '100 de vida.', { vidaFixa: 100 }),
-        p('verde', 'torso', '30 de vida por nível final de Combatente.', { vidaPorNivel: { combatente: 30 } }),
+        p('verde', 'torso', '30 de vida por nível original de Combatente.', { vidaPorNivel: { combatente: 30 } }),
         p('cobra', 'torso', '120 de vida.', { vidaFixa: 120 }),
-        p('hidra', 'torso', '25 de vida por nível final de Tripulante.', { vidaPorNivel: { tripulante: 25 } }),
-        p('tartaruga', 'torso', '40 de vida por nível final de Embaixador.', { vidaPorNivel: { embaixador: 40 } }),
+        p('hidra', 'torso', '25 de vida por nível original de Tripulante.', { vidaPorNivel: { tripulante: 25 } }),
+        p('tartaruga', 'torso', '40 de vida por nível original de Embaixador.', { vidaPorNivel: { embaixador: 40 } }),
         p('urso', 'torso', '200 de vida.', { vidaFixa: 200 }),
-        p('aranha', 'torso', '40 de vida por nível final de Tripulante.', { vidaPorNivel: { tripulante: 40 } }),
-        p('porco', 'bracos', 'Padrão: mantém os níveis de Combatente.'),
-        p('verde', 'bracos', 'Multiplica os níveis de Combatente por 2.', { multiplica: { combatente: 2 } }),
-        p('cobra', 'bracos', 'Multiplica os níveis de Tripulante por 1.', { multiplica: { tripulante: 1 } }),
-        p('hidra', 'bracos', 'Multiplica os níveis de Combatente por 2.', { multiplica: { combatente: 2 } }),
-        p('tartaruga', 'bracos', 'Multiplica os níveis de Embaixador por 2.', { multiplica: { embaixador: 2 } }),
-        p('urso', 'bracos', 'Multiplica os níveis de Combatente por 3 com armas simples.', { multiplica: { combatente: 3 }, apenasArmasSimples: true }),
-        p('aranha', 'bracos', '+6 de dano extra.', { danoExtra: 6 }),
-        p('porco', 'pernas', 'Padrão: mantém os níveis de Tripulante.'),
-        p('verde', 'pernas', '−30 de vida; −4 níveis de Tripulante; +2 níveis de Combatente.', { vidaExtra: -30, soma: { tripulante: -4, combatente: 2 } }),
-        p('cobra', 'pernas', 'Padrão; +1 nível de Tripulante.', { soma: { tripulante: 1 } }),
-        p('hidra', 'pernas', '+50 de vida.', { vidaExtra: 50 }),
+        p('aranha', 'torso', '40 de vida por nível original de Tripulante.', { vidaPorNivel: { tripulante: 40 } }),
+        p('porco', 'bracos', 'Dano extra padrão: 1 por nível original de Combatente.'),
+        p('verde', 'bracos', 'Dano extra = 2 × nível original de Combatente.', { danoPorNivel: { combatente: 2 } }),
+        p('cobra', 'bracos', 'Dano extra = 1 × nível original de Tripulante.', { danoPorNivel: { tripulante: 1 } }),
+        p('hidra', 'bracos', 'Dano extra = 2 × nível original de Combatente.', { danoPorNivel: { combatente: 2 } }),
+        p('tartaruga', 'bracos', 'Dano extra = 2 × nível original de Embaixador.', { danoPorNivel: { embaixador: 2 } }),
+        p('urso', 'bracos', 'Dano extra = 3 × nível original de Combatente com armas simples; caso contrário, dano extra padrão.', { danoPorNivel: { combatente: 3 }, apenasArmasSimples: true }),
+        p('aranha', 'bracos', '6 de dano extra.', { danoFixo: 6 }),
+        p('porco', 'pernas', 'Agilidade padrão: 5 + nível original de Tripulante.'),
+        p('verde', 'pernas', 'Agilidade padrão −4; −30 de vida; +2 de dano extra.', { bonus: { vida: -30, agilidade: -4, dano_extra: 2 } }),
+        p('cobra', 'pernas', 'Agilidade padrão +1.', { bonus: { agilidade: 1 } }),
+        p('hidra', 'pernas', 'Agilidade padrão; +50 de vida.', { bonus: { vida: 50 } }),
         p('tartaruga', 'pernas', 'Causa 30 de dano ao sofrer dano.', { passiva: 'Retaliação: causa 30 de dano ao sofrer dano.' }),
-        p('urso', 'pernas', '+40 de vida; +1 nível de Combatente.', { vidaExtra: 40, soma: { combatente: 1 } }),
-        p('aranha', 'pernas', '−40 de vida; +1 nível de Tripulante; +1 nível de Combatente.', { vidaExtra: -40, soma: { tripulante: 1, combatente: 1 } })
+        p('urso', 'pernas', 'Agilidade padrão; +40 de vida; +1 de dano extra.', { bonus: { vida: 40, dano_extra: 1 } }),
+        p('aranha', 'pernas', 'Agilidade padrão +1; −40 de vida; +1 de dano extra.', { bonus: { vida: -40, agilidade: 1, dano_extra: 1 } })
     ];
     const numero = valor => Number.isFinite(Number(valor)) ? Number(valor) : 0;
     const arredondar = valor => Math.round(valor * 100) / 100;
 
-    // Fases fixas: somas de níveis → multiplicadores → vida/dano/agilidade/defesa.
-    // Sempre parte dos níveis de missões: salvar/reabrir nunca duplica bônus.
+    // Cabeça → defesa; torso → vida; braços → dano extra; pernas → agilidade.
+    // Efeitos explícitos somam atributos, sem alimentar as fórmulas de outras peças.
     function calcular(ficha = {}, config = {}, catalogo = pecas) {
         const equipadas = slots.map(slot => catalogo.find(item => item.id === config[slot] && item.slot === slot)).filter(Boolean);
-        const base = {}, soma = {}, multiplicador = {}, niveis = {};
-        for (const classe of classes) {
-            base[classe] = Math.max(0, numero(ficha[`nivel_${classe}`]));
-            soma[classe] = 0;
-            multiplicador[classe] = 1;
+        const base = Object.fromEntries(classes.map(classe => [classe, Math.max(0, numero(ficha[`nivel_${classe}`]))]));
+        const porSlot = Object.fromEntries(equipadas.map(item => [item.slot, item]));
+        const atributos = { cabeca: 'defesa', torso: 'vida', bracos: 'dano_extra', pernas: 'agilidade' };
+        const nomes = { defesa: 'Defesa', vida: 'Vida', dano_extra: 'Dano extra', agilidade: 'Agilidade' };
+        const principais = { defesa: base.embaixador, vida: 0, dano_extra: base.combatente, agilidade: 5 + base.tripulante };
+        const formulas = {
+            cabeca: `1 × ${base.embaixador} Embaixador`, torso: '0 (sem torso)',
+            bracos: `1 × ${base.combatente} Combatente`, pernas: `5 + ${base.tripulante} Tripulante`
+        };
+        const regras = {
+            cabeca: ['defesaFixa', 'defesaPorNivel'], torso: ['vidaFixa', 'vidaPorNivel'],
+            bracos: ['danoFixo', 'danoPorNivel'], pernas: ['agilidadeFixa', 'agilidadePorNivel']
+        };
+        for (const slot of slots) {
+            const item = porSlot[slot];
+            if (!item || (item.apenasArmasSimples && !config.armas_simples)) continue;
+            const [fixo, porNivel] = regras[slot];
+            if (item[fixo] != null) {
+                principais[atributos[slot]] = numero(item[fixo]);
+                formulas[slot] = `${numero(item[fixo])} fixos`;
+            } else if (item[porNivel]) {
+                principais[atributos[slot]] = classes.reduce((total, classe) => total + numero(item[porNivel][classe]) * base[classe], 0);
+                formulas[slot] = classes.filter(classe => numero(item[porNivel][classe])).map(classe => `${numero(item[porNivel][classe])} × ${base[classe]} ${classe}`).join(' + ') || '0';
+            }
         }
+        const bonus = { defesa: 0, vida: 0, dano_extra: 0, agilidade: 0 };
+        let percentualVida = 0;
+        const efeitos = [];
         for (const item of equipadas) {
             if (item.apenasArmasSimples && !config.armas_simples) continue;
-            for (const classe of classes) {
-                soma[classe] += numero(item.soma?.[classe]);
-                multiplicador[classe] *= item.multiplica?.[classe] ?? 1;
+            for (const atributo of Object.keys(bonus)) {
+                const valor = numero(item.bonus?.[atributo]);
+                bonus[atributo] += valor;
+                if (valor) efeitos.push(`${item.nome}: ${valor > 0 ? '+' : '−'}${Math.abs(valor)} de ${nomes[atributo].toLowerCase()}`);
             }
-        }
-        for (const classe of classes) niveis[classe] = Math.max(0, (base[classe] + soma[classe]) * multiplicador[classe]);
-        let vidaTorso = 0, vidaExtra = 0, percentualVida = 0, danoExtra = 0;
-        const formulas = [];
-        for (const item of equipadas) {
-            vidaTorso += numero(item.vidaFixa);
-            for (const classe of classes) {
-                const fator = numero(item.vidaPorNivel?.[classe]);
-                if (fator) {
-                    vidaTorso += fator * niveis[classe];
-                    formulas.push(`${fator} × ${niveis[classe]} ${classe} = ${fator * niveis[classe]} vida`);
-                }
-            }
-            vidaExtra += numero(item.vidaExtra);
             percentualVida += numero(item.percentualVida);
-            danoExtra += numero(item.danoExtra);
+            if (item.percentualVida) efeitos.push(`${item.nome}: ${item.percentualVida}% de vida`);
         }
-        const vida = Math.max(0, arredondar((vidaTorso + vidaExtra) * (1 + percentualVida / 100)));
+        const totais = Object.fromEntries(Object.keys(bonus).map(atributo => [atributo, Math.max(0, arredondar((principais[atributo] + bonus[atributo]) * (atributo === 'vida' ? 1 + percentualVida / 100 : 1)))]));
         return {
-            base, soma, multiplicador, niveis, equipadas, formulas,
-            vidaTorso, vidaExtra, percentualVida, vida,
-            dano_extra: niveis.combatente + danoExtra,
-            agilidade: 5 + niveis.tripulante,
-            defesa: niveis.embaixador,
-            completo: equipadas.some(item => item.slot === 'torso'),
+            base, equipadas, bonus, efeitos, ...totais,
+            vidaTorso: principais.vida, vidaExtra: bonus.vida, percentualVida,
+            calculos: slots.map(slot => ({ slot, atributo: nomes[atributos[slot]], formula: formulas[slot], valor: principais[atributos[slot]] })),
+            completo: !!porSlot.torso,
             passivas: equipadas.filter(item => item.passiva).map(item => ({ nome: item.nome, texto: item.passiva }))
         };
     }

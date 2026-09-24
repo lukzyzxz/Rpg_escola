@@ -10,16 +10,18 @@ const MechaNovoUI = (() => {
         const r = R.calcular(base, projeto);
         return `<div class="mecha-novo-resumo">
             <div class="mecha-atributos"><div><small>VIDA</small><strong>${r.vida}</strong></div><div><small>DANO EXTRA</small><strong>${r.dano_extra}</strong></div><div><small>DEFESA</small><strong>${r.defesa}</strong></div><div><small>AGILIDADE</small><strong>${r.agilidade}</strong></div></div>
-            <h4>Níveis com as peças equipadas</h4><div class="mecha-novo-tabela"><table><thead><tr><th>Classe</th><th>Base</th><th>Bônus</th><th>Fator</th><th>Total</th></tr></thead><tbody>${R.classes.map(classe => `<tr><th>${classe[0].toUpperCase() + classe.slice(1)}</th><td>${r.base[classe]}</td><td>${r.soma[classe] >= 0 ? '+' : ''}${r.soma[classe]}</td><td>×${r.multiplicador[classe]}</td><td><strong>${r.niveis[classe]}</strong></td></tr>`).join('')}</tbody></table></div>
-            <p class="mecha-novo-ajuda">Nível final = (base + bônus das peças) × multiplicador. Os totais nunca ficam abaixo de zero.</p>
-            <div class="mecha-novo-formula"><strong>Cálculo da vida</strong>${r.formulas.map(f => `<p>${esc(f)}</p>`).join('')}<p>(${r.vidaTorso} do torso ${r.vidaExtra >= 0 ? '+' : '−'} ${Math.abs(r.vidaExtra)} das peças) × ${1 + r.percentualVida / 100} = <b>${r.vida} vida</b></p><small>O torso usa os níveis finais. A redução percentual é aplicada depois da soma da vida.</small></div>
+            <h4>Níveis originais da ficha</h4><div class="mecha-novo-tabela"><table><thead><tr><th>Classe</th><th>Nível</th></tr></thead><tbody>${R.classes.map(classe => `<tr><th>${classe[0].toUpperCase() + classe.slice(1)}</th><td><strong>${r.base[classe]}</strong></td></tr>`).join('')}</tbody></table></div>
+            <p class="mecha-novo-ajuda">Cada fórmula usa estes níveis originais. As peças alteram atributos, sem aumentar níveis nem multiplicar bônus de outras peças.</p>
+            <div class="mecha-novo-formula"><strong>Cálculo por peça</strong>${r.calculos.map(c => `<p><b>${esc(R.nomesSlots[c.slot])} → ${esc(c.atributo)}</b><br>${esc(c.formula)} = ${c.valor}</p>`).join('')}</div>
+            ${r.efeitos.length ? `<div class="mecha-novo-formula"><strong>Efeitos adicionais da planilha</strong>${r.efeitos.map(e => `<p>${esc(e)}</p>`).join('')}<small>São aplicados diretamente aos atributos, sem alterar os níveis usados nas fórmulas.</small></div>` : ''}
+            <div class="mecha-novo-formula"><strong>Vida total</strong><p>(${r.vidaTorso} do torso ${r.vidaExtra >= 0 ? '+' : '−'} ${Math.abs(r.vidaExtra)} dos efeitos) × ${1 + r.percentualVida / 100} = <b>${r.vida} vida</b></p><small>Os totais ficam no mínimo em zero.</small></div>
             ${!r.completo ? '<p class="mecha-novo-aviso">Escolha um torso para definir a vida do novo mecha.</p>' : ''}
             <div class="mecha-lista-passivas">${r.passivas.map(p => `<div class="mecha-passiva"><strong>${esc(p.nome)}</strong><p>${esc(p.texto)}</p></div>`).join('')}</div>
         </div>`;
     }
     function tela() {
         return `<section class="mecha-pagina mecha-novo-pagina">${abas('novo')}
-            <div class="mecha-topo"><div><span class="mecha-selo">PARTES KAIJUS · VERSÃO FINAL</span><h2>Novo mecha</h2><p>Monte uma segunda unidade com as novas peças. Os bônus de nível se combinam antes de calcular os atributos.</p></div></div>
+            <div class="mecha-topo"><div><span class="mecha-selo">PARTES KAIJUS · VERSÃO FINAL</span><h2>Novo mecha</h2><p>Cabeça define defesa, torso define vida, pernas definem agilidade e braços definem dano extra. Cada fórmula usa os níveis originais da ficha.</p></div></div>
             <p id="novo-mecha-status" role="status" aria-live="polite">Carregando seu novo mecha…</p>
             <form id="novo-mecha-form"><fieldset id="novo-mecha-campos" disabled><div class="mecha-layout"><div class="mecha-coluna-principal">
                 <article class="mecha-painel mecha-formulario"><h3>Identidade do novo mecha</h3><label for="novo-mecha-nome">Nome</label><input type="text" id="novo-mecha-nome" maxlength="60" required value="NOVO MECHA"><label for="novo-mecha-descricao">Notas do projeto</label><textarea id="novo-mecha-descricao" maxlength="1200" rows="3"></textarea><label for="novo-mecha-imagem">Imagem do novo mecha (até 5 MB)</label><input id="novo-mecha-imagem" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div id="novo-mecha-preview" class="mecha-novo-preview"></div></article>
@@ -123,7 +125,7 @@ const MechaNovoUI = (() => {
             if (result.error) throw result.error;
             if (token !== versao || usuario !== window.usuarioAtual?.id) return;
             config = result.data; arquivo = null;
-            if (form.isConnected) { $('novo-mecha-imagem').value = ''; status('Novo mecha salvo. Os níveis e efeitos estão disponíveis na sua ficha.'); }
+            if (form.isConnected) { $('novo-mecha-imagem').value = ''; status('Novo mecha salvo. Os atributos e efeitos estão disponíveis na sua ficha.'); }
         } catch (erro) { if (token === versao && form.isConnected) status(`Não foi possível salvar: ${erro.message}. Suas escolhas continuam na tela.`, true); }
         finally { salvando = false; if (token === versao && form.isConnected) $('novo-mecha-campos').disabled = false; }
     }
@@ -135,7 +137,7 @@ const MechaNovoUI = (() => {
             const { data, error } = await supabaseClient.from('mechas_novos').select('*').eq('usuario_id', base.id).maybeSingle();
             if (token !== versaoFicha || uid !== window.usuarioAtual?.id || !alvo.isConnected) return;
             if (error) throw error;
-            alvo.innerHTML = data ? `<h3>${esc(data.nome)} · ficha do novo mecha</h3><p class="mecha-novo-ajuda">Níveis das missões + efeitos das peças salvas. Os atributos do piloto e do mecha original continuam independentes.</p>${resumo(base, data)}` : '<h3>Ficha do novo mecha</h3><p>Este tripulante ainda não salvou um novo mecha.</p>';
+            alvo.innerHTML = data ? `<h3>${esc(data.nome)} · ficha do novo mecha</h3><p class="mecha-novo-ajuda">Atributos calculados por peça a partir dos níveis originais das missões.</p>${resumo(base, data)}` : '<h3>Ficha do novo mecha</h3><p>Este tripulante ainda não salvou um novo mecha.</p>';
         } catch (erro) { if (token === versaoFicha && alvo.isConnected) alvo.textContent = `Não foi possível carregar a ficha do novo mecha: ${erro.message}`; }
     }
     document.addEventListener('usuarioAutenticado', () => { ++versao; ++versaoFicha; carregado = false; config = null; ficha = null; });

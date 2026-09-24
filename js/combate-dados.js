@@ -132,9 +132,9 @@ const CombateDados=(()=>{
    const total=MechaNovoRegras.calcular(ficha,mech);
    if(!total.completo||total.vida<=0)throw Error(`${p.name}: escolha um torso e uma configuração com vida positiva na aba Novo Mecha.`);
    p.mode='mecha-novo';p.maxHp=total.vida;p.extra=total.dano_extra;p.speed=total.agilidade;p.defense=total.defesa;
-   p.mechaLevels={...total.niveis};
+   p.mechaLevels={...total.base};
    if(mech.imagem_path){p.photoSource={bucket:'mechas-designs',path:mech.imagem_path};p.photoFallback=p.photo;p.photo=mech.photoUrl||p.photo;}
-   p.reviewNotes.push(`Novo mecha: ${mech.nome}. Níveis finais: E ${total.niveis.embaixador}, C ${total.niveis.combatente}, T ${total.niveis.tripulante}.`);
+   p.reviewNotes.push(`Novo mecha: ${mech.nome}. Níveis originais: E ${total.base.embaixador}, C ${total.base.combatente}, T ${total.base.tripulante}. Cada peça calcula seu atributo separadamente.`);
    for(const passiva of total.passivas)p.reviewNotes.push(`${passiva.nome}: ${passiva.texto}`);
    if(mech.cabeca==='hidra-cabeca'){
     const c=mech.carta_dupla||'A';
