@@ -16,7 +16,7 @@ let consultaFichaVersao = 0;
 function fichaEmConsulta(){ return !!perfilFichaConsultada; }
 function perfilExibidoFicha(){ return perfilFichaConsultada || window.profileAtual; }
 async function selecionarFichaTripulante(id){
-    if(id !== window.usuarioAtual?.id && !TiaoAcesso.ehTiao())return;
+    if(id !== window.usuarioAtual?.id && !TiaoAcesso.ehGestor())return;
     if(carregandoFicha || salvandoFicha || alterandoProgressaoFicha || enviandoAvatarFicha)return;
     if(id !== (perfilFichaConsultada?.id || window.usuarioAtual?.id))fichaAlterada=false;
     const versao=++consultaFichaVersao;
@@ -292,7 +292,7 @@ function telaFicha() {
 
             <aside class="ficha-equipe">
                 <h3>Tripulação</h3>
-                <p class="ficha-equipe-subtitulo">${TiaoAcesso.ehTiao()?"Clique em um tripulante para visualizar a ficha completa.":"Atributos calculados pelo banco de dados"}</p>
+                <p class="ficha-equipe-subtitulo">${TiaoAcesso.ehGestor()?"Clique em um tripulante para visualizar a ficha completa.":"Atributos calculados pelo banco de dados"}</p>
                 <div id="ficha-lista-equipe" class="ficha-lista-equipe">
                     <p class="ficha-equipe-vazio">Carregando dados da tripulação...</p>
                 </div>
@@ -832,7 +832,7 @@ function renderizarFichasEquipe() {
         const nome = ficha.profiles?.nome || ficha.profiles?.username || "Tripulante";
         const destaque = (ficha.id === (perfilFichaConsultada?.id || window.usuarioAtual?.id)) ? " ficha-equipe-item-eu" : "";
         return `
-            <div class="ficha-equipe-item${destaque}" ${TiaoAcesso.ehTiao()?`role="button" tabindex="0" style="cursor:pointer" aria-label="Visualizar ficha de ${escaparAtributoFicha(nome)}" onclick="selecionarFichaTripulante('${escaparAtributoFicha(ficha.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"`:""}>
+            <div class="ficha-equipe-item${destaque}" ${TiaoAcesso.ehGestor()?`role="button" tabindex="0" style="cursor:pointer" aria-label="Visualizar ficha de ${escaparAtributoFicha(nome)}" onclick="selecionarFichaTripulante('${escaparAtributoFicha(ficha.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"`:""}>
                 <strong>${escaparTextoFicha(nome)}</strong>
                 <div class="ficha-equipe-atributos">
                     <span>❤️ ${ficha.vida}</span><span>⚔️ ${ficha.dano_extra}</span>

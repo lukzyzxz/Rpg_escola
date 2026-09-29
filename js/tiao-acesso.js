@@ -1,11 +1,17 @@
 /* Permissões confirmadas pelo banco. Nunca troca a sessão por outro jogador. */
 const TiaoAcesso=(()=>{
  let mestre=false;
+ let gestor=false;
  async function carregar(){
   mestre=false;
+  gestor=false;
   const usuario=window.usuarioAtual?.id;
-  const {data,error}=await supabaseClient.rpc('nave_eh_tiao');
+  const [{data,error},{data:admin, error:erroAdmin}]=await Promise.all([
+   supabaseClient.rpc('nave_eh_tiao'),
+   supabaseClient.rpc('nave_eh_admin')
+  ]);
   if(!error&&window.usuarioAtual?.id===usuario)mestre=data===true;
+  if(!erroAdmin&&window.usuarioAtual?.id===usuario)gestor=admin===true;
  }
  function desbloquear(id,concluido){
   NaveUI.form('Desbloquear Kaiju secreto',`<p>A senha revela o Kaiju e libera seus dados para combate nesta conta.</p><label>Senha<input name="senha" type="password" required maxlength="72" autocomplete="off" autofocus></label>`,async form=>{
@@ -19,9 +25,10 @@ const TiaoAcesso=(()=>{
  }
  document.addEventListener('usuarioDesconectado',()=>{
   mestre=false;
+  gestor=false;
   if(typeof fecharModal==='function')fecharModal();
   if(typeof catalogoKaijusRegistro!=='undefined')catalogoKaijusRegistro=[];
   if(typeof fecharCodexKaiju==='function')fecharCodexKaiju();
  });
- return {carregar,ehTiao:()=>mestre,desbloquear};
+ return {carregar,ehTiao:()=>mestre,ehGestor:()=>mestre||gestor,ehAdmin:()=>gestor,desbloquear};
 })();
