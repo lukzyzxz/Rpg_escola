@@ -3,7 +3,7 @@ const MechaNovoUI = (() => {
     const R = MechaNovoRegras;
     const esc = valor => String(valor ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const $ = id => document.getElementById(id);
-    let config, ficha, usuario, arquivo, imagemUrl = '', carregado = false, salvando = false, versao = 0, versaoFicha = 0;
+    let config, ficha, usuario, arquivo, imagemUrl = '', carregado = false, salvando = false, alteracoes = false, versao = 0, versaoFicha = 0;
     const padrao = id => ({ usuario_id: id, nome: 'NOVO MECHA', descricao: '', imagem_path: null, cabeca: null, torso: null, bracos: null, pernas: null, kaijus_derrotados: [], armas_simples: true, carta_dupla: 'A' });
     const abas = atual => `<nav class="mecha-novo-abas" aria-label="Projetos de mecha"><button type="button" class="n-button" ${atual === 'antigo' ? 'aria-current="page"' : ''} onclick="abrirPagina('mechas')">Mecha original</button><button type="button" class="n-button" ${atual === 'novo' ? 'aria-current="page"' : ''} onclick="abrirPagina('mecha-novo')">Novo mecha · novas peças</button></nav>`;
     function resumo(base, projeto) {
@@ -20,12 +20,12 @@ const MechaNovoUI = (() => {
         </div>`;
     }
     function tela() {
-        return `<section class="mecha-pagina mecha-novo-pagina">${abas('novo')}
+        return `<section class="mecha-pagina mecha-novo-pagina">${abas('novo')}${MechaAlvo.seletor()}
             <div class="mecha-topo"><div><span class="mecha-selo">PARTES KAIJUS · VERSÃO FINAL</span><h2>Novo mecha</h2><p>Cabeça define defesa, torso define vida, pernas definem agilidade e braços definem dano extra. Cada fórmula usa os níveis originais da ficha.</p></div></div>
             <p id="novo-mecha-status" role="status" aria-live="polite">Carregando seu novo mecha…</p>
             <form id="novo-mecha-form"><fieldset id="novo-mecha-campos" disabled><div class="mecha-layout"><div class="mecha-coluna-principal">
                 <article class="mecha-painel mecha-formulario"><h3>Identidade do novo mecha</h3><label for="novo-mecha-nome">Nome</label><input type="text" id="novo-mecha-nome" maxlength="60" required value="NOVO MECHA"><label for="novo-mecha-descricao">Notas do projeto</label><textarea id="novo-mecha-descricao" maxlength="1200" rows="3"></textarea><label for="novo-mecha-imagem">Imagem do novo mecha (até 5 MB)</label><input id="novo-mecha-imagem" type="file" accept="image/png,image/jpeg,image/webp,image/gif"><div id="novo-mecha-preview" class="mecha-novo-preview"></div></article>
-                <article class="mecha-painel"><h3>Kaijus derrotados</h3><p class="mecha-novo-ajuda">Marque os kaijus que você derrotou para liberar suas peças neste projeto.</p><div id="novo-mecha-kaijus" class="mecha-novo-kaijus"></div></article>
+                <article class="mecha-painel"><h3>Kaijus derrotados</h3><p class="mecha-novo-ajuda">Marque os kaijus derrotados pelo piloto para liberar suas peças neste projeto.</p><div id="novo-mecha-kaijus" class="mecha-novo-kaijus"></div></article>
                 <article class="mecha-painel"><h3>Novas peças</h3><div id="novo-mecha-slots" class="mecha-slots"></div></article>
                 <article class="mecha-painel mecha-formulario"><h3>Condições de combate</h3><label class="mecha-novo-check"><input id="novo-mecha-simples" type="checkbox"> Estou usando armas simples</label><p class="mecha-novo-ajuda">Ativa o multiplicador ×3 dos braços do Urso e permite a mordida.</p><label for="novo-mecha-carta">Carta com dano dobrado pela cabeça da Hidra</label><select id="novo-mecha-carta">${['A','2','3','4','5','6','7','8','9','10','J','Q','K'].map(c => `<option>${c}</option>`).join('')}</select><p class="mecha-novo-ajuda">Só tem efeito se a cabeça da Hidra estiver equipada.</p></article>
             </div><aside class="mecha-resumo"><div class="mecha-resumo-sticky"><span class="mecha-resumo-selo">FICHA DO NOVO MECHA</span><div id="novo-mecha-resumo"></div><button type="submit" id="novo-mecha-salvar" class="btn-salvar-mecha">SALVAR NOVO MECHA</button><p class="mecha-novo-ajuda">Depois de salvar, estes totais aparecem na Ficha do Tripulante, na seção do novo mecha.</p></div></aside></div></fieldset></form></section>`;
@@ -37,7 +37,7 @@ const MechaNovoUI = (() => {
     function atualizarResumo() {
         if ($('novo-mecha-resumo')) $('novo-mecha-resumo').innerHTML = resumo(ficha, config);
     }
-    function alterado() { status('Alterações não salvas. Clique em SALVAR NOVO MECHA.'); atualizarResumo(); }
+    function alterado() { alteracoes = true; status('Alterações não salvas. Clique em SALVAR NOVO MECHA.'); atualizarResumo(); }
     function renderizarPecas() {
         $('novo-mecha-kaijus').innerHTML = R.kaijus.map(k => `<label class="mecha-novo-check"><input type="checkbox" data-novo-kaiju="${k.id}" ${config.kaijus_derrotados.includes(k.id) ? 'checked' : ''}>${esc(k.nome)}</label>`).join('');
         $('novo-mecha-slots').innerHTML = R.slots.map(slot => {
@@ -49,8 +49,8 @@ const MechaNovoUI = (() => {
     function preview(url) { if ($('novo-mecha-preview')) $('novo-mecha-preview').innerHTML = url ? `<img src="${esc(url)}" alt="Design do novo mecha">` : ''; }
     async function iniciar() {
         const token = ++versao;
-        usuario = window.usuarioAtual?.id;
-        carregado = false; arquivo = null;
+        usuario = MechaAlvo.atual()?.id;
+        carregado = false; alteracoes = false; arquivo = null;
         if (imagemUrl.startsWith('blob:')) URL.revokeObjectURL(imagemUrl);
         imagemUrl = '';
         if (!usuario) { status('Entre na sua conta para carregar o novo mecha.', true); return; }
@@ -68,12 +68,13 @@ const MechaNovoUI = (() => {
         try {
             const [projeto, piloto] = await Promise.all([
                 supabaseClient.from('mechas_novos').select('*').eq('usuario_id', uid).maybeSingle(),
-                supabaseClient.from('fichas_tripulantes').select('id,nivel_embaixador,nivel_combatente,nivel_tripulante').eq('id', uid).single()
+                supabaseClient.from('fichas_tripulantes').select('id,nivel_embaixador,nivel_combatente,nivel_tripulante').eq('id', uid).maybeSingle()
             ]);
             if (projeto.error) throw projeto.error;
             if (piloto.error) throw piloto.error;
-            if (token !== versao || uid !== window.usuarioAtual?.id || !form.isConnected) return;
-            config = { ...padrao(uid), ...projeto.data }; ficha = piloto.data;
+            if (token !== versao || uid !== MechaAlvo.atual()?.id || !form.isConnected) return;
+            config = { ...padrao(uid), ...projeto.data };
+            ficha = piloto.data || {id:uid,nivel_embaixador:0,nivel_combatente:0,nivel_tripulante:0};
             $('novo-mecha-nome').value = config.nome;
             $('novo-mecha-descricao').value = config.descricao;
             $('novo-mecha-simples').checked = config.armas_simples;
@@ -109,7 +110,7 @@ const MechaNovoUI = (() => {
     }
     async function salvar(event) {
         event.preventDefault();
-        if (!carregado || salvando || usuario !== window.usuarioAtual?.id) return;
+        if (!carregado || salvando || usuario !== MechaAlvo.atual()?.id) return;
         const token = versao, form = $('novo-mecha-form');
         const dados = { ...config, nome: config.nome.trim() || 'NOVO MECHA', atualizado_em: new Date().toISOString() };
         salvando = true; $('novo-mecha-campos').disabled = true; status('Salvando novo mecha…');
@@ -123,9 +124,9 @@ const MechaNovoUI = (() => {
             }
             const result = await supabaseClient.from('mechas_novos').upsert(dados, { onConflict: 'usuario_id' }).select().single();
             if (result.error) throw result.error;
-            if (token !== versao || usuario !== window.usuarioAtual?.id) return;
-            config = result.data; arquivo = null;
-            if (form.isConnected) { $('novo-mecha-imagem').value = ''; status('Novo mecha salvo. Os atributos e efeitos estão disponíveis na sua ficha.'); }
+            if (token !== versao || usuario !== MechaAlvo.atual()?.id) return;
+            config = result.data; arquivo = null; alteracoes = false;
+            if (form.isConnected) { $('novo-mecha-imagem').value = ''; status('Novo mecha salvo. Os atributos e efeitos estão disponíveis na ficha do piloto.'); }
         } catch (erro) { if (token === versao && form.isConnected) status(`Não foi possível salvar: ${erro.message}. Suas escolhas continuam na tela.`, true); }
         finally { salvando = false; if (token === versao && form.isConnected) $('novo-mecha-campos').disabled = false; }
     }
@@ -140,6 +141,6 @@ const MechaNovoUI = (() => {
             alvo.innerHTML = data ? `<h3>${esc(data.nome)} · ficha do novo mecha</h3><p class="mecha-novo-ajuda">Atributos calculados por peça a partir dos níveis originais das missões.</p>${resumo(base, data)}` : '<h3>Ficha do novo mecha</h3><p>Este tripulante ainda não salvou um novo mecha.</p>';
         } catch (erro) { if (token === versaoFicha && alvo.isConnected) alvo.textContent = `Não foi possível carregar a ficha do novo mecha: ${erro.message}`; }
     }
-    document.addEventListener('usuarioAutenticado', () => { ++versao; ++versaoFicha; carregado = false; config = null; ficha = null; });
-    return { tela, iniciar, abas, resumo, renderizarNaFicha };
+    document.addEventListener('usuarioAutenticado', () => { ++versao; ++versaoFicha; carregado = false; alteracoes = false; config = null; ficha = null; });
+    return { tela, iniciar, abas, resumo, renderizarNaFicha, temAlteracoes: () => alteracoes, ocupado: () => salvando };
 })();

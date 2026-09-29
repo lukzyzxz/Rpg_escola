@@ -1,4 +1,7 @@
 .mecha-novo-abas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.mecha-seletor-piloto{margin-bottom:20px;display:grid;gap:10px;max-width:480px}
+.mecha-seletor-piloto label{color:#b9efff;font-weight:700}
+.mecha-seletor-piloto select{width:100%;min-height:44px;padding:10px 12px;background:#0d1728;color:#eef4ff;border:1px solid #45617b;border-radius:8px}
 .mecha-novo-abas button[aria-current="page"]{border-color:#55d8ff;background:#123c50;color:#b9efff}
 .mecha-novo-pagina fieldset{border:0;padding:0;margin:0;min-width:0}
 .mecha-novo-pagina fieldset:disabled{opacity:.55}

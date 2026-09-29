@@ -362,7 +362,7 @@ function abrirPagina(pagina) {
         case "mecha-novo":
             titulo.textContent = "Novo Mecha";
             conteudo.innerHTML = MechaNovoUI.tela();
-            agendarInicializacao(() => MechaNovoUI.iniciar());
+            agendarInicializacao(() => MechaAlvo.preparar("mecha-novo", () => MechaNovoUI.iniciar()));
             break;
 
         case "mechas":

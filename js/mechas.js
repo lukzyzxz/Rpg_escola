@@ -30,6 +30,7 @@ function telaMechas() {
     return `
         <section class="mecha-pagina">
             ${typeof MechaNovoUI !== 'undefined' ? MechaNovoUI.abas('antigo') : ''}
+            ${MechaAlvo.seletor()}
             <div class="mecha-topo">
                 <div>
                     <span class="mecha-selo">PROJETO TITÃ — UNIDADE INDIVIDUAL</span>
@@ -144,7 +145,7 @@ function telaMechas() {
                             <strong>SALVAR MECHA</strong>
                         </button>
                         <small class="mecha-salvamento-aviso">
-                            O projeto fica vinculado somente à sua conta.
+                            ${TiaoAcesso.ehAdmin() ? "O projeto será salvo na conta do piloto selecionado." : "O projeto fica vinculado somente à sua conta."}
                         </small>
                     </div>
                 </aside>
@@ -172,13 +173,14 @@ function inicializarPaginaMechas() {
     document.getElementById("mecha-arquivo-imagem")
         ?.addEventListener("change", selecionarImagemMecha);
 
-    carregarDesenvolvimentoMecha();
+    MechaAlvo.preparar("mechas", () => carregarDesenvolvimentoMecha());
     iniciarSincronizacaoMecha();
 }
 
 async function carregarDesenvolvimentoMecha(silencioso = false) {
     if (carregandoMecha || !window.usuarioAtual) return;
     carregandoMecha = true;
+    const usuarioId = MechaAlvo.atual()?.id;
 
     if (!silencioso) {
         atualizarStatusMecha(
@@ -190,7 +192,7 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
     }
 
     try {
-        const usuarioId = window.usuarioAtual.id;
+        if (!usuarioId) throw new Error("Selecione um tripulante.");
         const [kaijus, pecas, mecha, derrotados, equipadas, ficha] = await Promise.all([
             supabaseClient.from("mecha_kaijus_catalogo").select("id, nome, ordem, imagem_path, imagem_storage").order("ordem"),
             supabaseClient.from("mecha_pecas_catalogo").select("id, kaiju_id, slot, nome, vida, ataque, defesa, agilidade, passiva, descricao, efeito, efeito_resumo"),
@@ -203,6 +205,7 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
         [kaijus, pecas, mecha, derrotados, equipadas, ficha].forEach(resultado => {
             if (resultado.error) throw resultado.error;
         });
+        if (usuarioId !== MechaAlvo.atual()?.id || paginaAtual !== "mechas") return;
 
         catalogoKaijusMecha = await NaveDados.hydrateKaijus(kaijus.data || []);
         catalogoPecasMecha = pecas.data || [];
@@ -228,6 +231,7 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
         });
 
         imagemMechaUrl = await obterUrlImagemMecha(mechaAtual.imagem_path);
+        if (usuarioId !== MechaAlvo.atual()?.id || paginaAtual !== "mechas") return;
         renderizarDesenvolvimentoMecha();
         mechaAlterado = false;
 
@@ -250,6 +254,9 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
         );
     } finally {
         carregandoMecha = false;
+        if (paginaAtual === "mechas" && usuarioId !== MechaAlvo.atual()?.id) {
+            carregarDesenvolvimentoMecha();
+        }
     }
 }
 
@@ -276,7 +283,7 @@ function renderizarDesenvolvimentoMecha() {
     if (nome) nome.value = mechaAtual?.nome || "MECHA 20M";
     if (descricao) descricao.value = mechaAtual?.descricao || "";
     if (piloto) {
-        const nomePiloto = window.profileAtual?.nome
+        const nomePiloto = MechaAlvo.atual()?.nome
             || window.profileAtual?.username
             || "Tripulante";
         piloto.textContent = `PILOTO: ${String(nomePiloto).toUpperCase()}`;
@@ -543,7 +550,7 @@ async function enviarImagemMecha() {
     const extensao = ["png", "jpg", "jpeg", "webp", "gif"].includes(extensaoOriginal)
         ? extensaoOriginal
         : "png";
-    const caminho = `${window.usuarioAtual.id}/design-${Date.now()}.${extensao}`;
+    const caminho = `${MechaAlvo.atual()?.id}/design-${Date.now()}.${extensao}`;
 
     const { error } = await supabaseClient.storage
         .from(MECHA_BUCKET)
@@ -583,9 +590,12 @@ async function salvarDesenvolvimentoMecha() {
             pecas[slot.id] = pecasEquipadasMecha[slot.id] || null;
         });
 
+        const alvo = MechaAlvo.atual();
+        if (!alvo?.id || alvo.id !== mechaAtual?.usuario_id) throw new Error("Piloto alterado. Recarregue o projeto.");
         const { data, error } = await supabaseClient.rpc(
-            "salvar_desenvolvimento_mecha",
+            TiaoAcesso.ehAdmin() ? "nave_admin_salvar_mecha" : "salvar_desenvolvimento_mecha",
             {
+                ...(TiaoAcesso.ehAdmin() ? {p_usuario: alvo.id} : {}),
                 p_nome: nome,
                 p_descricao: descricao,
                 p_imagem_path: imagemPath,
@@ -618,7 +628,7 @@ async function salvarDesenvolvimentoMecha() {
         atualizarStatusMecha(
             "disponivel",
             "Projeto salvo",
-            "Sua configuração individual foi confirmada.",
+            "A configuração do piloto foi confirmada.",
             "✓"
         );
         mostrarAvisoMecha("Mecha salvo com sucesso!", "success");
@@ -664,7 +674,7 @@ function atualizarStatusMecha(tipo, tituloStatus, detalhe, icone) {
 }
 
 function iniciarSincronizacaoMecha() {
-    if (canalMecha || !window.usuarioAtual) return;
+    if (canalMecha || !window.usuarioAtual || TiaoAcesso.ehAdmin()) return;
 
     canalMecha = supabaseClient
         .channel(`mecha-individual-${window.usuarioAtual.id}`)
