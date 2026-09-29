@@ -206,15 +206,11 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
             if (resultado.error) throw resultado.error;
         });
         if (usuarioId !== MechaAlvo.atual()?.id || paginaAtual !== "mechas") return;
+        if (!ficha.data) throw new Error("A ficha do piloto não está disponível.");
 
         catalogoKaijusMecha = await NaveDados.hydrateKaijus(kaijus.data || []);
         catalogoPecasMecha = pecas.data || [];
-        fichaPilotoMecha = ficha.data || {
-            agilidade: 5,
-            nivel_embaixador: 0,
-            nivel_combatente: 0,
-            nivel_tripulante: 0
-        };
+        fichaPilotoMecha = ficha.data;
         mechaAtual = mecha.data || {
             usuario_id: usuarioId,
             nome: "MECHA 20M",
@@ -249,7 +245,7 @@ async function carregarDesenvolvimentoMecha(silencioso = false) {
         atualizarStatusMecha(
             "erro",
             "Hangar indisponível",
-            "Execute o SQL de Desenvolvimento de Mechas e tente novamente.",
+            erro.message || "Não foi possível carregar o mecha do piloto.",
             "⚠"
         );
     } finally {

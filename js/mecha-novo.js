@@ -73,8 +73,9 @@ const MechaNovoUI = (() => {
             if (projeto.error) throw projeto.error;
             if (piloto.error) throw piloto.error;
             if (token !== versao || uid !== MechaAlvo.atual()?.id || !form.isConnected) return;
+            if (!piloto.data) throw new Error('A ficha do piloto não está disponível. Confira o acesso aos níveis antes de montar o mecha');
             config = { ...padrao(uid), ...projeto.data };
-            ficha = piloto.data || {id:uid,nivel_embaixador:0,nivel_combatente:0,nivel_tripulante:0};
+            ficha = piloto.data;
             $('novo-mecha-nome').value = config.nome;
             $('novo-mecha-descricao').value = config.descricao;
             $('novo-mecha-simples').checked = config.armas_simples;
